@@ -28,6 +28,20 @@ function render() {
     fieldDiv.appendChild(div)
   })
 }
+function draw() {
+  if (hand.length >= 6) {
+    alert("もうこれ以上持てないよ！")
+    return
+  }
+
+  const newCard = {
+    top: Math.ceil(Math.random() * 6),
+    bottom: Math.ceil(Math.random() * 6)
+  }
+
+  hand.push(newCard)
+  render()
+}
 
 function draw() {
   const newCard = {
