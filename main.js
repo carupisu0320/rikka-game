@@ -24,7 +24,7 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-let selectedIndex = null // 並び替え用
+let selectedIndex = null // 選択中
 
 // ===== 模様 =====
 function createSymbol(num, isTop) {
@@ -82,12 +82,10 @@ function createSymbol(num, isTop) {
   return container
 }
 
-// ===== 回転（上下入れ替え）=====
+// ===== 回転 =====
 function rotateCard(index) {
   const card = hand[index]
-  const temp = card.top
-  card.top = card.bottom
-  card.bottom = temp
+  ;[card.top, card.bottom] = [card.bottom, card.top]
   render()
 }
 
@@ -127,41 +125,40 @@ function createCard(card, index, isField) {
   if (isField) {
     const fieldWidth = 800
     const cols = 9
-
     const gapX = fieldWidth / cols
     const gapY = 100
 
     const col = index % cols
     const row = Math.floor(index / cols)
 
-    const x = col * gapX + Math.random() * 20 - 10
-    const y = row * gapY + 20 + Math.random() * 15 - 7
-
-    div.style.left = x + "px"
-    div.style.top = y + "px"
+    div.style.left = col * gapX + Math.random() * 20 - 10 + "px"
+    div.style.top = row * gapY + 20 + Math.random() * 15 - 7 + "px"
     div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
 
-    div.onclick = () => take(index)
-  } else {
-    // 左クリック → 並び替え or 捨てる
+    // 場クリック → 捨てる
     div.onclick = () => {
-      if (selectedIndex === null) {
-        selectedIndex = index
-        div.style.border = "3px solid red"
-      } else {
-        // 入れ替え
-        const temp = hand[selectedIndex]
-        hand[selectedIndex] = hand[index]
-        hand[index] = temp
+      if (selectedIndex !== null) {
+        discard(selectedIndex)
         selectedIndex = null
-        render()
       }
+    }
+
+  } else {
+    // 手札クリック → 選択
+    div.onclick = () => {
+      selectedIndex = index
+      render()
     }
 
     // 右クリック → 回転
     div.oncontextmenu = (e) => {
       e.preventDefault()
       rotateCard(index)
+    }
+
+    // 選択表示
+    if (selectedIndex === index) {
+      div.style.border = "3px solid red"
     }
   }
 
@@ -195,14 +192,19 @@ function take(index) {
   const card = field.splice(index, 1)[0]
   card.faceUp = true
   hand.push(card)
-
   render()
 }
 
 function discard(index) {
+  if (hand.length <= 5) {
+    alert("手札は5枚必要！")
+    return
+  }
+
   const card = hand.splice(index, 1)[0]
   card.faceUp = true
   field.push(card)
+
   render()
 }
 
