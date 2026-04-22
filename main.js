@@ -3,11 +3,20 @@ let field = []
 
 function createDeck() {
   const deck = []
+
   for (let top = 1; top <= 6; top++) {
     for (let bottom = 1; bottom <= 6; bottom++) {
+
+      // 1枚追加
       deck.push({ top, bottom })
+
+      // ゾロ目はもう1枚追加
+      if (top === bottom) {
+        deck.push({ top, bottom })
+      }
     }
   }
+
   return deck.sort(() => Math.random() - 0.5)
 }
 
@@ -16,15 +25,39 @@ function init() {
 
   hand = deck.splice(0, 5)
 
-  // 最初の場は全部「裏」
   field = deck.map(card => ({
     ...card,
     x: Math.random() * 80,
     y: Math.random() * 200,
-    faceUp: false // ←重要
+    faceUp: false
   }))
 
   render()
+}
+
+function createCard(card, isField = false, index = 0) {
+  const div = document.createElement("div")
+  div.className = "card"
+
+  if (!card.faceUp && isField) {
+    div.classList.add("back")
+    div.innerText = ""
+  } else {
+    div.innerHTML = `
+      <div>${card.top}</div>
+      <div>${card.bottom}</div>
+    `
+  }
+
+  if (isField) {
+    div.style.left = card.x + "%"
+    div.style.top = card.y + "px"
+    div.onclick = () => takeFromField(index)
+  } else {
+    div.onclick = () => discard(index)
+  }
+
+  return div
 }
 
 function render() {
@@ -34,37 +67,17 @@ function render() {
   handDiv.innerHTML = ""
   fieldDiv.innerHTML = ""
 
-  // 手札（常に表）
+  // 手札
   hand.forEach((card, index) => {
-    const img = document.createElement("img")
-    img.src = `images/${card.top}-${card.bottom}.png`
-
-    img.onclick = () => discard(index)
-
-    handDiv.appendChild(img)
+    handDiv.appendChild(createCard(card, false, index))
   })
 
   // 場
   field.forEach((card, index) => {
-    const img = document.createElement("img")
-
-    // 表か裏か
-    if (card.faceUp) {
-      img.src = `images/${card.top}-${card.bottom}.png`
-    } else {
-      img.src = `images/0-0.png`
-    }
-
-    img.style.left = card.x + "%"
-    img.style.top = card.y + "px"
-
-    img.onclick = () => takeFromField(index)
-
-    fieldDiv.appendChild(img)
+    fieldDiv.appendChild(createCard(card, true, index))
   })
 }
 
-// 場から取る
 function takeFromField(index) {
   if (hand.length >= 6) {
     alert("先に1枚捨てて！")
@@ -76,7 +89,6 @@ function takeFromField(index) {
   render()
 }
 
-// 捨てる（ここが重要🔥）
 function discard(index) {
   if (hand.length <= 5) {
     alert("まだ捨てられない！")
@@ -87,7 +99,7 @@ function discard(index) {
 
   card.x = Math.random() * 80
   card.y = Math.random() * 200
-  card.faceUp = true // ←捨てたら表になる
+  card.faceUp = true
 
   field.push(card)
   render()
