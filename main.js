@@ -24,7 +24,8 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-let selectedIndex = null // 選択中
+let selectedIndex = null // 捨てる用
+let swapIndex = null     // 並び替え用
 
 // ===== 模様 =====
 function createSymbol(num, isTop) {
@@ -135,34 +136,69 @@ function createCard(card, index, isField) {
     div.style.top = row * gapY + 20 + Math.random() * 15 - 7 + "px"
     div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
 
-    // 場クリック → 捨てる
-    div.onclick = () => {
-      if (selectedIndex !== null) {
-        discard(selectedIndex)
-        selectedIndex = null
-      }
-    }
+    div.onclick = () => take(index)
 
   } else {
-    // 手札クリック → 選択
     div.onclick = () => {
+      // 並び替え
+      if (swapIndex === null) {
+        swapIndex = index
+      } else {
+        const temp = hand[swapIndex]
+        hand[swapIndex] = hand[index]
+        hand[index] = temp
+        swapIndex = null
+      }
+
+      // 捨てる用選択
       selectedIndex = index
+      showDiscardButton()
       render()
     }
 
-    // 右クリック → 回転
+    // 回転
     div.oncontextmenu = (e) => {
       e.preventDefault()
       rotateCard(index)
     }
 
-    // 選択表示
+    // 赤（捨てる）
     if (selectedIndex === index) {
       div.style.border = "3px solid red"
+    }
+
+    // 青（並び替え）
+    if (swapIndex === index) {
+      div.style.border = "3px solid blue"
     }
   }
 
   return div
+}
+
+// ===== ボタン =====
+function showDiscardButton() {
+  const btn = document.getElementById("discardBtn")
+  btn.style.display = "inline-block"
+}
+
+function discardSelected() {
+  if (selectedIndex === null) return
+
+  if (hand.length <= 5) {
+    alert("手札は5枚必要！")
+    return
+  }
+
+  const card = hand.splice(selectedIndex, 1)[0]
+  card.faceUp = true
+  field.push(card)
+
+  selectedIndex = null
+  swapIndex = null
+  document.getElementById("discardBtn").style.display = "none"
+
+  render()
 }
 
 // ===== 描画 =====
@@ -182,7 +218,7 @@ function render() {
   })
 }
 
-// ===== 操作 =====
+// ===== 取る =====
 function take(index) {
   if (hand.length >= 6) {
     alert("先に1枚捨てて！")
@@ -192,21 +228,12 @@ function take(index) {
   const card = field.splice(index, 1)[0]
   card.faceUp = true
   hand.push(card)
-  render()
-}
-
-function discard(index) {
-  if (hand.length <= 5) {
-    alert("手札は5枚必要！")
-    return
-  }
-
-  const card = hand.splice(index, 1)[0]
-  card.faceUp = true
-  field.push(card)
 
   render()
 }
+
+// ===== ボタン処理 =====
+document.getElementById("discardBtn").onclick = discardSelected
 
 // ===== 開始 =====
 render()
