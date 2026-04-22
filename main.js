@@ -1,4 +1,4 @@
-// ===== デッキ（42枚）=====
+// ===== デッキ =====
 function createDeck() {
   const deck = []
 
@@ -24,7 +24,7 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-// ===== 模様（超綺麗版）=====
+// ===== 模様 =====
 function createSymbol(num) {
   const container = document.createElement("div")
   container.style.position = "relative"
@@ -55,7 +55,7 @@ function createSymbol(num) {
     return container
   }
 
-  // 扇風機・花火（円形配置）
+  // 円形配置（扇風機・花火）
   for (let i = 0; i < num; i++) {
     const drop = document.createElement("div")
 
@@ -105,23 +105,24 @@ function createCard(card, index, isField) {
   }
 
   if (isField) {
-    const cols = 7
-    const gapX = 70
-    const gapY = 110
+    const fieldWidth = 800
+    const cols = 9
+
+    const gapX = fieldWidth / cols
+    const gapY = 100
 
     const col = index % cols
     const row = Math.floor(index / cols)
 
-    const offsetX = (600 - cols * gapX) / 2
-
-    const x = offsetX + col * gapX
-    const y = row * gapY + 10
+    // 横に広げる＋ランダムずらし
+    const x = col * gapX + Math.random() * 20 - 10
+    const y = row * gapY + 20 + Math.random() * 15 - 7
 
     div.style.left = x + "px"
     div.style.top = y + "px"
 
-    // 向きバラバラ
-    div.style.transform = `rotate(${Math.random() * 10 - 5}deg)`
+    // 向きランダム
+    div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
 
     div.onclick = () => take(index)
   } else {
