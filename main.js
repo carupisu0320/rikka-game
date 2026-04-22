@@ -19,12 +19,12 @@ function createDeck() {
   return deck.sort(() => Math.random() - 0.5)
 }
 
-// ===== ゲーム状態 =====
+// ===== 初期 =====
 let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-// ===== 模様作成 =====
+// ===== 模様 =====
 function createSymbol(num) {
   const container = document.createElement("div")
   container.style.display = "flex"
@@ -64,13 +64,13 @@ function createSymbol(num) {
   return container
 }
 
-// ===== 牌作成 =====
+// ===== 牌 =====
 function createCard(card, index, isField) {
   const div = document.createElement("div")
   div.className = isField ? "card" : "card hand-card"
 
   if (!card.faceUp && isField) {
-    div.style.background = "gray"
+    div.classList.add("back")
   } else {
     const top = createSymbol(card.top)
     const bottom = createSymbol(card.bottom)
@@ -79,6 +79,7 @@ function createCard(card, index, isField) {
 
     if (card.top === card.bottom) {
       middle.innerText = "★"
+      middle.style.fontSize = "18px"
     }
 
     div.appendChild(top)
@@ -87,16 +88,23 @@ function createCard(card, index, isField) {
   }
 
   if (isField) {
-    // 重ならない配置（グリッド）
-    const cols = 8
-    const x = (index % cols) * 70
-    const y = Math.floor(index / cols) * 110
+    const cols = 7
+    const gapX = 70
+    const gapY = 110
+
+    const col = index % cols
+    const row = Math.floor(index / cols)
+
+    const offsetX = (600 - cols * gapX) / 2
+
+    const x = offsetX + col * gapX
+    const y = row * gapY + 10
 
     div.style.left = x + "px"
     div.style.top = y + "px"
 
-    // 向きバラバラ
-    div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
+    // 向きバラバラ（軽め）
+    div.style.transform = `rotate(${Math.random() * 10 - 5}deg)`
 
     div.onclick = () => take(index)
   } else {
@@ -123,7 +131,7 @@ function render() {
   })
 }
 
-// ===== 行動 =====
+// ===== 操作 =====
 function take(index) {
   if (hand.length >= 6) {
     alert("手札は6枚まで！")
@@ -146,8 +154,8 @@ function discard(index) {
 }
 
 function draw() {
-  alert("場から取ってね")
+  alert("場から選んでください")
 }
 
-// ===== 初期表示 =====
+// ===== 開始 =====
 render()
