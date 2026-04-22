@@ -72,3 +72,33 @@ h1 {
     #aaa 10px
   );
 }
+#discardBtn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+
+  width: 70px;
+  height: 110px;
+
+  background: white;
+  border-radius: 12px;
+  border: 2px solid red;
+
+  display: none;
+
+  font-weight: bold;
+  color: red;
+  font-size: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
+
+/* 浮く */
+#discardBtn:hover {
+  transform: scale(1.1);
+}
