@@ -1,4 +1,4 @@
-// ===== デッキ作成 =====
+// ===== デッキ（42枚）=====
 function createDeck() {
   const deck = []
 
@@ -24,12 +24,12 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-// ===== 模様 =====
+// ===== 模様（超綺麗版）=====
 function createSymbol(num) {
   const container = document.createElement("div")
-  container.style.display = "flex"
-  container.style.flexWrap = "wrap"
-  container.style.justifyContent = "center"
+  container.style.position = "relative"
+  container.style.width = "40px"
+  container.style.height = "40px"
 
   const colors = {
     1: "red",
@@ -40,24 +40,41 @@ function createSymbol(num) {
     6: "hotpink"
   }
 
+  // ●
   if (num === 1) {
     const dot = document.createElement("div")
-    dot.style.width = "10px"
-    dot.style.height = "10px"
+    dot.style.width = "12px"
+    dot.style.height = "12px"
     dot.style.borderRadius = "50%"
     dot.style.background = colors[num]
+    dot.style.position = "absolute"
+    dot.style.left = "50%"
+    dot.style.top = "50%"
+    dot.style.transform = "translate(-50%, -50%)"
     container.appendChild(dot)
     return container
   }
 
+  // 扇風機・花火（円形配置）
   for (let i = 0; i < num; i++) {
     const drop = document.createElement("div")
-    drop.style.width = "8px"
-    drop.style.height = "12px"
+
+    const angle = (360 / num) * i
+    const radius = 12
+
+    drop.style.width = "10px"
+    drop.style.height = "14px"
     drop.style.background = colors[num]
     drop.style.borderRadius = "50% 50% 50% 0"
-    drop.style.transform = `rotate(${i * (360 / num)}deg)`
-    drop.style.margin = "1px"
+    drop.style.position = "absolute"
+
+    drop.style.left = "50%"
+    drop.style.top = "50%"
+    drop.style.transform = `
+      rotate(${angle}deg)
+      translate(0, -${radius}px)
+    `
+
     container.appendChild(drop)
   }
 
@@ -103,7 +120,7 @@ function createCard(card, index, isField) {
     div.style.left = x + "px"
     div.style.top = y + "px"
 
-    // 向きバラバラ（軽め）
+    // 向きバラバラ
     div.style.transform = `rotate(${Math.random() * 10 - 5}deg)`
 
     div.onclick = () => take(index)
@@ -134,7 +151,7 @@ function render() {
 // ===== 操作 =====
 function take(index) {
   if (hand.length >= 6) {
-    alert("手札は6枚まで！")
+    alert("先に1枚捨てて！")
     return
   }
 
@@ -151,10 +168,6 @@ function discard(index) {
   field.push(card)
 
   render()
-}
-
-function draw() {
-  alert("場から選んでください")
 }
 
 // ===== 開始 =====
