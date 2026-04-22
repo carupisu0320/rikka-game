@@ -1,4 +1,4 @@
-// ===== デッキ =====
+// ===== デッキ（42枚）=====
 function createDeck() {
   const deck = []
 
@@ -24,12 +24,12 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-// ===== 模様 =====
-function createSymbol(num) {
+// ===== 模様（中央に向かう綺麗版）=====
+function createSymbol(num, isTop) {
   const container = document.createElement("div")
   container.style.position = "relative"
   container.style.width = "40px"
-  container.style.height = "40px"
+  container.style.height = "30px"
 
   const colors = {
     1: "red",
@@ -43,8 +43,8 @@ function createSymbol(num) {
   // ●
   if (num === 1) {
     const dot = document.createElement("div")
-    dot.style.width = "12px"
-    dot.style.height = "12px"
+    dot.style.width = "10px"
+    dot.style.height = "10px"
     dot.style.borderRadius = "50%"
     dot.style.background = colors[num]
     dot.style.position = "absolute"
@@ -55,12 +55,13 @@ function createSymbol(num) {
     return container
   }
 
-  // 円形配置（扇風機・花火）
+  // 涙（中心に向かう）
   for (let i = 0; i < num; i++) {
     const drop = document.createElement("div")
 
     const angle = (360 / num) * i
-    const radius = 12
+    const radius = 10
+    const flip = isTop ? 180 : 0
 
     drop.style.width = "10px"
     drop.style.height = "14px"
@@ -71,7 +72,7 @@ function createSymbol(num) {
     drop.style.left = "50%"
     drop.style.top = "50%"
     drop.style.transform = `
-      rotate(${angle}deg)
+      rotate(${angle + flip}deg)
       translate(0, -${radius}px)
     `
 
@@ -89,19 +90,31 @@ function createCard(card, index, isField) {
   if (!card.faceUp && isField) {
     div.classList.add("back")
   } else {
-    const top = createSymbol(card.top)
-    const bottom = createSymbol(card.bottom)
+    // 上
+    const topArea = document.createElement("div")
+    topArea.style.display = "flex"
+    topArea.style.justifyContent = "center"
+    topArea.appendChild(createSymbol(card.top, true))
 
+    // 真ん中
     const middle = document.createElement("div")
+    middle.style.textAlign = "center"
+    middle.style.height = "20px"
 
     if (card.top === card.bottom) {
       middle.innerText = "★"
       middle.style.fontSize = "18px"
     }
 
-    div.appendChild(top)
+    // 下
+    const bottomArea = document.createElement("div")
+    bottomArea.style.display = "flex"
+    bottomArea.style.justifyContent = "center"
+    bottomArea.appendChild(createSymbol(card.bottom, false))
+
+    div.appendChild(topArea)
     div.appendChild(middle)
-    div.appendChild(bottom)
+    div.appendChild(bottomArea)
   }
 
   if (isField) {
@@ -114,7 +127,7 @@ function createCard(card, index, isField) {
     const col = index % cols
     const row = Math.floor(index / cols)
 
-    // 横に広げる＋ランダムずらし
+    // 横に広がる＋ランダム
     const x = col * gapX + Math.random() * 20 - 10
     const y = row * gapY + 20 + Math.random() * 15 - 7
 
