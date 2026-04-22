@@ -1,7 +1,6 @@
 let hand = []
 let field = []
 
-// デッキ作成
 function createDeck() {
   const deck = []
   for (let top = 1; top <= 6; top++) {
@@ -12,22 +11,22 @@ function createDeck() {
   return deck.sort(() => Math.random() - 0.5)
 }
 
-// 初期化
 function init() {
   const deck = createDeck()
 
   hand = deck.splice(0, 5)
 
+  // 最初の場は全部「裏」
   field = deck.map(card => ({
     ...card,
     x: Math.random() * 80,
-    y: Math.random() * 200
+    y: Math.random() * 200,
+    faceUp: false // ←重要
   }))
 
   render()
 }
 
-// 描画
 function render() {
   const handDiv = document.getElementById("hand")
   const fieldDiv = document.getElementById("field")
@@ -35,7 +34,7 @@ function render() {
   handDiv.innerHTML = ""
   fieldDiv.innerHTML = ""
 
-  // 手札
+  // 手札（常に表）
   hand.forEach((card, index) => {
     const img = document.createElement("img")
     img.src = `images/${card.top}-${card.bottom}.png`
@@ -48,7 +47,13 @@ function render() {
   // 場
   field.forEach((card, index) => {
     const img = document.createElement("img")
-    img.src = `images/${card.top}-${card.bottom}.png`
+
+    // 表か裏か
+    if (card.faceUp) {
+      img.src = `images/${card.top}-${card.bottom}.png`
+    } else {
+      img.src = `images/0-0.png`
+    }
 
     img.style.left = card.x + "%"
     img.style.top = card.y + "px"
@@ -71,7 +76,7 @@ function takeFromField(index) {
   render()
 }
 
-// 捨てる
+// 捨てる（ここが重要🔥）
 function discard(index) {
   if (hand.length <= 5) {
     alert("まだ捨てられない！")
@@ -82,10 +87,10 @@ function discard(index) {
 
   card.x = Math.random() * 80
   card.y = Math.random() * 200
+  card.faceUp = true // ←捨てたら表になる
 
   field.push(card)
   render()
 }
 
-// スタート
 init()
