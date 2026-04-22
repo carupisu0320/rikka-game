@@ -1,4 +1,4 @@
-// ===== デッキ（42枚）=====
+// ===== デッキ =====
 function createDeck() {
   const deck = []
 
@@ -24,7 +24,9 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-// ===== 模様（中央に向かう綺麗版）=====
+let selectedIndex = null // 並び替え用
+
+// ===== 模様 =====
 function createSymbol(num, isTop) {
   const container = document.createElement("div")
   container.style.position = "relative"
@@ -40,7 +42,6 @@ function createSymbol(num, isTop) {
     6: "hotpink"
   }
 
-  // ●
   if (num === 1) {
     const dot = document.createElement("div")
     dot.style.width = "10px"
@@ -55,7 +56,6 @@ function createSymbol(num, isTop) {
     return container
   }
 
-  // 涙（中心に向かう）
   for (let i = 0; i < num; i++) {
     const drop = document.createElement("div")
 
@@ -82,6 +82,15 @@ function createSymbol(num, isTop) {
   return container
 }
 
+// ===== 回転（上下入れ替え）=====
+function rotateCard(index) {
+  const card = hand[index]
+  const temp = card.top
+  card.top = card.bottom
+  card.bottom = temp
+  render()
+}
+
 // ===== 牌 =====
 function createCard(card, index, isField) {
   const div = document.createElement("div")
@@ -90,13 +99,11 @@ function createCard(card, index, isField) {
   if (!card.faceUp && isField) {
     div.classList.add("back")
   } else {
-    // 上（そのまま）
     const topArea = document.createElement("div")
     topArea.style.display = "flex"
     topArea.style.justifyContent = "center"
     topArea.appendChild(createSymbol(card.top, true))
 
-    // 真ん中
     const middle = document.createElement("div")
     middle.style.textAlign = "center"
     middle.style.height = "20px"
@@ -106,12 +113,10 @@ function createCard(card, index, isField) {
       middle.style.fontSize = "18px"
     }
 
-    // 下（-6px 上げる）
     const bottomArea = document.createElement("div")
     bottomArea.style.display = "flex"
     bottomArea.style.justifyContent = "center"
     bottomArea.style.transform = "translateY(-6px)"
-
     bottomArea.appendChild(createSymbol(card.bottom, false))
 
     div.appendChild(topArea)
@@ -134,12 +139,30 @@ function createCard(card, index, isField) {
 
     div.style.left = x + "px"
     div.style.top = y + "px"
-
     div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
 
     div.onclick = () => take(index)
   } else {
-    div.onclick = () => discard(index)
+    // 左クリック → 並び替え or 捨てる
+    div.onclick = () => {
+      if (selectedIndex === null) {
+        selectedIndex = index
+        div.style.border = "3px solid red"
+      } else {
+        // 入れ替え
+        const temp = hand[selectedIndex]
+        hand[selectedIndex] = hand[index]
+        hand[index] = temp
+        selectedIndex = null
+        render()
+      }
+    }
+
+    // 右クリック → 回転
+    div.oncontextmenu = (e) => {
+      e.preventDefault()
+      rotateCard(index)
+    }
   }
 
   return div
@@ -180,7 +203,6 @@ function discard(index) {
   const card = hand.splice(index, 1)[0]
   card.faceUp = true
   field.push(card)
-
   render()
 }
 
