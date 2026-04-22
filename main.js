@@ -1,13 +1,33 @@
-let hand = [
-  { top: 1, bottom: 1 }, // テスト用
-  { top: 2, bottom: 3 },
-  { top: 4, bottom: 5 },
-  { top: 6, bottom: 2 },
-  { top: 3, bottom: 1 }
-]
-
+let hand = []
 let field = []
 
+// デッキ作成
+function createDeck() {
+  const deck = []
+  for (let top = 1; top <= 6; top++) {
+    for (let bottom = 1; bottom <= 6; bottom++) {
+      deck.push({ top, bottom })
+    }
+  }
+  return deck.sort(() => Math.random() - 0.5)
+}
+
+// 初期化
+function init() {
+  const deck = createDeck()
+
+  hand = deck.splice(0, 5)
+
+  field = deck.map(card => ({
+    ...card,
+    x: Math.random() * 80,
+    y: Math.random() * 200
+  }))
+
+  render()
+}
+
+// 描画
 function render() {
   const handDiv = document.getElementById("hand")
   const fieldDiv = document.getElementById("field")
@@ -25,34 +45,33 @@ function render() {
     handDiv.appendChild(img)
   })
 
-  // 場（ランダムに散らばる）
-  field.forEach(card => {
+  // 場
+  field.forEach((card, index) => {
     const img = document.createElement("img")
     img.src = `images/${card.top}-${card.bottom}.png`
 
-    img.style.left = Math.random() * 80 + "%"
-    img.style.top = Math.random() * 200 + "px"
-    img.style.setProperty('--r', Math.random())
+    img.style.left = card.x + "%"
+    img.style.top = card.y + "px"
+
+    img.onclick = () => takeFromField(index)
 
     fieldDiv.appendChild(img)
   })
 }
 
-function draw() {
+// 場から取る
+function takeFromField(index) {
   if (hand.length >= 6) {
-    alert("もうこれ以上持てないよ！")
+    alert("先に1枚捨てて！")
     return
   }
 
-  const newCard = {
-    top: Math.ceil(Math.random() * 6),
-    bottom: Math.ceil(Math.random() * 6)
-  }
-
-  hand.push(newCard)
+  const card = field.splice(index, 1)[0]
+  hand.push(card)
   render()
 }
 
+// 捨てる
 function discard(index) {
   if (hand.length <= 5) {
     alert("まだ捨てられない！")
@@ -60,9 +79,13 @@ function discard(index) {
   }
 
   const card = hand.splice(index, 1)[0]
+
+  card.x = Math.random() * 80
+  card.y = Math.random() * 200
+
   field.push(card)
   render()
 }
 
-// 初期表示
-render()
+// スタート
+init()
