@@ -6,29 +6,28 @@ body {
   margin: 0;
 }
 
-/* タイトル */
 h1 {
   margin: 10px;
 }
 
-/* 場 */
+/* 場（広めにして手札と距離とる） */
 #field {
   position: relative;
   width: 100%;
-  max-width: 600px;
-  height: 420px;
+  max-width: 800px;
+  height: 500px;
   margin: 0 auto;
   border: 2px solid rgba(255,255,255,0.2);
   border-radius: 10px;
 }
 
-/* 手札 */
+/* 手札（完全に下固定） */
 #hand {
   position: fixed;
   bottom: 0;
   width: 100%;
-  background: rgba(0,0,0,0.3);
-  padding: 5px 0;
+  background: rgba(0,0,0,0.35);
+  padding: 6px 0;
   display: flex;
   justify-content: center;
   gap: 6px;
@@ -51,12 +50,12 @@ h1 {
   transition: transform 0.2s;
 }
 
-/* 手札 */
+/* 手札用 */
 .hand-card {
   position: static;
 }
 
-/* 浮く（場も手札も） */
+/* 浮く */
 .card:hover {
   transform: scale(1.15) !important;
   z-index: 10;
