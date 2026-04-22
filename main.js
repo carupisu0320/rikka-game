@@ -1,5 +1,5 @@
 let hand = [
-  { top: 1, bottom: 1 },
+  { top: 1, bottom: 1 }, // テスト用
   { top: 2, bottom: 3 },
   { top: 4, bottom: 5 },
   { top: 6, bottom: 2 },
@@ -19,20 +19,20 @@ function render() {
   hand.forEach((card, index) => {
     const img = document.createElement("img")
     img.src = `images/${card.top}-${card.bottom}.png`
-    img.style.width = "70px"
-    img.style.margin = "5px"
 
     img.onclick = () => discard(index)
 
     handDiv.appendChild(img)
   })
 
-  // 場
+  // 場（ランダムに散らばる）
   field.forEach(card => {
     const img = document.createElement("img")
     img.src = `images/${card.top}-${card.bottom}.png`
-    img.style.width = "70px"
-    img.style.margin = "5px"
+
+    img.style.left = Math.random() * 80 + "%"
+    img.style.top = Math.random() * 200 + "px"
+    img.style.setProperty('--r', Math.random())
 
     fieldDiv.appendChild(img)
   })
@@ -64,5 +64,5 @@ function discard(index) {
   render()
 }
 
-// 初回表示
+// 初期表示
 render()
