@@ -3,18 +3,80 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>六華</title>
+
+  <style>
+    body {
+      margin: 0;
+      text-align: center;
+      font-family: sans-serif;
+      background: #2e7d32;
+      color: white;
+    }
+
+    h1 {
+      margin: 10px;
+    }
+
+    #game {
+      max-width: 500px;
+      margin: auto;
+    }
+
+    #field {
+      position: relative;
+      height: 300px;
+      margin: 20px;
+      background: #1b5e20;
+      border-radius: 10px;
+    }
+
+    #hand {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+    }
+
+    #hand img {
+      width: 70px;
+      margin: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #hand img:hover {
+      transform: translateY(-10px);
+    }
+
+    #field img {
+      width: 70px;
+      position: absolute;
+      transform: rotate(calc(-20deg + 40deg * var(--r)));
+    }
+
+    button {
+      margin-top: 10px;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: orange;
+      color: black;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
   <h1>六華</h1>
 
-  <button onclick="draw()">引く</button>
+  <div id="game">
+    <button onclick="draw()">引く</button>
 
-  <h2>手札</h2>
+    <div id="field"></div>
+  </div>
+
   <div id="hand"></div>
-
-  <h2>場</h2>
-  <div id="field"></div>
 
   <script src="main.js"></script>
 </body>
