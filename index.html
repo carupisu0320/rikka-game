@@ -27,16 +27,27 @@
       width: 100%;
     }
 
-    #hand img {
-      width: 70px;
+    .card {
+      width: 60px;
+      height: 100px;
+      background: white;
+      border-radius: 10px;
+      border: 2px solid black;
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
       margin: 5px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    #field img {
-      width: 70px;
+    .back {
+      background: gray;
+    }
+
+    #field .card {
       position: absolute;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -45,7 +56,6 @@
   <h1>六華</h1>
 
   <div id="field"></div>
-
   <div id="hand"></div>
 
   <script src="main.js"></script>
