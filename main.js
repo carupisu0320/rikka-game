@@ -90,7 +90,7 @@ function createCard(card, index, isField) {
   if (!card.faceUp && isField) {
     div.classList.add("back")
   } else {
-    // 上
+    // 上（そのまま）
     const topArea = document.createElement("div")
     topArea.style.display = "flex"
     topArea.style.justifyContent = "center"
@@ -106,10 +106,12 @@ function createCard(card, index, isField) {
       middle.style.fontSize = "18px"
     }
 
-    // 下
+    // 下（-6px 上げる）
     const bottomArea = document.createElement("div")
     bottomArea.style.display = "flex"
     bottomArea.style.justifyContent = "center"
+    bottomArea.style.transform = "translateY(-6px)"
+
     bottomArea.appendChild(createSymbol(card.bottom, false))
 
     div.appendChild(topArea)
@@ -127,14 +129,12 @@ function createCard(card, index, isField) {
     const col = index % cols
     const row = Math.floor(index / cols)
 
-    // 横に広がる＋ランダム
     const x = col * gapX + Math.random() * 20 - 10
     const y = row * gapY + 20 + Math.random() * 15 - 7
 
     div.style.left = x + "px"
     div.style.top = y + "px"
 
-    // 向きランダム
     div.style.transform = `rotate(${Math.random() * 20 - 10}deg)`
 
     div.onclick = () => take(index)
