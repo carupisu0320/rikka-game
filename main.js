@@ -7,10 +7,8 @@ function createDeck() {
   for (let top = 1; top <= 6; top++) {
     for (let bottom = 1; bottom <= 6; bottom++) {
 
-      // 1枚追加
       deck.push({ top, bottom })
 
-      // ゾロ目はもう1枚追加
       if (top === bottom) {
         deck.push({ top, bottom })
       }
@@ -25,10 +23,11 @@ function init() {
 
   hand = deck.splice(0, 5)
 
-  field = deck.map(card => ({
+  field = deck.map((card, i) => ({
     ...card,
-    x: Math.random() * 80,
-    y: Math.random() * 200,
+    x: (i % 7) * 13 + 5,
+    y: Math.floor(i / 7) * 45 + 10,
+    r: Math.random() * 30 - 15,
     faceUp: false
   }))
 
@@ -41,7 +40,6 @@ function createCard(card, isField = false, index = 0) {
 
   if (!card.faceUp && isField) {
     div.classList.add("back")
-    div.innerText = ""
   } else {
     div.innerHTML = `
       <div>${card.top}</div>
@@ -49,7 +47,9 @@ function createCard(card, isField = false, index = 0) {
     `
   }
 
+  // 回転（向きバラバラ）
   if (isField) {
+    div.style.transform = `rotate(${card.r}deg)`
     div.style.left = card.x + "%"
     div.style.top = card.y + "px"
     div.onclick = () => takeFromField(index)
@@ -67,12 +67,10 @@ function render() {
   handDiv.innerHTML = ""
   fieldDiv.innerHTML = ""
 
-  // 手札
   hand.forEach((card, index) => {
     handDiv.appendChild(createCard(card, false, index))
   })
 
-  // 場
   field.forEach((card, index) => {
     fieldDiv.appendChild(createCard(card, true, index))
   })
@@ -97,9 +95,12 @@ function discard(index) {
 
   const card = hand.splice(index, 1)[0]
 
+  card.faceUp = true
+  card.r = Math.random() * 30 - 15
+
+  // 空いてる場所に戻す（ズレない）
   card.x = Math.random() * 80
   card.y = Math.random() * 200
-  card.faceUp = true
 
   field.push(card)
   render()
