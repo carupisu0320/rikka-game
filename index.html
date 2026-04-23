@@ -4,21 +4,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>六華</title>
   <link rel="stylesheet" href="style.css">
-  <div id="hand"></div>
-<button id="discardBtn" style="display:none;">捨てる</button>
 </head>
 <body>
+
+  <h1>六華</h1>
+
+  <!-- 場 -->
+  <div id="field"></div>
+
+  <!-- 手札 -->
+  <div id="hand"></div>
+
+  <!-- 捨てるボタン -->
+  <button id="discardBtn">捨てる</button>
+
+  <!-- テストボタン -->
   <div id="test-buttons">
-  <button onclick="setIsshiki()">一色</button>
-  <button onclick="setSanren()">三連</button>
-  <button onclick="setRikka()">六華</button>
-</div>
+    <button onclick="setIsshiki()">一色</button>
+    <button onclick="setSanren()">三連</button>
+    <button onclick="setRikka()">六華</button>
+  </div>
 
-<h1>六華</h1>
+  <!-- JS（順番重要） -->
+  <script src="role.js"></script>
+  <script src="test.js"></script>
+  <script src="main.js"></script>
 
-<div id="field"></div>
-<div id="hand"></div>
-
-<script src="main.js"></script>
 </body>
 </html>
