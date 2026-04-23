@@ -20,13 +20,13 @@
     --red2: #f07060;
     --teal: #4a9e8a;
     --teal2: #6fc4ae;
+    --bot-color: #8a6aad;
+    --bot-color2: #b08dd4;
     --text: #f0e8d8;
     --text2: #c8b898;
     --text3: #8a7860;
     --border: #4a3828;
     --border2: #6a5030;
-    --shadow: rgba(0,0,0,0.6);
-    --glow: rgba(201,168,76,0.15);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,7 +39,6 @@
     overflow-x: hidden;
   }
 
-  /* 背景装飾 */
   body::before {
     content: '';
     position: fixed;
@@ -51,28 +50,17 @@
     z-index: 0;
   }
 
-  .screen { 
-    position: relative; z-index: 1;
-    display: none; 
-    min-height: 100vh;
-  }
+  .screen { position: relative; z-index: 1; display: none; min-height: 100vh; }
   .screen.active { display: flex; flex-direction: column; }
 
-  /* ===== ロビー画面 ===== */
-  #screen-lobby {
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
+  /* ===== ロビー ===== */
+  #screen-lobby { align-items: center; justify-content: center; padding: 2rem; }
 
-  .title-area {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
+  .title-area { text-align: center; margin-bottom: 2.5rem; }
 
   .title-kanji {
     font-family: 'Noto Serif JP', serif;
-    font-size: clamp(4rem, 10vw, 7rem);
+    font-size: clamp(3.5rem, 10vw, 6rem);
     font-weight: 700;
     color: var(--gold2);
     letter-spacing: 0.2em;
@@ -80,677 +68,275 @@
     line-height: 1;
   }
 
-  .title-ruby {
-    font-size: 1rem;
-    letter-spacing: 0.6em;
-    color: var(--text3);
-    text-transform: uppercase;
-    margin-top: 0.5rem;
-  }
+  .title-ruby { font-size: 0.9rem; letter-spacing: 0.6em; color: var(--text3); text-transform: uppercase; margin-top: 0.4rem; }
+  .title-tagline { margin-top: 0.75rem; font-size: 0.8rem; color: var(--text3); letter-spacing: 0.1em; }
 
-  .title-tagline {
-    margin-top: 1rem;
-    font-size: 0.85rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-  }
-
-  /* 花火装飾 */
-  .firework-deco {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-  }
-
-  .fw-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--gold);
-    opacity: 0.6;
-    animation: pulse 2s ease-in-out infinite;
-  }
+  .firework-deco { display: flex; justify-content: center; gap: 1.5rem; margin: 1.2rem 0; }
+  .fw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); opacity: 0.6; animation: pulse 2s ease-in-out infinite; }
   .fw-dot:nth-child(2) { animation-delay: 0.3s; background: var(--teal); }
   .fw-dot:nth-child(3) { animation-delay: 0.6s; background: var(--red); }
-  .fw-dot:nth-child(4) { animation-delay: 0.9s; background: var(--gold); }
+  .fw-dot:nth-child(4) { animation-delay: 0.9s; background: var(--bot-color); }
   .fw-dot:nth-child(5) { animation-delay: 1.2s; background: var(--teal); }
-
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.4; }
-    50% { transform: scale(1.5); opacity: 1; }
-  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.5);opacity:1} }
 
   .lobby-card {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 2rem;
+    padding: 1.75rem;
     width: 100%;
-    max-width: 440px;
+    max-width: 460px;
   }
 
-  .form-group {
-    margin-bottom: 1.25rem;
-  }
-
-  .form-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    margin-bottom: 0.5rem;
-  }
-
+  .form-group { margin-bottom: 1.1rem; }
+  .form-label { display: block; font-size: 0.78rem; color: var(--text3); letter-spacing: 0.1em; margin-bottom: 0.4rem; }
   .form-input {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    color: var(--text);
-    font-family: inherit;
-    transition: border-color 0.2s;
-    outline: none;
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.95rem;
+    color: var(--text); font-family: inherit; transition: border-color 0.2s; outline: none;
   }
-
-  .form-input:focus {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
-  }
+  .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
 
   .btn {
-    display: block;
-    width: 100%;
-    padding: 0.875rem;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Noto Serif JP', serif;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    transition: all 0.2s;
+    display: block; width: 100%; padding: 0.825rem;
+    border: none; border-radius: 10px;
+    font-family: 'Noto Serif JP', serif; font-size: 0.95rem; font-weight: 700;
+    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
   }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%);
-    color: #1a1000;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(201,168,76,0.3);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text2);
-    border: 1px solid var(--border);
-    margin-top: 0.75rem;
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface2);
-  }
-
-  .btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none !important;
-  }
+  .btn-primary { background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%); color: #1a1000; }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
+  .btn-secondary { background: var(--surface); color: var(--text2); border: 1px solid var(--border); margin-top: 0.6rem; }
+  .btn-secondary:hover { background: var(--surface2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
   /* プレイヤーリスト */
-  .player-list {
-    margin: 1.25rem 0;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
+  .player-list { margin: 1.1rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .player-list-header { background: var(--surface); padding: 0.45rem 0.75rem; font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
+  .player-item {
+    padding: 0.55rem 0.75rem; font-size: 0.88rem;
+    display: flex; align-items: center; gap: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .player-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .bot-dot { background: var(--bot-color); }
+
+  .bot-badge {
+    font-size: 0.65rem; padding: 1px 5px; border-radius: 3px;
+    background: rgba(138,106,173,0.2); color: var(--bot-color2);
+    border: 1px solid rgba(138,106,173,0.3); margin-left: auto; white-space: nowrap;
   }
 
-  .player-list-header {
-    background: var(--surface);
-    padding: 0.5rem 0.75rem;
+  /* ボット追加パネル */
+  .bot-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.875rem;
+    margin: 0.875rem 0;
+  }
+
+  .bot-panel-title {
     font-size: 0.75rem;
     color: var(--text3);
     letter-spacing: 0.1em;
-  }
-
-  .player-item {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border-top: 1px solid var(--border);
   }
 
-  .player-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--teal);
-  }
-
-  .error-msg {
-    color: var(--red2);
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    text-align: center;
-  }
-
-  /* ===== ゲーム画面 ===== */
-  #screen-game {
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .game-header {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 0.625rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .game-title-small {
-    font-family: 'Noto Serif JP', serif;
-    font-size: 1.25rem;
-    color: var(--gold2);
-    letter-spacing: 0.2em;
-  }
-
-  .score-board {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .score-item {
-    text-align: center;
-    min-width: 60px;
-  }
-
-  .score-name {
-    font-size: 0.7rem;
-    color: var(--text3);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .score-val {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--gold2);
-  }
-
-  .score-item.current-turn .score-name {
-    color: var(--teal2);
-  }
-
-  /* ゲームメイン */
-  .game-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    gap: 1rem;
-    overflow-y: auto;
-  }
-
-  /* 相手プレイヤーエリア */
-  .opponents-area {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .opponent-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.625rem 1rem;
-    flex: 1;
-    min-width: 120px;
-    max-width: 200px;
-  }
-
-  .opponent-card.is-turn {
-    border-color: var(--teal);
-    box-shadow: 0 0 12px rgba(74,158,138,0.2);
-  }
-
-  .opponent-name {
-    font-size: 0.8rem;
-    color: var(--text3);
-    margin-bottom: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .turn-indicator {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--teal);
-    animation: blink 1s ease-in-out infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-
-  .opponent-tiles {
-    display: flex;
-    gap: 3px;
-  }
-
-  .tile-back {
-    width: 22px;
-    height: 38px;
-    border-radius: 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .tile-back::after {
+  .bot-panel-title::after {
     content: '';
-    position: absolute;
-    inset: 2px;
-    background: repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 2px,
-      rgba(201,168,76,0.05) 2px,
-      rgba(201,168,76,0.05) 4px
-    );
-  }
-
-  /* 場エリア */
-  .field-area {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
-  }
-
-  .field-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-  }
-
-  .field-label {
-    font-size: 0.75rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-  }
-
-  .stock-info {
-    font-size: 0.75rem;
-    color: var(--text2);
-  }
-
-  .field-tiles {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    min-height: 56px;
-  }
-
-  /* 牌コンポーネント */
-  .tile {
-    width: 36px;
-    height: 60px;
-    border-radius: 6px;
-    background: var(--surface);
-    border: 1.5px solid var(--border2);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-    overflow: hidden;
-  }
-
-  .tile:hover {
-    border-color: var(--gold);
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-  }
-
-  .tile.selected {
-    border-color: var(--gold);
-    box-shadow: 0 0 12px rgba(201,168,76,0.4);
-    transform: translateY(-8px);
-  }
-
-  .tile.field-tile:hover {
-    border-color: var(--teal);
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(74,158,138,0.3);
-  }
-
-  .tile-half {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    line-height: 1;
-  }
-
-  .tile-top { border-bottom: 1px solid var(--border); }
-
-  .tile-divider {
     height: 1px;
     background: var(--border);
   }
 
-  /* 数字→絵文字マッピング */
-  .sym-1 { color: #e86060; }
-  .sym-2 { color: #e8a060; }
-  .sym-3 { color: #e8d060; }
-  .sym-4 { color: #60e880; }
-  .sym-5 { color: #60a0e8; }
-  .sym-6 { color: #a060e8; }
+  .bot-controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
-  /* 役バッジ（プレビュー） */
-  .win-preview {
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--gold);
-    color: #1a1000;
-    font-size: 0.55rem;
-    font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 3px;
-    white-space: nowrap;
-    letter-spacing: 0;
+  .difficulty-select {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 0.35rem 0.6rem;
+    color: var(--text2); font-size: 0.8rem; font-family: inherit;
+    outline: none; cursor: pointer; flex: 1; min-width: 80px;
   }
 
-  /* 手牌エリア */
-  .my-hand-area {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
+  .difficulty-select:focus { border-color: var(--bot-color); }
+
+  .btn-add-bot {
+    padding: 0.4rem 0.875rem; border-radius: 6px;
+    background: rgba(138,106,173,0.15); border: 1px solid rgba(138,106,173,0.4);
+    color: var(--bot-color2); font-size: 0.82rem; cursor: pointer;
+    font-family: inherit; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-add-bot:hover { background: rgba(138,106,173,0.25); border-color: var(--bot-color); }
+
+  .btn-remove-bot {
+    padding: 0.4rem 0.875rem; border-radius: 6px;
+    background: transparent; border: 1px solid var(--border2);
+    color: var(--text3); font-size: 0.82rem; cursor: pointer;
+    font-family: inherit; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-remove-bot:hover { border-color: var(--red2); color: var(--red2); }
+
+  .bot-count-text { font-size: 0.75rem; color: var(--text3); }
+
+  .error-msg { color: var(--red2); font-size: 0.8rem; margin-top: 0.5rem; text-align: center; }
+
+  .roles-info { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem; font-size: 0.8rem; }
+  .role-row { display: flex; justify-content: space-between; align-items: center; padding: 0.28rem 0; border-bottom: 1px solid var(--border); }
+  .role-row:last-child { border-bottom: none; }
+  .role-name { font-family: 'Noto Serif JP', serif; color: var(--gold2); }
+  .role-desc { color: var(--text3); flex: 1; padding: 0 0.75rem; }
+  .role-pts { font-weight: 700; color: var(--text); }
+
+  /* ===== ゲーム画面 ===== */
+  #screen-game { flex-direction: column; padding: 0; }
+
+  .game-header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 0.575rem 1.25rem; display: flex; align-items: center;
+    justify-content: space-between; flex-shrink: 0;
   }
 
-  .my-hand-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-  }
+  .game-title-small { font-family: 'Noto Serif JP', serif; font-size: 1.2rem; color: var(--gold2); letter-spacing: 0.2em; }
 
-  .my-hand-label {
-    font-size: 0.75rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-  }
+  .score-board { display: flex; gap: 0.875rem; }
+  .score-item { text-align: center; min-width: 54px; }
+  .score-name { font-size: 0.65rem; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score-name.is-bot { color: var(--bot-color2); }
+  .score-val { font-size: 1.05rem; font-weight: 700; color: var(--gold2); }
+  .score-item.current-turn .score-name { color: var(--teal2); }
+  .score-item.current-turn.is-bot-turn .score-name { color: var(--bot-color2); }
 
-  .hand-actions {
-    display: flex;
-    gap: 0.5rem;
+  .game-main { flex: 1; display: flex; flex-direction: column; padding: 0.875rem; gap: 0.875rem; overflow-y: auto; }
+
+  /* 相手エリア */
+  .opponents-area { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .opponent-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.575rem 0.875rem;
+    flex: 1; min-width: 110px; max-width: 190px;
   }
+  .opponent-card.is-turn { border-color: var(--teal); box-shadow: 0 0 12px rgba(74,158,138,0.2); }
+  .opponent-card.is-bot.is-turn { border-color: var(--bot-color); box-shadow: 0 0 12px rgba(138,106,173,0.25); }
+
+  .opponent-name { font-size: 0.77rem; color: var(--text3); margin-bottom: 0.22rem; display: flex; align-items: center; gap: 0.35rem; }
+  .opponent-name.is-bot { color: var(--bot-color2); }
+
+  .turn-indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: blink 1s ease-in-out infinite; }
+  .turn-indicator.bot-turn { background: var(--bot-color); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ボット思考中アニメ */
+  .bot-thinking {
+    font-size: 0.65rem; color: var(--bot-color2);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .think-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--bot-color); animation: thinkpulse 1.2s ease-in-out infinite; }
+  .think-dot:nth-child(2) { animation-delay: 0.2s; }
+  .think-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes thinkpulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+  .opponent-tiles { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tile-back { width: 20px; height: 34px; border-radius: 3px; background: var(--surface2); border: 1px solid var(--border2); }
+
+  /* 場エリア */
+  .field-area { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 0.875rem; }
+  .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; }
+  .field-label { font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
+  .stock-info { font-size: 0.73rem; color: var(--text2); }
+  .field-tiles { display: flex; gap: 6px; flex-wrap: wrap; min-height: 52px; }
+
+  /* 牌 */
+  .tile {
+    width: 34px; height: 58px; border-radius: 6px;
+    background: var(--surface); border: 1.5px solid var(--border2);
+    display: flex; flex-direction: column; position: relative;
+    cursor: pointer; transition: all 0.15s; user-select: none; overflow: hidden;
+  }
+  .tile:hover { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
+  .tile.selected { border-color: var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.4); transform: translateY(-8px); }
+  .tile.field-tile:hover { border-color: var(--teal); transform: translateY(-4px); box-shadow: 0 6px 16px rgba(74,158,138,0.3); }
+
+  .tile-half { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; line-height: 1; }
+  .tile-top { border-bottom: 1px solid var(--border); }
+
+  .sym-1{color:#e86060} .sym-2{color:#e8a060} .sym-3{color:#e8d060}
+  .sym-4{color:#60e880} .sym-5{color:#60a0e8} .sym-6{color:#a060e8}
+
+  /* アクション */
+  .action-area { display: flex; gap: 0.75rem; align-items: center; justify-content: center; }
+  .btn-draw {
+    flex: 1; max-width: 190px; padding: 0.7rem 1rem;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 10px; color: var(--text2); font-size: 0.88rem;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .btn-draw:hover:not(:disabled) { border-color: var(--teal); color: var(--teal2); box-shadow: 0 4px 12px rgba(74,158,138,0.2); }
+  .btn-draw:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .status-text { text-align: center; font-size: 0.83rem; color: var(--text3); padding: 0.5rem; }
+  .my-turn-text { color: var(--teal2); font-weight: 500; }
+
+  /* 手牌 */
+  .my-hand-area { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 0.875rem; }
+  .my-hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; flex-wrap: wrap; gap: 0.5rem; }
+  .my-hand-label { font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
+  .hand-actions { display: flex; gap: 0.4rem; }
 
   .btn-small {
-    padding: 0.3rem 0.75rem;
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text2);
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
+    padding: 0.28rem 0.7rem; border: 1px solid var(--border2);
+    border-radius: 6px; background: var(--surface); color: var(--text2);
+    font-size: 0.73rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
   }
+  .btn-small:hover { background: var(--surface2); border-color: var(--gold); color: var(--gold2); }
+  .btn-win { background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%); color: #1a1000; font-weight: 700; border: none; letter-spacing: 0.05em; }
+  .btn-win:hover { box-shadow: 0 4px 14px rgba(201,168,76,0.4); transform: translateY(-1px); }
 
-  .btn-small:hover {
-    background: var(--surface2);
-    border-color: var(--gold);
-    color: var(--gold2);
-  }
-
-  .btn-win {
-    background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%);
-    color: #1a1000;
-    font-weight: 700;
-    border: none;
-    letter-spacing: 0.05em;
-  }
-
-  .btn-win:hover {
-    box-shadow: 0 4px 14px rgba(201,168,76,0.4);
-    transform: translateY(-1px);
-  }
-
-  .my-tiles {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .tile-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
+  .my-tiles { display: flex; gap: 7px; flex-wrap: wrap; }
+  .tile-wrapper { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .tile-flip-btn {
-    font-size: 0.6rem;
-    color: var(--text3);
-    cursor: pointer;
-    padding: 1px 4px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: transparent;
-    font-family: inherit;
-    transition: all 0.15s;
+    font-size: 0.58rem; color: var(--text3); cursor: pointer;
+    padding: 1px 3px; border: 1px solid var(--border); border-radius: 3px;
+    background: transparent; font-family: inherit; transition: all 0.15s;
   }
+  .tile-flip-btn:hover { color: var(--gold2); border-color: var(--gold); }
 
-  .tile-flip-btn:hover {
-    color: var(--gold2);
-    border-color: var(--gold);
-  }
-
-  /* アクションエリア */
-  .action-area {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .btn-draw {
-    flex: 1;
-    max-width: 200px;
-    padding: 0.75rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 10px;
-    color: var(--text2);
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s;
-  }
-
-  .btn-draw:hover:not(:disabled) {
-    border-color: var(--teal);
-    color: var(--teal2);
-    box-shadow: 0 4px 12px rgba(74,158,138,0.2);
-  }
-
-  .btn-draw:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .status-text {
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text3);
-    padding: 0.5rem;
-  }
-
-  .my-turn-text {
-    color: var(--teal2);
-    font-weight: 500;
-  }
-
-  /* ===== モーダル ===== */
+  /* モーダル */
   .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    backdrop-filter: blur(4px);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(4px);
   }
-
   .modal {
-    background: var(--bg2);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 480px;
-    width: 90%;
-    text-align: center;
-    animation: modalIn 0.3s ease-out;
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 1.75rem; max-width: 460px;
+    width: 90%; text-align: center; animation: modalIn 0.3s ease-out;
   }
+  @keyframes modalIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
+  .modal-title { font-family: 'Noto Serif JP', serif; font-size: 1.4rem; color: var(--gold2); margin-bottom: 0.4rem; letter-spacing: 0.1em; }
+  .win-role { font-size: 1.8rem; font-family: 'Noto Serif JP', serif; color: var(--gold3); margin: 0.4rem 0; }
+  .win-points { font-size: 0.95rem; color: var(--text2); margin-bottom: 1.25rem; }
+  .win-hand { display: flex; gap: 5px; justify-content: center; margin: 0.875rem 0; flex-wrap: wrap; }
+  .score-table { width: 100%; border-collapse: collapse; margin: 0.875rem 0; font-size: 0.88rem; }
+  .score-table td { padding: 0.38rem 0.7rem; border-bottom: 1px solid var(--border); }
+  .score-table td:last-child { text-align: right; color: var(--gold2); font-weight: 700; }
+  .score-table .bot-row td:first-child { color: var(--bot-color2); }
 
-  @keyframes modalIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
+  @keyframes spin { to{transform:rotate(360deg)} }
 
-  .modal-title {
-    font-family: 'Noto Serif JP', serif;
-    font-size: 1.5rem;
-    color: var(--gold2);
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.1em;
-  }
-
-  .win-role {
-    font-size: 2rem;
-    font-family: 'Noto Serif JP', serif;
-    color: var(--gold3);
-    margin: 0.5rem 0;
-  }
-
-  .win-points {
-    font-size: 1rem;
-    color: var(--text2);
-    margin-bottom: 1.5rem;
-  }
-
-  .win-hand {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    margin: 1rem 0;
-    flex-wrap: wrap;
-  }
-
-  .score-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
-    font-size: 0.9rem;
-  }
-
-  .score-table td {
-    padding: 0.4rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .score-table td:last-child {
-    text-align: right;
-    color: var(--gold2);
-    font-weight: 700;
-  }
-
-  /* 役説明 */
-  .roles-info {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.875rem;
-    font-size: 0.8rem;
-  }
-
-  .role-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .role-row:last-child { border-bottom: none; }
-
-  .role-name {
-    font-family: 'Noto Serif JP', serif;
-    color: var(--gold2);
-  }
-
-  .role-desc {
-    color: var(--text3);
-    flex: 1;
-    padding: 0 0.75rem;
-  }
-
-  .role-pts {
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  /* 接続中インジケーター */
-  .connecting {
-    text-align: center;
-    padding: 3rem;
-  }
-
-  .spinner {
-    width: 32px;
-    height: 32px;
-    border: 2px solid var(--border2);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 1rem;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* レスポンシブ */
   @media (max-width: 600px) {
-    .game-header { padding: 0.5rem 0.75rem; }
+    .game-header { padding: 0.45rem 0.75rem; }
     .game-title-small { font-size: 1rem; }
-    .tile { width: 30px; height: 50px; }
-    .tile-half { font-size: 0.9rem; }
+    .tile { width: 28px; height: 48px; }
+    .tile-half { font-size: 0.85rem; }
   }
 </style>
 </head>
 <body>
 
-<!-- ===== ロビー画面 ===== -->
+<!-- ===== ロビー ===== -->
 <div id="screen-lobby" class="screen active">
   <div class="title-area">
     <div class="title-kanji">六華</div>
@@ -769,7 +355,7 @@
         <input type="text" id="input-name" class="form-input" placeholder="名前を入力" maxlength="12">
       </div>
       <div class="form-group">
-        <label class="form-label">ルームID</label>
+        <label class="form-label">ルームID（ひとりで遊ぶ場合は空欄でOK）</label>
         <input type="text" id="input-room" class="form-input" placeholder="ルームIDを入力（英数字）" maxlength="20">
       </div>
       <button class="btn btn-primary" onclick="joinRoom()">ルームに参加</button>
@@ -778,22 +364,39 @@
     </div>
 
     <div id="waiting-room" style="display:none">
+      <!-- プレイヤーリスト -->
       <div class="player-list">
         <div class="player-list-header">参加中のプレイヤー</div>
         <div id="waiting-players"></div>
       </div>
-      <div style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem;text-align:center">
+
+      <!-- ボット追加パネル -->
+      <div class="bot-panel">
+        <div class="bot-panel-title">AIボットを追加</div>
+        <div class="bot-controls">
+          <select id="bot-difficulty" class="difficulty-select">
+            <option value="easy">弱（ゆっくり）</option>
+            <option value="normal" selected>普通</option>
+            <option value="hard">強（速い）</option>
+          </select>
+          <button class="btn-add-bot" onclick="addBot()">+ ボット追加</button>
+          <button class="btn-remove-bot" onclick="removeBot()">− 削除</button>
+        </div>
+        <div id="bot-count-text" class="bot-count-text" style="margin-top:0.5rem"></div>
+      </div>
+
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.875rem;text-align:center">
         ルームID: <span id="display-room-id" style="color:var(--gold2);font-weight:700"></span>
-        <br><span style="font-size:0.75rem">このIDを友達に共有してください</span>
+        <br><span style="font-size:0.72rem">このIDを友達に共有して一緒に遊べます</span>
       </div>
       <button class="btn btn-primary" id="btn-start" onclick="startGame()" disabled>ゲームを開始</button>
       <button class="btn btn-secondary" onclick="leaveRoom()">ルームを退出</button>
       <div id="waiting-error" class="error-msg"></div>
     </div>
 
-    <div style="margin-top:1.5rem">
+    <div style="margin-top:1.25rem">
       <div class="roles-info">
-        <div style="font-size:0.75rem;color:var(--text3);margin-bottom:0.5rem;letter-spacing:0.1em">— 役の種類 —</div>
+        <div style="font-size:0.73rem;color:var(--text3);margin-bottom:0.45rem;letter-spacing:0.1em">— 役の種類 —</div>
         <div class="role-row">
           <span class="role-name">六華</span>
           <span class="role-desc">6枚全て同じ数字</span>
@@ -801,12 +404,12 @@
         </div>
         <div class="role-row">
           <span class="role-name">三連</span>
-          <span class="role-desc">3連続×2組</span>
+          <span class="role-desc">3連続×2組（例:2,3,4,2,3,4）</span>
           <span class="role-pts">3点</span>
         </div>
         <div class="role-row">
           <span class="role-name">一色</span>
-          <span class="role-desc">上or下が全て同じ</span>
+          <span class="role-desc">上か下が全て同じ数字</span>
           <span class="role-pts">2点</span>
         </div>
       </div>
@@ -819,14 +422,12 @@
   <div class="game-header">
     <div class="game-title-small">六華</div>
     <div id="score-board" class="score-board"></div>
-    <div style="font-size:0.75rem;color:var(--text3)">10点先取</div>
+    <div style="font-size:0.72rem;color:var(--text3)">10点先取</div>
   </div>
 
   <div class="game-main">
-    <!-- 相手プレイヤー -->
     <div id="opponents-area" class="opponents-area"></div>
 
-    <!-- 場 -->
     <div class="field-area">
       <div class="field-header">
         <div class="field-label">— 場 —</div>
@@ -837,15 +438,11 @@
       </div>
     </div>
 
-    <!-- アクション -->
     <div class="action-area">
-      <button id="btn-draw-stock" class="btn-draw" onclick="drawFromStock()">
-        山からツモ
-      </button>
+      <button id="btn-draw-stock" class="btn-draw" onclick="drawFromStock()">山からツモ</button>
       <div id="status-text" class="status-text"></div>
     </div>
 
-    <!-- 手牌 -->
     <div class="my-hand-area">
       <div class="my-hand-header">
         <div class="my-hand-label">— 手牌 —</div>
@@ -855,7 +452,7 @@
         </div>
       </div>
       <div id="my-tiles" class="my-tiles"></div>
-      <div id="hand-hint" style="font-size:0.75rem;color:var(--text3);margin-top:0.5rem"></div>
+      <div id="hand-hint" style="font-size:0.73rem;color:var(--text3);margin-top:0.45rem"></div>
     </div>
   </div>
 </div>
@@ -866,7 +463,6 @@
 </div>
 
 <script>
-// ===== WebSocket接続 =====
 let ws = null;
 let myName = '';
 let myIndex = -1;
@@ -874,13 +470,12 @@ let gameState = null;
 let selectedTile = null;
 let roomId = '';
 
-// WebSocketのURLを自動検出
 const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${location.host}`;
 
 function connectWS() {
   ws = new WebSocket(wsUrl);
-  ws.onopen = () => console.log('接続しました');
+  ws.onopen = () => {};
   ws.onmessage = (e) => handleServerMessage(JSON.parse(e.data));
   ws.onclose = () => {
     setTimeout(() => {
@@ -891,10 +486,8 @@ function connectWS() {
       }
     }, 500);
   };
-  ws.onerror = (e) => console.error('WS error:', e);
 }
 
-// シンボルマッピング（花火モチーフ）
 const symbols = ['', '✦', '✿', '◈', '✺', '⬡', '❋'];
 const symClass = ['', 'sym-1', 'sym-2', 'sym-3', 'sym-4', 'sym-5', 'sym-6'];
 
@@ -904,7 +497,6 @@ function renderTile(tile, opts = {}) {
   const selected = opts.selected ? ' selected' : '';
   const fieldCls = opts.field ? ' field-tile' : '';
   const onClick = opts.onClick || '';
-  
   return `<div class="tile${selected}${fieldCls}" onclick="${onClick}" data-id="${tile.id}">
     <div class="tile-half tile-top ${symClass[topVal]}">${symbols[topVal]}</div>
     <div class="tile-half ${symClass[bottomVal]}">${symbols[bottomVal]}</div>
@@ -921,13 +513,24 @@ function handleServerMessage(msg) {
       document.getElementById('waiting-room').style.display = 'block';
       break;
 
-    case 'lobby':
+    case 'lobby': {
       const ul = document.getElementById('waiting-players');
-      ul.innerHTML = msg.players.map(n =>
-        `<div class="player-item"><div class="player-dot"></div>${n}</div>`
-      ).join('');
+      ul.innerHTML = msg.players.map(p => {
+        const isBot = p.isBot;
+        const diffLabel = { easy: '弱', normal: '普通', hard: '強' }[p.difficulty] || '';
+        const badge = isBot ? `<span class="bot-badge">AI ${diffLabel}</span>` : '';
+        return `<div class="player-item">
+          <div class="player-dot ${isBot ? 'bot-dot' : ''}"></div>
+          ${p.name}${badge}
+        </div>`;
+      }).join('');
       document.getElementById('btn-start').disabled = !msg.canStart;
+      const botCount = msg.players.filter(p => p.isBot).length;
+      const humanCount = msg.players.filter(p => !p.isBot).length;
+      document.getElementById('bot-count-text').textContent =
+        `現在: 人間 ${humanCount}人 / AI ${botCount}体 (最大5人まで)`;
       break;
+    }
 
     case 'gameStart':
       showScreen('game');
@@ -947,15 +550,17 @@ function handleServerMessage(msg) {
       showGameOverModal(msg);
       break;
 
-    case 'error':
-      const errEl = document.getElementById('lobby-error') || 
-                    document.getElementById('waiting-error');
+    case 'error': {
+      const errEl = document.getElementById('waiting-error') ||
+                    document.getElementById('lobby-error');
       if (errEl) errEl.textContent = msg.message;
       break;
+    }
 
     case 'playerLeft':
       showModal(`<div class="modal-title">プレイヤーが退出しました</div>
-        <p style="color:var(--text2);margin:1rem 0">${msg.name} が退出しました</p>`);
+        <p style="color:var(--text2);margin:1rem 0">${msg.name} が退出しました</p>
+        <button class="btn btn-secondary" style="margin-top:1rem" onclick="closeModal()">閉じる</button>`);
       break;
   }
 }
@@ -964,27 +569,41 @@ function handleServerMessage(msg) {
 function renderGameState(state) {
   // スコアボード
   const sb = document.getElementById('score-board');
-  sb.innerHTML = state.scores.map((s, i) => `
-    <div class="score-item ${i === state.currentTurn ? 'current-turn' : ''}">
-      <div class="score-name">${s.name}</div>
+  sb.innerHTML = state.scores.map((s, i) => {
+    const isCurrent = i === state.currentTurn;
+    const isBotTurn = isCurrent && state.scores[i].isBot;
+    return `<div class="score-item ${isCurrent ? 'current-turn' : ''} ${isBotTurn ? 'is-bot-turn' : ''}">
+      <div class="score-name ${s.isBot ? 'is-bot' : ''}">${s.name.length > 6 ? s.name.slice(0,5)+'…' : s.name}</div>
       <div class="score-val">${s.score}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // 相手プレイヤー
   const oa = document.getElementById('opponents-area');
-  oa.innerHTML = state.opponents.map(opp => `
-    <div class="opponent-card ${opp.isCurrentTurn ? 'is-turn' : ''}">
-      <div class="opponent-name">
-        ${opp.isCurrentTurn ? '<div class="turn-indicator"></div>' : ''}
-        ${opp.name}
-        <span style="font-size:0.7rem;color:var(--gold2);margin-left:auto">${opp.score}点</span>
+  oa.innerHTML = state.opponents.map(opp => {
+    const botClass = opp.isBot ? ' is-bot' : '';
+    const turnClass = opp.isCurrentTurn ? ' is-turn' : '';
+    const indicator = opp.isCurrentTurn
+      ? `<div class="turn-indicator ${opp.isBot ? 'bot-turn' : ''}"></div>`
+      : '';
+    const thinking = opp.isBot && opp.isCurrentTurn
+      ? `<div class="bot-thinking"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div></div>`
+      : '';
+    const diffLabel = { easy: '弱', normal: '普通', hard: '強' }[opp.difficulty] || '';
+    const botTag = opp.isBot ? `<span style="font-size:0.6rem;color:var(--bot-color2);margin-left:2px">[AI${diffLabel}]</span>` : '';
+    return `<div class="opponent-card${botClass}${turnClass}">
+      <div class="opponent-name ${opp.isBot ? 'is-bot' : ''}">
+        ${indicator}${opp.name}${botTag}
+        <span style="font-size:0.68rem;color:var(--gold2);margin-left:auto">${opp.score}点</span>
       </div>
-      <div class="opponent-tiles">
-        ${Array(opp.handCount).fill(0).map(() => '<div class="tile-back"></div>').join('')}
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="opponent-tiles">
+          ${Array(opp.handCount).fill(0).map(() => '<div class="tile-back"></div>').join('')}
+        </div>
+        ${thinking}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // 場の牌
   const ft = document.getElementById('field-tiles');
@@ -996,71 +615,57 @@ function renderGameState(state) {
     ).join('');
   }
 
-  // ストック情報
   document.getElementById('stock-count').textContent =
-    `山: ${state.stockCount}枚 / 裏向き: ${state.fieldFaceDownCount}枚`;
+    `山: ${state.stockCount}枚 / 場(裏): ${state.fieldFaceDownCount}枚`;
 
   // 手牌
   const mt = document.getElementById('my-tiles');
   mt.innerHTML = state.myHand.map(tile => `
     <div class="tile-wrapper">
-      ${renderTile(tile, {
-        selected: selectedTile === tile.id,
-        onClick: `selectTile('${tile.id}')`
-      })}
+      ${renderTile(tile, { selected: selectedTile === tile.id, onClick: `selectTile('${tile.id}')` })}
       <button class="tile-flip-btn" onclick="flipTile('${tile.id}')">反転</button>
     </div>
   `).join('');
 
   // アクション状態
   const isMyTurn = state.currentTurn === myIndex;
-  const hasDrawn = state.myHand.length === 6;
-  const needsDraw = state.myHand.length === 5;
-
   const drawBtn = document.getElementById('btn-draw-stock');
   const statusEl = document.getElementById('status-text');
 
   if (isMyTurn) {
-    if (needsDraw) {
+    if (state.myHand.length === 5) {
       drawBtn.disabled = false;
-      statusEl.innerHTML = '<span class="my-turn-text">あなたの番です — 牌を引いてください</span>';
+      statusEl.innerHTML = '<span class="my-turn-text">あなたの番 — 牌を引いてください</span>';
     } else {
       drawBtn.disabled = true;
-      statusEl.innerHTML = '<span class="my-turn-text">捨てる牌を選んで「捨てる」か「上がる！」</span>';
+      statusEl.innerHTML = '<span class="my-turn-text">捨てる牌を選択 → 「捨てる」か「上がる！」</span>';
     }
   } else {
     drawBtn.disabled = true;
-    const currentPlayerName = state.scores[state.currentTurn]?.name || '相手';
-    statusEl.textContent = `${currentPlayerName} の番です...`;
+    const cur = state.scores[state.currentTurn];
+    if (cur && cur.isBot) {
+      statusEl.innerHTML = `<span style="color:var(--bot-color2)">${cur.name} が考え中...</span>`;
+    } else {
+      statusEl.textContent = `${cur ? cur.name : '相手'} の番です...`;
+    }
   }
 
   // 役プレビュー
   const hint = checkWinLocal(state.myHand);
   document.getElementById('hand-hint').textContent =
-    hint.won ? `👑 役あり: ${hint.role}（${hint.points}点）` : '役なし';
+    hint.won ? `★ 役あり: ${hint.role}（${hint.points}点）— 上がれます！` : '役なし（まだ完成していません）';
 }
 
 // ===== ローカル役チェック =====
 function checkWinLocal(hand) {
   if (hand.length < 6) return { won: false };
-  
   const values = hand.map(t => t.flipped ? t.bottom : t.top);
-  
-  if (values.every(v => v === values[0])) {
-    return { won: true, role: '六華', points: 6 };
-  }
-  
+  if (values.every(v => v === values[0])) return { won: true, role: '六華', points: 6 };
   const sorted = [...values].sort((a, b) => a - b);
-  if (isThreeStraightLocal(sorted)) {
-    return { won: true, role: '三連', points: 3 };
-  }
-  
+  if (isThreeStraightLocal(sorted)) return { won: true, role: '三連', points: 3 };
   const top = hand.map(t => t.top);
   const bottom = hand.map(t => t.bottom);
-  if (top.every(v => v === top[0]) || bottom.every(v => v === bottom[0])) {
-    return { won: true, role: '一色', points: 2 };
-  }
-  
+  if (top.every(v => v === top[0]) || bottom.every(v => v === bottom[0])) return { won: true, role: '一色', points: 2 };
   return { won: false };
 }
 
@@ -1081,13 +686,8 @@ function selectTile(id) {
   if (gameState) renderGameState(gameState);
 }
 
-function flipTile(id) {
-  ws.send(JSON.stringify({ type: 'flipTile', tileId: id }));
-}
-
-function drawFromStock() {
-  ws.send(JSON.stringify({ type: 'drawFromStock' }));
-}
+function flipTile(id) { ws.send(JSON.stringify({ type: 'flipTile', tileId: id })); }
+function drawFromStock() { ws.send(JSON.stringify({ type: 'drawFromStock' })); }
 
 function pickFromField(id) {
   if (!gameState) return;
@@ -1097,26 +697,20 @@ function pickFromField(id) {
 }
 
 function discardSelected() {
-  if (!selectedTile) {
-    showToast('捨てる牌を選択してください');
-    return;
-  }
+  if (!selectedTile) { showToast('捨てる牌を選択してください'); return; }
   ws.send(JSON.stringify({ type: 'discard', tileId: selectedTile }));
   selectedTile = null;
 }
 
-function declareWin() {
-  ws.send(JSON.stringify({ type: 'declareWin' }));
-}
+function declareWin() { ws.send(JSON.stringify({ type: 'declareWin' })); }
 
-// ===== ロビー操作 =====
+// ===== ロビー =====
 function joinRoom() {
   const name = document.getElementById('input-name').value.trim();
-  const room = document.getElementById('input-room').value.trim();
-  
-  if (!name) { showLobbyError('プレイヤー名を入力してください'); return; }
-  if (!room) { showLobbyError('ルームIDを入力してください'); return; }
-  
+  let room = document.getElementById('input-room').value.trim();
+  if (!name) { document.getElementById('lobby-error').textContent = 'プレイヤー名を入力してください'; return; }
+  if (!room) room = Math.random().toString(36).substring(2, 8).toUpperCase();
+  document.getElementById('input-room').value = room;
   myName = name;
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS();
@@ -1129,76 +723,71 @@ function joinRoom() {
 }
 
 function createRandomRoom() {
-  const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-  document.getElementById('input-room').value = id;
+  document.getElementById('input-room').value = '';
   joinRoom();
 }
 
-function leaveRoom() {
-  if (ws) ws.close();
-  location.reload();
+function addBot() {
+  const diff = document.getElementById('bot-difficulty').value;
+  ws.send(JSON.stringify({ type: 'addBot', difficulty: diff }));
 }
 
-function startGame() {
-  ws.send(JSON.stringify({ type: 'startGame' }));
+function removeBot() {
+  ws.send(JSON.stringify({ type: 'removeBot' }));
 }
+
+function leaveRoom() { if (ws) ws.close(); location.reload(); }
+function startGame() { ws.send(JSON.stringify({ type: 'startGame' })); }
 
 // ===== モーダル =====
 function showWinModal(msg) {
   const hand = msg.hand || [];
+  const isBot = msg.isBot;
+  const emoji = isBot ? '🤖' : '🎆';
+  const subtitle = isBot
+    ? `<p style="color:var(--bot-color2);font-size:0.88rem">${msg.player} (AI) が完成</p>`
+    : `<p style="color:var(--text2);font-size:0.88rem">${msg.player} が完成</p>`;
   showModal(`
-    <div class="modal-title">🎆 上がり！</div>
-    <p style="color:var(--text2);font-size:0.9rem">${msg.player} が完成</p>
+    <div class="modal-title">${emoji} 上がり！</div>
+    ${subtitle}
     <div class="win-role">${msg.role}</div>
     <div class="win-points">+${msg.points}点</div>
-    <div class="win-hand">
-      ${hand.map(t => renderTile(t, {})).join('')}
-    </div>
+    <div class="win-hand">${hand.map(t => renderTile(t, {})).join('')}</div>
     <table class="score-table">
-      ${msg.scores.map(s => `<tr><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
+      ${msg.scores.map(s => `<tr class="${s.isBot ? 'bot-row' : ''}"><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
     </table>
     <button class="btn btn-primary" style="margin-top:0.5rem" onclick="nextRound()">次のゲームへ</button>
   `);
 }
 
 function showGameOverModal(msg) {
+  const isBot = msg.isBot;
+  const winMsg = isBot
+    ? `<div style="font-size:1.1rem;color:var(--bot-color2);margin:0.625rem 0">AI（${msg.winner}）の勝利...</div>`
+    : `<div style="font-size:1.4rem;color:var(--gold3);margin:0.625rem 0;font-family:'Noto Serif JP',serif">${msg.winner} の勝利！</div>`;
   showModal(`
     <div class="modal-title">🏆 ゲーム終了！</div>
-    <div style="font-size:1.5rem;color:var(--gold3);margin:0.75rem 0;font-family:'Noto Serif JP',serif">${msg.winner} の勝利！</div>
+    ${winMsg}
     <table class="score-table">
-      ${msg.scores.map(s => `<tr><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
+      ${msg.scores.map(s => `<tr class="${s.isBot ? 'bot-row' : ''}"><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
     </table>
-    <button class="btn btn-primary" style="margin-top:1rem" onclick="location.reload()">もう一度</button>
+    <button class="btn btn-primary" style="margin-top:0.875rem" onclick="location.reload()">もう一度</button>
   `);
 }
 
-function nextRound() {
-  closeModal();
-  ws.send(JSON.stringify({ type: 'nextRound' }));
-}
-
-function showModal(html) {
-  document.getElementById('modal-content').innerHTML = html;
-  document.getElementById('modal-overlay').style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').style.display = 'none';
-}
+function nextRound() { closeModal(); ws.send(JSON.stringify({ type: 'nextRound' })); }
+function showModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
 
 function showToast(msg) {
   const t = document.createElement('div');
   t.style.cssText = `position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
     background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
-    padding:0.75rem 1.5rem;color:var(--text2);font-size:0.85rem;z-index:200;
+    padding:0.7rem 1.4rem;color:var(--text2);font-size:0.83rem;z-index:200;
     animation:modalIn 0.2s ease-out`;
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2000);
-}
-
-function showLobbyError(msg) {
-  document.getElementById('lobby-error').textContent = msg;
 }
 
 function showScreen(name) {
@@ -1206,7 +795,6 @@ function showScreen(name) {
   document.getElementById(`screen-${name}`).classList.add('active');
 }
 
-// 初期化
 connectWS();
 </script>
 </body>
