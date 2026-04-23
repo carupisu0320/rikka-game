@@ -7,28 +7,30 @@
 </head>
 <body>
 
-  <h1>六華</h1>
+<h1>六華</h1>
 
-  <!-- 場 -->
-  <div id="field"></div>
+<!-- 場 -->
+<div id="field"></div>
 
-  <!-- 手札 -->
-  <div id="hand"></div>
+<!-- 手札 -->
+<div id="hand"></div>
 
-  <!-- 捨てるボタン -->
-  <button id="discardBtn">捨てる</button>
+<!-- 捨てるボタン -->
+<button id="discardBtn">捨てる</button>
 
-  <!-- テストボタン -->
-  <div id="test-buttons">
-    <button onclick="setIsshiki()">一色</button>
-    <button onclick="setSanren()">三連</button>
-    <button onclick="setRikka()">六華</button>
-  </div>
+<!-- テストボタン -->
+<div id="testButtons">
+  <button onclick="testRole('rikka')">六華</button>
+  <button onclick="testRole('sanren')">三連</button>
+  <button onclick="testRole('isshiki')">一色</button>
+</div>
 
-  <!-- JS（順番重要） -->
-  <script src="role.js"></script>
-  <script src="test.js"></script>
-  <script src="main.js"></script>
+<!-- 役表示 -->
+<div id="roleDisplay"></div>
+
+<script src="main.js"></script>
+<script src="role.js"></script>
+<script src="test.js"></script>
 
 </body>
 </html>
