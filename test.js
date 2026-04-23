@@ -1,8 +1,8 @@
-function testRole(type) {
-  let h = []
+function testRole(type){
+  let h=[]
 
   if(type==="rikka"){
-    for(let i=1;i<=6;i++) h.push({top:i,bottom:3,faceUp:true})
+    for(let i=1;i<=6;i++)h.push({top:i,bottom:3,faceUp:true})
   }
 
   if(type==="sanren"){
@@ -27,6 +27,6 @@ function testRole(type) {
     ]
   }
 
-  hand = h
+  hand=h
   render()
 }
