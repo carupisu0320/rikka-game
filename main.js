@@ -24,8 +24,8 @@ let deck = createDeck()
 let hand = deck.splice(0, 6)
 let field = deck
 
-let selectedIndex = null // 捨てる用
-let swapIndex = null     // 並び替え用
+let selectedIndex = null
+let swapIndex = null
 
 // ===== 模様 =====
 function createSymbol(num, isTop) {
@@ -124,9 +124,8 @@ function createCard(card, index, isField) {
   }
 
   if (isField) {
-    const fieldWidth = 800
     const cols = 9
-    const gapX = fieldWidth / cols
+    const gapX = 80
     const gapY = 100
 
     const col = index % cols
@@ -140,7 +139,6 @@ function createCard(card, index, isField) {
 
   } else {
     div.onclick = () => {
-      // 並び替え
       if (swapIndex === null) {
         swapIndex = index
       } else {
@@ -150,24 +148,20 @@ function createCard(card, index, isField) {
         swapIndex = null
       }
 
-      // 捨てる用選択
       selectedIndex = index
       showDiscardButton()
       render()
     }
 
-    // 回転
     div.oncontextmenu = (e) => {
       e.preventDefault()
       rotateCard(index)
     }
 
-    // 赤（捨てる）
     if (selectedIndex === index) {
       div.style.border = "3px solid red"
     }
 
-    // 青（並び替え）
     if (swapIndex === index) {
       div.style.border = "3px solid blue"
     }
@@ -178,8 +172,7 @@ function createCard(card, index, isField) {
 
 // ===== ボタン =====
 function showDiscardButton() {
-  const btn = document.getElementById("discardBtn")
-  btn.style.display = "inline-block"
+  document.getElementById("discardBtn").style.display = "flex"
 }
 
 function discardSelected() {
@@ -216,6 +209,27 @@ function render() {
   hand.forEach((card, i) => {
     handDiv.appendChild(createCard(card, i, false))
   })
+
+  // ===== 役表示 =====
+  const role = getRole(hand)
+
+  let roleDiv = document.getElementById("role")
+
+  if (!roleDiv) {
+    roleDiv = document.createElement("div")
+    roleDiv.id = "role"
+    roleDiv.style.position = "fixed"
+    roleDiv.style.top = "10px"
+    roleDiv.style.right = "10px"
+    roleDiv.style.background = "black"
+    roleDiv.style.color = "white"
+    roleDiv.style.padding = "10px"
+    document.body.appendChild(roleDiv)
+  }
+
+  roleDiv.innerText = role
+    ? `役: ${role.name} (${role.point}点)`
+    : "役なし"
 }
 
 // ===== 取る =====
