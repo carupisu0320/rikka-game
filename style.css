@@ -1,25 +1,20 @@
-/* 全体 */
 body {
   font-family: sans-serif;
-  background: #2e7d32;
-  color: white;
-  text-align: center;
 }
 
 /* 場 */
 #field {
   position: relative;
-  width: 800px;
-  height: 400px;
-  margin: 0 auto;
+  width: 900px;
+  height: 500px;
+  margin-bottom: 20px;
 }
 
 /* 手札 */
 #hand {
   display: flex;
+  gap: 5px;
   justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
 }
 
 /* 牌 */
@@ -28,27 +23,13 @@ body {
   height: 100px;
   background: white;
   border-radius: 10px;
-  border: 2px solid black;
+  border: 1px solid black;
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 5px;
-  box-sizing: border-box;
-  color: black;
-  transition: 0.2s;
-}
-
-/* 手札だけ通常配置 */
-.hand-card {
-  position: static;
   cursor: pointer;
 }
 
-/* 浮く */
-.card:hover {
-  transform: scale(1.1);
-  z-index: 10;
+.hand-card {
+  position: static;
 }
 
 /* 裏 */
@@ -56,22 +37,7 @@ body {
   background: gray;
 }
 
-/* テストボタン */
-#test-buttons {
-  position: fixed;
-  left: 10px;
-  top: 120px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-#test-buttons button {
-  padding: 8px;
-  font-size: 14px;
-}
-
-/* 捨てるボタン（牌風） */
+/* 捨てるボタン（牌型） */
 #discardBtn {
   position: fixed;
   bottom: 80px;
@@ -86,17 +52,24 @@ body {
 
   display: none;
 
-  font-weight: bold;
   color: red;
-  font-size: 16px;
-
+  font-weight: bold;
+  display: flex;
   align-items: center;
   justify-content: center;
-
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-  cursor: pointer;
 }
 
-#discardBtn:hover {
-  transform: scale(1.1);
+/* テストボタン */
+#testButtons {
+  position: fixed;
+  left: 10px;
+  top: 120px;
+}
+
+/* 役表示 */
+#roleDisplay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 20px;
 }
