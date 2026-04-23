@@ -7,14 +7,14 @@ body {
   position: relative;
   width: 900px;
   height: 500px;
-  margin-bottom: 20px;
 }
 
 /* 手札 */
 #hand {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   justify-content: center;
+  margin-top: 20px;
 }
 
 /* 牌 */
@@ -26,6 +26,11 @@ body {
   border: 1px solid black;
   position: absolute;
   cursor: pointer;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5px;
 }
 
 .hand-card {
@@ -37,7 +42,7 @@ body {
   background: gray;
 }
 
-/* 捨てるボタン（牌型） */
+/* 捨てるボタン（牌） */
 #discardBtn {
   position: fixed;
   bottom: 80px;
@@ -54,7 +59,7 @@ body {
 
   color: red;
   font-weight: bold;
-  display: flex;
+
   align-items: center;
   justify-content: center;
 }
@@ -71,5 +76,5 @@ body {
   position: fixed;
   top: 20px;
   right: 20px;
-  font-size: 20px;
+  font-size: 22px;
 }
