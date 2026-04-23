@@ -1,101 +1,49 @@
-// ===== 共通 =====
 function isSame(arr) {
   return arr.every(v => v === arr[0])
 }
 
 function isSequence(arr) {
-  const sorted = [...arr].sort((a, b) => a - b)
-  for (let i = 0; i < sorted.length - 1; i++) {
-    if (sorted[i] + 1 !== sorted[i + 1]) return false
-  }
-  return true
+  const s = [...arr].sort((a,b)=>a-b)
+  return s.every((v,i)=> i===0 || s[i-1]+1===v)
 }
 
-// ===== 回転パターン =====
-function getAllPatterns(hand) {
-  const results = []
-
-  function dfs(index, current) {
-    if (index === hand.length) {
-      results.push(current)
-      return
-    }
-
-    const card = hand[index]
-
-    dfs(index + 1, [...current, card])
-
-    dfs(index + 1, [...current, {
-      top: card.bottom,
-      bottom: card.top
-    }])
-  }
-
-  dfs(0, [])
-  return results
+function isRikka(h) {
+  return h.length===6 &&
+    isSame(h.map(c=>c.bottom)) &&
+    isSequence(h.map(c=>c.top))
 }
 
-// ===== 三連 =====
-function combinations(arr, k) {
-  const result = []
-
-  function helper(start, comb) {
-    if (comb.length === k) {
-      result.push([...comb])
-      return
-    }
-
-    for (let i = start; i < arr.length; i++) {
-      comb.push(arr[i])
-      helper(i + 1, comb)
-      comb.pop()
+function combinations(arr,k){
+  const res=[]
+  function f(s,c){
+    if(c.length===k) return res.push([...c])
+    for(let i=s;i<arr.length;i++){
+      c.push(arr[i]);f(i+1,c);c.pop()
     }
   }
-
-  helper(0, [])
-  return result
+  f(0,[])
+  return res
 }
 
-function isSanSet(group) {
-  const bottoms = group.map(c => c.bottom)
-  const tops = group.map(c => c.top)
-  return isSame(bottoms) && isSequence(tops)
+function isSanSet(g){
+  return isSame(g.map(c=>c.bottom)) &&
+         isSequence(g.map(c=>c.top))
 }
 
-function checkSanren(hand) {
-  const comb = combinations(hand, 3)
-
-  for (const g1 of comb) {
-    const g2 = hand.filter(c => !g1.includes(c))
-
-    if (isSanSet(g1) && isSanSet(g2)) {
-      return true
-    }
-  }
-
-  return false
+function isSanren(h){
+  return combinations(h,3).some(g=>{
+    const g2=h.filter(c=>!g.includes(c))
+    return isSanSet(g)&&isSanSet(g2)
+  })
 }
 
-// ===== 役 =====
-function getRole(hand) {
-  const patterns = getAllPatterns(hand)
+function isIsshiki(h){
+  return isSame(h.map(c=>c.bottom))
+}
 
-  for (const h of patterns) {
-    const bottoms = h.map(c => c.bottom)
-    const tops = h.map(c => c.top)
-
-    if (isSame(bottoms) && isSequence(tops) && tops.length === 6) {
-      return { name: "六華", point: 6 }
-    }
-
-    if (checkSanren(h)) {
-      return { name: "三連", point: 3 }
-    }
-
-    if (isSame(bottoms)) {
-      return { name: "一色", point: 1 }
-    }
-  }
-
-  return null
+function getRole(h){
+  if(isRikka(h)) return "六華"
+  if(isSanren(h)) return "三連"
+  if(isIsshiki(h)) return "一色"
+  return ""
 }
