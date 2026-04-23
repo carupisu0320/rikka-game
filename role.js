@@ -1,33 +1,20 @@
-function isSame(arr) {
-  return arr.every(v => v === arr[0])
-}
+function isSame(a){return a.every(v=>v===a[0])}
+function isSequence(a){a=[...a].sort((x,y)=>x-y);return a.every((v,i)=>!i||a[i-1]+1===v)}
 
-function isSequence(arr) {
-  const s = [...arr].sort((a,b)=>a-b)
-  return s.every((v,i)=> i===0 || s[i-1]+1===v)
-}
+function isRikka(h){return h.length===6&&isSame(h.map(c=>c.bottom))&&isSequence(h.map(c=>c.top))}
 
-function isRikka(h) {
-  return h.length===6 &&
-    isSame(h.map(c=>c.bottom)) &&
-    isSequence(h.map(c=>c.top))
-}
-
-function combinations(arr,k){
-  const res=[]
+function combinations(a,k){
+  const r=[]
   function f(s,c){
-    if(c.length===k) return res.push([...c])
-    for(let i=s;i<arr.length;i++){
-      c.push(arr[i]);f(i+1,c);c.pop()
-    }
+    if(c.length===k)return r.push([...c])
+    for(let i=s;i<a.length;i++){c.push(a[i]);f(i+1,c);c.pop()}
   }
   f(0,[])
-  return res
+  return r
 }
 
 function isSanSet(g){
-  return isSame(g.map(c=>c.bottom)) &&
-         isSequence(g.map(c=>c.top))
+  return isSame(g.map(c=>c.bottom))&&isSequence(g.map(c=>c.top))
 }
 
 function isSanren(h){
@@ -42,8 +29,8 @@ function isIsshiki(h){
 }
 
 function getRole(h){
-  if(isRikka(h)) return "六華"
-  if(isSanren(h)) return "三連"
-  if(isIsshiki(h)) return "一色"
+  if(isRikka(h))return "六華"
+  if(isSanren(h))return "三連"
+  if(isIsshiki(h))return "一色"
   return ""
 }
