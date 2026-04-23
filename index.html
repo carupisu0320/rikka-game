@@ -3,799 +3,835 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>六華（リッカ）オンライン対戦</title>
+<title>六華（リッカ）</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Hiragino Sans','Yu Gothic UI','Noto Sans JP',sans-serif;
+  background:#0d0a08;color:#f0e8d8;
+  user-select:none;height:100vh;
+}
 
-  :root {
-    --bg: #0d0a08;
-    --bg2: #1a1410;
-    --bg3: #241c16;
-    --surface: #2e2318;
-    --surface2: #3d2f1f;
-    --gold: #c9a84c;
-    --gold2: #e8c97a;
-    --gold3: #f5e0a0;
-    --red: #d94a3a;
-    --red2: #f07060;
-    --teal: #4a9e8a;
-    --teal2: #6fc4ae;
-    --bot-color: #8a6aad;
-    --bot-color2: #b08dd4;
-    --text: #f0e8d8;
-    --text2: #c8b898;
-    --text3: #8a7860;
-    --border: #4a3828;
-    --border2: #6a5030;
-  }
+/* ── SCREENS ── */
+.screen{display:none;width:100vw;height:100vh;flex-direction:column}
+.screen.active{display:flex}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── LOBBY ── */
+#lobby{
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.09) 0%,transparent 60%);
+  overflow-y:auto;
+}
+.lobby-inner{width:100%;max-width:420px;padding:2rem 1.5rem}
 
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+.logo{text-align:center;margin-bottom:1.75rem}
+.logo-kanji{
+  font-size:clamp(3.5rem,12vw,6rem);font-weight:700;
+  color:#e8c97a;letter-spacing:.25em;line-height:1;
+  text-shadow:0 0 40px rgba(201,168,76,.4),0 2px 8px rgba(0,0,0,.8);
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+}
+.logo-sub{font-size:.78rem;letter-spacing:.55em;color:#6a5830;margin-top:.3rem;text-transform:uppercase}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 10%, rgba(201,168,76,0.05) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 20% 80%, rgba(74,158,138,0.04) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
+.sparks{display:flex;justify-content:center;gap:9px;margin:.9rem 0}
+.sp{width:7px;height:7px;border-radius:50%;animation:sp 2s infinite}
+.sp:nth-child(1){background:#f06060;animation-delay:0s}
+.sp:nth-child(2){background:#f0a060;animation-delay:.25s}
+.sp:nth-child(3){background:#d4c040;animation-delay:.5s}
+.sp:nth-child(4){background:#50c870;animation-delay:.75s}
+.sp:nth-child(5){background:#60a8f0;animation-delay:1s}
+.sp:nth-child(6){background:#a070e8;animation-delay:1.25s}
+@keyframes sp{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.7);opacity:1}}
 
-  .screen { position: relative; z-index: 1; display: none; min-height: 100vh; }
-  .screen.active { display: flex; flex-direction: column; }
+.flabel{display:block;font-size:.73rem;color:#6a5830;letter-spacing:.1em;margin-bottom:.35rem}
+.finput{
+  width:100%;background:#1a1410;border:1px solid #3e2e1e;border-radius:8px;
+  padding:.65rem .9rem;font-size:.95rem;color:#f0e8d8;font-family:inherit;
+  outline:none;transition:border-color .18s;
+}
+.finput:focus{border-color:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.1)}
 
-  /* ===== ロビー ===== */
-  #screen-lobby { align-items: center; justify-content: center; padding: 2rem; }
+.fgroup{margin-bottom:.9rem}
 
-  .title-area { text-align: center; margin-bottom: 2.5rem; }
+.bot-row{display:flex;gap:.5rem}
+.fselect{
+  flex:1;background:#1a1410;border:1px solid #3e2e1e;border-radius:8px;
+  padding:.6rem .75rem;color:#c8b898;font-size:.85rem;font-family:inherit;outline:none;cursor:pointer;
+}
+.fselect:focus{border-color:#8a6aad}
 
-  .title-kanji {
-    font-family: 'Noto Serif JP', serif;
-    font-size: clamp(3.5rem, 10vw, 6rem);
-    font-weight: 700;
-    color: var(--gold2);
-    letter-spacing: 0.2em;
-    text-shadow: 0 0 40px rgba(201,168,76,0.3), 0 2px 8px rgba(0,0,0,0.8);
-    line-height: 1;
-  }
+.lbtn{
+  display:block;width:100%;padding:.8rem;border:none;border-radius:10px;
+  font-family:inherit;font-size:.95rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .18s;
+}
+.lbtn-gold{background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00}
+.lbtn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(201,168,76,.35)}
+.btn-group{display:flex;flex-direction:column;gap:.5rem;margin-top:1rem}
 
-  .title-ruby { font-size: 0.9rem; letter-spacing: 0.6em; color: var(--text3); text-transform: uppercase; margin-top: 0.4rem; }
-  .title-tagline { margin-top: 0.75rem; font-size: 0.8rem; color: var(--text3); letter-spacing: 0.1em; }
+.rules-card{
+  background:#141008;border:1px solid #3e2e1e;border-radius:10px;
+  padding:.875rem;margin-top:1.25rem;font-size:.77rem;
+}
+.rules-title{color:#6a5830;letter-spacing:.1em;margin-bottom:.5rem}
+.rrow{display:flex;align-items:center;padding:.24rem 0;border-bottom:1px solid #221810}
+.rrow:last-child{border-bottom:none}
+.rname{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:#e8c97a;min-width:2.5rem}
+.rdesc{color:#6a5830;flex:1;padding:0 .6rem}
+.rpts{font-weight:700;color:#f0e8d8;min-width:2rem;text-align:right}
+.rnote{margin-top:.6rem;font-size:.68rem;color:#5a4820}
 
-  .firework-deco { display: flex; justify-content: center; gap: 1.5rem; margin: 1.2rem 0; }
-  .fw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); opacity: 0.6; animation: pulse 2s ease-in-out infinite; }
-  .fw-dot:nth-child(2) { animation-delay: 0.3s; background: var(--teal); }
-  .fw-dot:nth-child(3) { animation-delay: 0.6s; background: var(--red); }
-  .fw-dot:nth-child(4) { animation-delay: 0.9s; background: var(--bot-color); }
-  .fw-dot:nth-child(5) { animation-delay: 1.2s; background: var(--teal); }
-  @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.5);opacity:1} }
+/* ── GAME SCREEN ── */
+#game{background:#0d0a08}
 
-  .lobby-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.75rem;
-    width: 100%;
-    max-width: 460px;
-  }
+/* Header */
+#hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.45rem 1rem;background:#120e0a;border-bottom:1px solid #221810;
+  flex-shrink:0;min-height:46px;
+}
+.hdr-logo{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.25rem;color:#e8c97a;letter-spacing:.2em;
+}
+#scoreboard{display:flex;gap:.5rem;flex-wrap:wrap}
+.spill{
+  background:#1e1612;border:1px solid #3e2e1e;border-radius:16px;
+  padding:.18rem .65rem;font-size:.7rem;display:flex;align-items:center;gap:.35rem;
+  transition:border-color .3s,box-shadow .3s;
+}
+.spill.active-human{border-color:#4a9e8a;box-shadow:0 0 8px rgba(74,158,138,.25)}
+.spill.active-bot{border-color:#8a6aad;box-shadow:0 0 8px rgba(138,106,173,.25)}
+.spill .sn{color:#6a5830;max-width:5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spill .sv{color:#e8c97a;font-weight:700;font-size:.82rem}
 
-  .form-group { margin-bottom: 1.1rem; }
-  .form-label { display: block; font-size: 0.78rem; color: var(--text3); letter-spacing: 0.1em; margin-bottom: 0.4rem; }
-  .form-input {
-    width: 100%; background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.95rem;
-    color: var(--text); font-family: inherit; transition: border-color 0.2s; outline: none;
-  }
-  .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+/* Opponents */
+#opp-area{
+  display:flex;gap:.45rem;padding:.45rem 1rem;
+  flex-shrink:0;flex-wrap:wrap;
+  min-height:0;
+}
+.ocard{
+  background:#141008;border:1px solid #2a1e12;border-radius:8px;
+  padding:.3rem .7rem;display:flex;align-items:center;gap:.45rem;
+  font-size:.76rem;flex:1;min-width:90px;max-width:200px;
+  transition:border-color .3s;
+}
+.ocard.oactive{border-color:#8a6aad;box-shadow:0 0 10px rgba(138,106,173,.2)}
+.oname{color:#b08dd4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.ohand{display:flex;gap:2px;flex-wrap:wrap}
+.tback{width:13px;height:22px;background:#2a1e12;border:1px solid #3a2a1a;border-radius:2px;flex-shrink:0}
+.oscore{margin-left:auto;color:#e8c97a;font-weight:700;white-space:nowrap}
+.tdots{display:flex;gap:2px;margin-left:3px}
+.tdot{width:4px;height:4px;border-radius:50%;background:#8a6aad;animation:tdot 1.2s infinite}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1.1);opacity:1}}
 
-  .btn {
-    display: block; width: 100%; padding: 0.825rem;
-    border: none; border-radius: 10px;
-    font-family: 'Noto Serif JP', serif; font-size: 0.95rem; font-weight: 700;
-    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
-  }
-  .btn-primary { background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%); color: #1a1000; }
-  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
-  .btn-secondary { background: var(--surface); color: var(--text2); border: 1px solid var(--border); margin-top: 0.6rem; }
-  .btn-secondary:hover { background: var(--surface2); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+/* Field */
+#field-wrap{flex:1;overflow-y:auto;padding:.5rem 1rem;border-bottom:1px solid #1a1208}
+.field-hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.7rem;color:#6a5830;letter-spacing:.1em;margin-bottom:.45rem;
+}
+#field-grid{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
 
-  /* プレイヤーリスト */
-  .player-list { margin: 1.1rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .player-list-header { background: var(--surface); padding: 0.45rem 0.75rem; font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
-  .player-item {
-    padding: 0.55rem 0.75rem; font-size: 0.88rem;
-    display: flex; align-items: center; gap: 0.5rem;
-    border-top: 1px solid var(--border);
-  }
-  .player-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
-  .bot-dot { background: var(--bot-color); }
+/* Tile base */
+.tile{
+  width:34px;height:58px;border-radius:5px;
+  background:#1e1612;border:1.5px solid #3a2a1a;
+  display:flex;flex-direction:column;cursor:pointer;
+  transition:transform .12s,border-color .12s,box-shadow .12s;
+  position:relative;overflow:hidden;flex-shrink:0;
+}
+.tile .th,.tile .tb{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;line-height:1;pointer-events:none;
+}
+.tile .th{border-bottom:1px solid #3a2a1a}
 
-  .bot-badge {
-    font-size: 0.65rem; padding: 1px 5px; border-radius: 3px;
-    background: rgba(138,106,173,0.2); color: var(--bot-color2);
-    border: 1px solid rgba(138,106,173,0.3); margin-left: auto; white-space: nowrap;
-  }
+/* Field tile hover */
+.tile.pickable:hover{border-color:#4a9e8a;transform:translateY(-4px);box-shadow:0 6px 16px rgba(74,158,138,.3)}
+.tile.not-pick{cursor:default;opacity:.75}
 
-  /* ボット追加パネル */
-  .bot-panel {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.875rem;
-    margin: 0.875rem 0;
-  }
+/* Hand tile */
+.htile{width:44px;height:74px}
+.htile .th,.htile .tb{font-size:1.18rem}
+.htile:hover{border-color:#c9a84c;transform:translateY(-4px);box-shadow:0 6px 16px rgba(201,168,76,.25)}
+.htile.selected{
+  border-color:#ff4040 !important;
+  box-shadow:0 0 18px rgba(255,60,60,.75),0 0 6px rgba(255,60,60,.5) !important;
+  transform:translateY(-10px) !important;
+}
 
-  .bot-panel-title {
-    font-size: 0.75rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+/* Sym colors */
+.s1{color:#f06868}.s2{color:#f0a050}.s3{color:#d4c030}
+.s4{color:#50c870}.s5{color:#58a8f0}.s6{color:#a870e8}
 
-  .bot-panel-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+/* Hand area */
+#hand-area{
+  flex-shrink:0;background:#0a0806;border-top:1px solid #221810;
+  padding:.5rem 1rem .6rem;
+}
+.hand-hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:.35rem;
+}
+.hand-label{font-size:.7rem;color:#6a5830;letter-spacing:.1em}
+#hand-hint{font-size:.72rem;color:#6a5830}
+#hand-hint.can-win{color:#c9a84c;font-weight:700}
 
-  .bot-controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+#status{
+  font-size:.78rem;text-align:center;padding:.22rem 0 .35rem;
+  min-height:22px;color:#6a5830;
+}
+#status.myturn{color:#6fc4ae}
+#status.boturn{color:#b08dd4}
 
-  .difficulty-select {
-    background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: 6px; padding: 0.35rem 0.6rem;
-    color: var(--text2); font-size: 0.8rem; font-family: inherit;
-    outline: none; cursor: pointer; flex: 1; min-width: 80px;
-  }
+.hand-row{display:flex;align-items:flex-end;gap:.6rem}
+#hand-tiles{display:flex;gap:5px;flex:1;min-width:0}
+#hand-btns{display:flex;flex-direction:column;gap:.35rem;flex-shrink:0}
 
-  .difficulty-select:focus { border-color: var(--bot-color); }
+.abtn{
+  padding:.4rem .85rem;border-radius:7px;border:none;
+  font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;
+  white-space:nowrap;transition:all .15s;
+}
+.abtn:disabled{opacity:.35;cursor:not-allowed !important;transform:none !important}
+#btn-discard{
+  background:#7a1818;color:#ffd0d0;
+  display:none; /* shown via JS */
+}
+#btn-discard:hover:not(:disabled){background:#a02020}
+#btn-win{background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00}
+#btn-win:hover:not(:disabled){box-shadow:0 4px 14px rgba(201,168,76,.4);transform:translateY(-1px)}
 
-  .btn-add-bot {
-    padding: 0.4rem 0.875rem; border-radius: 6px;
-    background: rgba(138,106,173,0.15); border: 1px solid rgba(138,106,173,0.4);
-    color: var(--bot-color2); font-size: 0.82rem; cursor: pointer;
-    font-family: inherit; transition: all 0.15s; white-space: nowrap;
-  }
-  .btn-add-bot:hover { background: rgba(138,106,173,0.25); border-color: var(--bot-color); }
+/* Toast */
+#toast{
+  position:fixed;bottom:160px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:#3a2010;border:1px solid #6a4020;border-radius:9px;
+  padding:.65rem 1.25rem;font-size:.88rem;color:#f0d8b0;z-index:300;
+  pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;
+  white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  .btn-remove-bot {
-    padding: 0.4rem 0.875rem; border-radius: 6px;
-    background: transparent; border: 1px solid var(--border2);
-    color: var(--text3); font-size: 0.82rem; cursor: pointer;
-    font-family: inherit; transition: all 0.15s; white-space: nowrap;
-  }
-  .btn-remove-bot:hover { border-color: var(--red2); color: var(--red2); }
+/* Modal */
+#modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.87);
+  display:none;align-items:center;justify-content:center;z-index:200;
+  backdrop-filter:blur(3px);
+}
+#modal.open{display:flex}
+.mbox{
+  background:#1a1410;border:1px solid #4a3018;border-radius:16px;
+  padding:1.75rem;max-width:400px;width:90%;text-align:center;
+  animation:mboxin .25s ease-out;
+}
+@keyframes mboxin{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.mtitle{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.4rem;color:#e8c97a;margin-bottom:.3rem;
+}
+.mrole{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:2.1rem;color:#f5e0a0;margin:.3rem 0;
+}
+.mpts{color:#a89878;margin-bottom:.9rem;font-size:.9rem}
+.mhand{display:flex;gap:5px;justify-content:center;margin:.75rem 0;flex-wrap:wrap}
+.mscores{width:100%;border-collapse:collapse;margin:.7rem 0;font-size:.87rem}
+.mscores td{padding:.3rem .6rem;border-bottom:1px solid #2a1e12}
+.mscores td:last-child{text-align:right;color:#e8c97a;font-weight:700}
+.mbtn{
+  display:block;width:100%;padding:.75rem;border:none;border-radius:9px;
+  font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00;
+  margin-top:.75rem;transition:all .15s;letter-spacing:.06em;
+}
+.mbtn:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(201,168,76,.35)}
 
-  .bot-count-text { font-size: 0.75rem; color: var(--text3); }
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#3a2a1a;border-radius:2px}
 
-  .error-msg { color: var(--red2); font-size: 0.8rem; margin-top: 0.5rem; text-align: center; }
-
-  .roles-info { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 0.875rem; font-size: 0.8rem; }
-  .role-row { display: flex; justify-content: space-between; align-items: center; padding: 0.28rem 0; border-bottom: 1px solid var(--border); }
-  .role-row:last-child { border-bottom: none; }
-  .role-name { font-family: 'Noto Serif JP', serif; color: var(--gold2); }
-  .role-desc { color: var(--text3); flex: 1; padding: 0 0.75rem; }
-  .role-pts { font-weight: 700; color: var(--text); }
-
-  /* ===== ゲーム画面 ===== */
-  #screen-game { flex-direction: column; padding: 0; }
-
-  .game-header {
-    background: var(--bg2); border-bottom: 1px solid var(--border);
-    padding: 0.575rem 1.25rem; display: flex; align-items: center;
-    justify-content: space-between; flex-shrink: 0;
-  }
-
-  .game-title-small { font-family: 'Noto Serif JP', serif; font-size: 1.2rem; color: var(--gold2); letter-spacing: 0.2em; }
-
-  .score-board { display: flex; gap: 0.875rem; }
-  .score-item { text-align: center; min-width: 54px; }
-  .score-name { font-size: 0.65rem; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .score-name.is-bot { color: var(--bot-color2); }
-  .score-val { font-size: 1.05rem; font-weight: 700; color: var(--gold2); }
-  .score-item.current-turn .score-name { color: var(--teal2); }
-  .score-item.current-turn.is-bot-turn .score-name { color: var(--bot-color2); }
-
-  .game-main { flex: 1; display: flex; flex-direction: column; padding: 0.875rem; gap: 0.875rem; overflow-y: auto; }
-
-  /* 相手エリア */
-  .opponents-area { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-  .opponent-card {
-    background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 0.575rem 0.875rem;
-    flex: 1; min-width: 110px; max-width: 190px;
-  }
-  .opponent-card.is-turn { border-color: var(--teal); box-shadow: 0 0 12px rgba(74,158,138,0.2); }
-  .opponent-card.is-bot.is-turn { border-color: var(--bot-color); box-shadow: 0 0 12px rgba(138,106,173,0.25); }
-
-  .opponent-name { font-size: 0.77rem; color: var(--text3); margin-bottom: 0.22rem; display: flex; align-items: center; gap: 0.35rem; }
-  .opponent-name.is-bot { color: var(--bot-color2); }
-
-  .turn-indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: blink 1s ease-in-out infinite; }
-  .turn-indicator.bot-turn { background: var(--bot-color); }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-  /* ボット思考中アニメ */
-  .bot-thinking {
-    font-size: 0.65rem; color: var(--bot-color2);
-    display: flex; align-items: center; gap: 3px;
-  }
-  .think-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--bot-color); animation: thinkpulse 1.2s ease-in-out infinite; }
-  .think-dot:nth-child(2) { animation-delay: 0.2s; }
-  .think-dot:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes thinkpulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
-
-  .opponent-tiles { display: flex; gap: 2px; flex-wrap: wrap; }
-  .tile-back { width: 20px; height: 34px; border-radius: 3px; background: var(--surface2); border: 1px solid var(--border2); }
-
-  /* 場エリア */
-  .field-area { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 0.875rem; }
-  .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; }
-  .field-label { font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
-  .stock-info { font-size: 0.73rem; color: var(--text2); }
-  .field-tiles { display: flex; gap: 6px; flex-wrap: wrap; min-height: 52px; }
-
-  /* 牌 */
-  .tile {
-    width: 34px; height: 58px; border-radius: 6px;
-    background: var(--surface); border: 1.5px solid var(--border2);
-    display: flex; flex-direction: column; position: relative;
-    cursor: pointer; transition: all 0.15s; user-select: none; overflow: hidden;
-  }
-  .tile:hover { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
-  .tile.selected { border-color: var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.4); transform: translateY(-8px); }
-  .tile.field-tile:hover { border-color: var(--teal); transform: translateY(-4px); box-shadow: 0 6px 16px rgba(74,158,138,0.3); }
-
-  .tile-half { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; line-height: 1; }
-  .tile-top { border-bottom: 1px solid var(--border); }
-
-  .sym-1{color:#e86060} .sym-2{color:#e8a060} .sym-3{color:#e8d060}
-  .sym-4{color:#60e880} .sym-5{color:#60a0e8} .sym-6{color:#a060e8}
-
-  /* アクション */
-  .action-area { display: flex; gap: 0.75rem; align-items: center; justify-content: center; }
-  .btn-draw {
-    flex: 1; max-width: 190px; padding: 0.7rem 1rem;
-    background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 10px; color: var(--text2); font-size: 0.88rem;
-    cursor: pointer; font-family: inherit; transition: all 0.2s;
-  }
-  .btn-draw:hover:not(:disabled) { border-color: var(--teal); color: var(--teal2); box-shadow: 0 4px 12px rgba(74,158,138,0.2); }
-  .btn-draw:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .status-text { text-align: center; font-size: 0.83rem; color: var(--text3); padding: 0.5rem; }
-  .my-turn-text { color: var(--teal2); font-weight: 500; }
-
-  /* 手牌 */
-  .my-hand-area { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 0.875rem; }
-  .my-hand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.625rem; flex-wrap: wrap; gap: 0.5rem; }
-  .my-hand-label { font-size: 0.73rem; color: var(--text3); letter-spacing: 0.1em; }
-  .hand-actions { display: flex; gap: 0.4rem; }
-
-  .btn-small {
-    padding: 0.28rem 0.7rem; border: 1px solid var(--border2);
-    border-radius: 6px; background: var(--surface); color: var(--text2);
-    font-size: 0.73rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
-  }
-  .btn-small:hover { background: var(--surface2); border-color: var(--gold); color: var(--gold2); }
-  .btn-win { background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%); color: #1a1000; font-weight: 700; border: none; letter-spacing: 0.05em; }
-  .btn-win:hover { box-shadow: 0 4px 14px rgba(201,168,76,0.4); transform: translateY(-1px); }
-
-  .my-tiles { display: flex; gap: 7px; flex-wrap: wrap; }
-  .tile-wrapper { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .tile-flip-btn {
-    font-size: 0.58rem; color: var(--text3); cursor: pointer;
-    padding: 1px 3px; border: 1px solid var(--border); border-radius: 3px;
-    background: transparent; font-family: inherit; transition: all 0.15s;
-  }
-  .tile-flip-btn:hover { color: var(--gold2); border-color: var(--gold); }
-
-  /* モーダル */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100; backdrop-filter: blur(4px);
-  }
-  .modal {
-    background: var(--bg2); border: 1px solid var(--border2);
-    border-radius: 16px; padding: 1.75rem; max-width: 460px;
-    width: 90%; text-align: center; animation: modalIn 0.3s ease-out;
-  }
-  @keyframes modalIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
-  .modal-title { font-family: 'Noto Serif JP', serif; font-size: 1.4rem; color: var(--gold2); margin-bottom: 0.4rem; letter-spacing: 0.1em; }
-  .win-role { font-size: 1.8rem; font-family: 'Noto Serif JP', serif; color: var(--gold3); margin: 0.4rem 0; }
-  .win-points { font-size: 0.95rem; color: var(--text2); margin-bottom: 1.25rem; }
-  .win-hand { display: flex; gap: 5px; justify-content: center; margin: 0.875rem 0; flex-wrap: wrap; }
-  .score-table { width: 100%; border-collapse: collapse; margin: 0.875rem 0; font-size: 0.88rem; }
-  .score-table td { padding: 0.38rem 0.7rem; border-bottom: 1px solid var(--border); }
-  .score-table td:last-child { text-align: right; color: var(--gold2); font-weight: 700; }
-  .score-table .bot-row td:first-child { color: var(--bot-color2); }
-
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  @media (max-width: 600px) {
-    .game-header { padding: 0.45rem 0.75rem; }
-    .game-title-small { font-size: 1rem; }
-    .tile { width: 28px; height: 48px; }
-    .tile-half { font-size: 0.85rem; }
-  }
+@media(max-width:480px){
+  .htile{width:38px;height:64px}
+  .htile .th,.htile .tb{font-size:1rem}
+  .tile{width:28px;height:48px}
+  .tile .th,.tile .tb{font-size:.82rem}
+}
 </style>
 </head>
 <body>
 
-<!-- ===== ロビー ===== -->
-<div id="screen-lobby" class="screen active">
-  <div class="title-area">
-    <div class="title-kanji">六華</div>
-    <div class="title-ruby">R I K K A</div>
-    <div class="firework-deco">
-      <div class="fw-dot"></div><div class="fw-dot"></div><div class="fw-dot"></div>
-      <div class="fw-dot"></div><div class="fw-dot"></div>
-    </div>
-    <div class="title-tagline">麻雀の体験をシンプルに再構築した牌ゲーム</div>
+<!-- ====== LOBBY ====== -->
+<div id="lobby" class="screen active">
+<div class="lobby-inner">
+  <div class="logo">
+    <div class="logo-kanji">六華</div>
+    <div class="logo-sub">R I K K A</div>
+  </div>
+  <div class="sparks">
+    <div class="sp"></div><div class="sp"></div><div class="sp"></div>
+    <div class="sp"></div><div class="sp"></div><div class="sp"></div>
   </div>
 
-  <div class="lobby-card">
-    <div id="lobby-form">
-      <div class="form-group">
-        <label class="form-label">プレイヤー名</label>
-        <input type="text" id="input-name" class="form-input" placeholder="名前を入力" maxlength="12">
-      </div>
-      <div class="form-group">
-        <label class="form-label">ルームID（ひとりで遊ぶ場合は空欄でOK）</label>
-        <input type="text" id="input-room" class="form-input" placeholder="ルームIDを入力（英数字）" maxlength="20">
-      </div>
-      <button class="btn btn-primary" onclick="joinRoom()">ルームに参加</button>
-      <button class="btn btn-secondary" onclick="createRandomRoom()">新しいルームを作成</button>
-      <div id="lobby-error" class="error-msg"></div>
+  <div class="fgroup">
+    <label class="flabel">あなたの名前</label>
+    <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10">
+  </div>
+  <div class="fgroup">
+    <label class="flabel">AIボット数 / 強さ</label>
+    <div class="bot-row">
+      <select id="bcnt" class="fselect">
+        <option value="1" selected>1体</option>
+        <option value="2">2体</option>
+        <option value="3">3体</option>
+        <option value="4">4体</option>
+      </select>
+      <select id="bdiff" class="fselect">
+        <option value="easy">弱い</option>
+        <option value="normal" selected>普通</option>
+        <option value="hard">強い</option>
+      </select>
     </div>
+  </div>
+  <div class="btn-group">
+    <button class="lbtn lbtn-gold" onclick="startGame()">ゲームスタート</button>
+  </div>
 
-    <div id="waiting-room" style="display:none">
-      <!-- プレイヤーリスト -->
-      <div class="player-list">
-        <div class="player-list-header">参加中のプレイヤー</div>
-        <div id="waiting-players"></div>
-      </div>
+  <div class="rules-card">
+    <div class="rules-title">— 役の種類（10点先取で勝利）—</div>
+    <div class="rrow"><span class="rname">六華</span><span class="rdesc">6枚すべて同じ数字（反転後で判定）</span><span class="rpts">6点</span></div>
+    <div class="rrow"><span class="rname">三連</span><span class="rdesc">3連続×2組　例: 2,2,3,3,4,4</span><span class="rpts">3点</span></div>
+    <div class="rrow"><span class="rname">一色</span><span class="rdesc">上面か下面がすべて同じ数字</span><span class="rpts">2点</span></div>
+    <div class="rnote">🖱 右クリック（スマホ長押し）で牌を反転　/ 牌をクリックして選択、別の牌をクリックで並び替え</div>
+  </div>
+</div>
+</div>
 
-      <!-- ボット追加パネル -->
-      <div class="bot-panel">
-        <div class="bot-panel-title">AIボットを追加</div>
-        <div class="bot-controls">
-          <select id="bot-difficulty" class="difficulty-select">
-            <option value="easy">弱（ゆっくり）</option>
-            <option value="normal" selected>普通</option>
-            <option value="hard">強（速い）</option>
-          </select>
-          <button class="btn-add-bot" onclick="addBot()">+ ボット追加</button>
-          <button class="btn-remove-bot" onclick="removeBot()">− 削除</button>
-        </div>
-        <div id="bot-count-text" class="bot-count-text" style="margin-top:0.5rem"></div>
-      </div>
+<!-- ====== GAME ====== -->
+<div id="game" class="screen">
+  <div id="hdr">
+    <div class="hdr-logo">六華</div>
+    <div id="scoreboard"></div>
+    <div style="font-size:.68rem;color:#5a4820">10点先取</div>
+  </div>
 
-      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.875rem;text-align:center">
-        ルームID: <span id="display-room-id" style="color:var(--gold2);font-weight:700"></span>
-        <br><span style="font-size:0.72rem">このIDを友達に共有して一緒に遊べます</span>
-      </div>
-      <button class="btn btn-primary" id="btn-start" onclick="startGame()" disabled>ゲームを開始</button>
-      <button class="btn btn-secondary" onclick="leaveRoom()">ルームを退出</button>
-      <div id="waiting-error" class="error-msg"></div>
+  <div id="opp-area"></div>
+
+  <div id="field-wrap">
+    <div class="field-hdr">
+      <span>— 場の牌 —</span>
+      <span id="field-cnt"></span>
     </div>
+    <div id="field-grid"></div>
+  </div>
 
-    <div style="margin-top:1.25rem">
-      <div class="roles-info">
-        <div style="font-size:0.73rem;color:var(--text3);margin-bottom:0.45rem;letter-spacing:0.1em">— 役の種類 —</div>
-        <div class="role-row">
-          <span class="role-name">六華</span>
-          <span class="role-desc">6枚全て同じ数字</span>
-          <span class="role-pts">6点</span>
-        </div>
-        <div class="role-row">
-          <span class="role-name">三連</span>
-          <span class="role-desc">3連続×2組（例:2,3,4,2,3,4）</span>
-          <span class="role-pts">3点</span>
-        </div>
-        <div class="role-row">
-          <span class="role-name">一色</span>
-          <span class="role-desc">上か下が全て同じ数字</span>
-          <span class="role-pts">2点</span>
-        </div>
+  <div id="hand-area">
+    <div class="hand-hdr">
+      <span class="hand-label">— 手牌 —</span>
+      <span id="hand-hint"></span>
+    </div>
+    <div id="status"></div>
+    <div class="hand-row">
+      <div id="hand-tiles"></div>
+      <div id="hand-btns">
+        <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
+        <button id="btn-win"     class="abtn" onclick="doWin()" disabled>上がる！</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== ゲーム画面 ===== -->
-<div id="screen-game" class="screen">
-  <div class="game-header">
-    <div class="game-title-small">六華</div>
-    <div id="score-board" class="score-board"></div>
-    <div style="font-size:0.72rem;color:var(--text3)">10点先取</div>
-  </div>
-
-  <div class="game-main">
-    <div id="opponents-area" class="opponents-area"></div>
-
-    <div class="field-area">
-      <div class="field-header">
-        <div class="field-label">— 場 —</div>
-        <div id="stock-count" class="stock-info"></div>
-      </div>
-      <div id="field-tiles" class="field-tiles">
-        <div style="color:var(--text3);font-size:0.8rem;padding:0.5rem">場に牌はありません</div>
-      </div>
-    </div>
-
-    <div class="action-area">
-      <button id="btn-draw-stock" class="btn-draw" onclick="drawFromStock()">山からツモ</button>
-      <div id="status-text" class="status-text"></div>
-    </div>
-
-    <div class="my-hand-area">
-      <div class="my-hand-header">
-        <div class="my-hand-label">— 手牌 —</div>
-        <div class="hand-actions">
-          <button class="btn-small btn-win" onclick="declareWin()">上がる！</button>
-          <button class="btn-small" onclick="discardSelected()">選択牌を捨てる</button>
-        </div>
-      </div>
-      <div id="my-tiles" class="my-tiles"></div>
-      <div id="hand-hint" style="font-size:0.73rem;color:var(--text3);margin-top:0.45rem"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== モーダル ===== -->
-<div id="modal-overlay" class="modal-overlay" style="display:none">
-  <div id="modal-content" class="modal"></div>
-</div>
+<div id="toast"></div>
+<div id="modal"><div class="mbox" id="mbox"></div></div>
 
 <script>
-let ws = null;
-let myName = '';
-let myIndex = -1;
-let gameState = null;
-let selectedTile = null;
-let roomId = '';
+// ============================================================
+//  CONSTANTS
+// ============================================================
+const SYM       = ['','✦','✿','◈','✺','⬡','❋'];
+const SCLS      = ['','s1','s2','s3','s4','s5','s6'];
+const BNAMES    = ['AIさくら','AIあおい','AIひなた','AIつばき'];
+const WIN_SCORE = 10;
 
-const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = `${wsProtocol}//${location.host}`;
+// ============================================================
+//  GAME STATE
+// ============================================================
+let G = null;
 
-function connectWS() {
-  ws = new WebSocket(wsUrl);
-  ws.onopen = () => {};
-  ws.onmessage = (e) => handleServerMessage(JSON.parse(e.data));
-  ws.onclose = () => {
-    setTimeout(() => {
-      if (document.getElementById('screen-game').classList.contains('active')) {
-        showModal(`<div class="modal-title">接続が切断されました</div>
-          <p style="color:var(--text2);margin:1rem 0">サーバーとの接続が失われました</p>
-          <button class="btn btn-primary" style="margin-top:1rem" onclick="location.reload()">再接続</button>`);
-      }
-    }, 500);
+function newState() {
+  return {
+    phase: 'lobby',   // lobby | playing | roundEnd | gameOver
+    players: [],      // [{name,hand,score,isBot,diff}]
+    field: [],        // tiles not held by anyone
+    turn: 0,          // index into players
+    tphase: 'pick',   // pick | discard
+    selIdx: -1,       // selected hand tile index (-1 = none)
+    toastTm: null,
   };
 }
 
-const symbols = ['', '✦', '✿', '◈', '✺', '⬡', '❋'];
-const symClass = ['', 'sym-1', 'sym-2', 'sym-3', 'sym-4', 'sym-5', 'sym-6'];
+// ============================================================
+//  DECK  (42 tiles)
+//  36 ordered pairs (i,j) 1≤i,j≤6 + 6 extra doubles = 42
+// ============================================================
+function makeDeck() {
+  const d = [];
+  let id = 0;
+  for (let t = 1; t <= 6; t++)
+    for (let b = 1; b <= 6; b++)
+      d.push({id: id++, top: t, bot: b, flip: false});
+  for (let i = 1; i <= 6; i++)
+    d.push({id: id++, top: i, bot: i, flip: false});
+  return shuffle(d);
+}
 
-function renderTile(tile, opts = {}) {
-  const topVal = tile.flipped ? tile.bottom : tile.top;
-  const bottomVal = tile.flipped ? tile.top : tile.bottom;
-  const selected = opts.selected ? ' selected' : '';
-  const fieldCls = opts.field ? ' field-tile' : '';
-  const onClick = opts.onClick || '';
-  return `<div class="tile${selected}${fieldCls}" onclick="${onClick}" data-id="${tile.id}">
-    <div class="tile-half tile-top ${symClass[topVal]}">${symbols[topVal]}</div>
-    <div class="tile-half ${symClass[bottomVal]}">${symbols[bottomVal]}</div>
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+
+// ============================================================
+//  WIN CHECK
+// ============================================================
+function eff(t) { return t.flip ? t.bot : t.top; }
+
+function checkWin(hand) {
+  if (hand.length !== 6) return null;
+  const v = hand.map(eff);
+
+  // 六華: all effective same
+  if (v.every(x => x === v[0])) return {role:'六華', pts:6};
+
+  // 三連: sorted → two groups of 3 consecutive
+  const s = [...v].sort((a,b)=>a-b);
+  const cnt = {};
+  s.forEach(x => cnt[x] = (cnt[x]||0)+1);
+  const ks = Object.keys(cnt).map(Number).sort((a,b)=>a-b);
+  if (ks.length===3 && ks.every(k=>cnt[k]===2) && ks[1]===ks[0]+1 && ks[2]===ks[1]+1)
+    return {role:'三連', pts:3};
+
+  // 一色: natural top all same OR natural bottom all same
+  const tops = hand.map(t=>t.top);
+  const bots = hand.map(t=>t.bot);
+  if (tops.every(x=>x===tops[0]) || bots.every(x=>x===bots[0]))
+    return {role:'一色', pts:2};
+
+  return null;
+}
+
+// ============================================================
+//  START GAME
+// ============================================================
+function startGame() {
+  const name   = document.getElementById('pname').value.trim() || 'プレイヤー';
+  const bcnt   = parseInt(document.getElementById('bcnt').value);
+  const bdiff  = document.getElementById('bdiff').value;
+
+  G = newState();
+  G.players = [{name, hand:[], score:0, isBot:false}];
+  for (let i = 0; i < bcnt; i++)
+    G.players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
+
+  dealRound();
+  G.phase = 'playing';
+  G.turn  = 0;
+  G.tphase= 'pick';
+  G.selIdx= -1;
+
+  showScreen('game');
+  render();
+
+  if (G.players[G.turn].isBot) scheduleBot();
+}
+
+function dealRound() {
+  const deck = makeDeck();
+  let idx = 0;
+  G.players.forEach(p => { p.hand = deck.slice(idx, idx+5); idx += 5; });
+  G.field = deck.slice(idx);
+  G.selIdx = -1;
+  G.tphase = 'pick';
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function render() {
+  renderHeader();
+  renderOpponents();
+  renderField();
+  renderHand();
+  renderStatus();
+}
+
+/* ----- Header / Scoreboard ----- */
+function renderHeader() {
+  document.getElementById('scoreboard').innerHTML = G.players.map((p,i) => {
+    const active = i === G.turn;
+    const cls = active ? (p.isBot ? 'active-bot' : 'active-human') : '';
+    return `<div class="spill ${cls}">
+      <span class="sn">${esc(p.name)}</span>
+      <span class="sv">${p.score}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ----- Opponents ----- */
+function renderOpponents() {
+  const el = document.getElementById('opp-area');
+  const bots = G.players.filter(p => p.isBot);
+  if (!bots.length) { el.innerHTML=''; return; }
+  el.innerHTML = bots.map(p => {
+    const pi = G.players.indexOf(p);
+    const act = pi === G.turn;
+    const backs = p.hand.map(() => '<div class="tback"></div>').join('');
+    const dots  = act ? '<div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>' : '';
+    return `<div class="ocard${act?' oactive':''}">
+      <span class="oname">${esc(p.name)}</span>
+      <div class="ohand">${backs}</div>
+      ${dots}
+      <span class="oscore">${p.score}点</span>
+    </div>`;
+  }).join('');
+}
+
+/* ----- Field ----- */
+function renderField() {
+  const canPick = G.turn===0 && G.tphase==='pick' && !G.players[0].isBot;
+  document.getElementById('field-cnt').textContent = `${G.field.length}枚`;
+  document.getElementById('field-grid').innerHTML =
+    G.field.map((t,i) => tileSVG(t, canPick?`onclick="pickField(${i})"`:'', canPick?'pickable':'not-pick')).join('');
+}
+
+/* ----- Hand ----- */
+function renderHand() {
+  const p = G.players[0];
+  document.getElementById('hand-tiles').innerHTML =
+    p.hand.map((t,i) => {
+      const sel = i===G.selIdx ? 'selected' : '';
+      return tileSVG(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `htile ${sel}`);
+    }).join('');
+
+  const isMyDiscard = G.turn===0 && G.tphase==='discard';
+  const hasSel = G.selIdx !== -1;
+  const winRes = isMyDiscard ? checkWin(p.hand) : null;
+
+  // 捨てる button: show only when my discard phase AND a tile is selected
+  const db = document.getElementById('btn-discard');
+  db.style.display = (isMyDiscard && hasSel) ? 'block' : 'none';
+
+  // 上がる button
+  const wb = document.getElementById('btn-win');
+  wb.disabled = !(isMyDiscard && winRes);
+
+  // Hint
+  const hh = document.getElementById('hand-hint');
+  if (isMyDiscard && winRes) {
+    hh.textContent = `★ ${winRes.role}（${winRes.pts}点）上がれます！`;
+    hh.className = 'can-win';
+  } else {
+    hh.textContent = `手牌 ${p.hand.length}枚`;
+    hh.className = '';
+  }
+}
+
+/* ----- Status bar ----- */
+function renderStatus() {
+  const el = document.getElementById('status');
+  const myTurn = G.turn === 0 && !G.players[0].isBot;
+  if (myTurn) {
+    el.className = 'myturn';
+    el.textContent = G.tphase==='pick'
+      ? '場から牌を1枚選んでください'
+      : '捨てる牌を選択 → 「捨てる」ボタン（右クリックで反転）';
+  } else {
+    el.className = 'boturn';
+    el.textContent = `${G.players[G.turn].name} が考え中...`;
+  }
+}
+
+/* ----- Tile HTML ----- */
+function tileSVG(t, events='', extra='') {
+  const tv = t.flip ? t.bot : t.top;
+  const bv = t.flip ? t.top : t.bot;
+  return `<div class="tile ${extra}" ${events}>
+    <div class="th ${SCLS[tv]}">${SYM[tv]}</div>
+    <div class="tb ${SCLS[bv]}">${SYM[bv]}</div>
   </div>`;
 }
 
-// ===== メッセージハンドラー =====
-function handleServerMessage(msg) {
-  switch (msg.type) {
-    case 'joined':
-      roomId = msg.roomId;
-      document.getElementById('display-room-id').textContent = roomId;
-      document.getElementById('lobby-form').style.display = 'none';
-      document.getElementById('waiting-room').style.display = 'block';
-      break;
+// ============================================================
+//  HUMAN ACTIONS
+// ============================================================
 
-    case 'lobby': {
-      const ul = document.getElementById('waiting-players');
-      ul.innerHTML = msg.players.map(p => {
-        const isBot = p.isBot;
-        const diffLabel = { easy: '弱', normal: '普通', hard: '強' }[p.difficulty] || '';
-        const badge = isBot ? `<span class="bot-badge">AI ${diffLabel}</span>` : '';
-        return `<div class="player-item">
-          <div class="player-dot ${isBot ? 'bot-dot' : ''}"></div>
-          ${p.name}${badge}
-        </div>`;
-      }).join('');
-      document.getElementById('btn-start').disabled = !msg.canStart;
-      const botCount = msg.players.filter(p => p.isBot).length;
-      const humanCount = msg.players.filter(p => !p.isBot).length;
-      document.getElementById('bot-count-text').textContent =
-        `現在: 人間 ${humanCount}人 / AI ${botCount}体 (最大5人まで)`;
-      break;
-    }
+/* Click on a field tile → pick it */
+function pickField(i) {
+  if (G.phase!=='playing' || G.turn!==0 || G.tphase!=='pick') return;
+  const p = G.players[0];
+  if (p.hand.length >= 6) { toast('もう持てないよ'); return; }
 
-    case 'gameStart':
-      showScreen('game');
-      break;
-
-    case 'gameState':
-      myIndex = msg.myIndex;
-      gameState = msg;
-      renderGameState(msg);
-      break;
-
-    case 'win':
-      showWinModal(msg);
-      break;
-
-    case 'gameOver':
-      showGameOverModal(msg);
-      break;
-
-    case 'error': {
-      const errEl = document.getElementById('waiting-error') ||
-                    document.getElementById('lobby-error');
-      if (errEl) errEl.textContent = msg.message;
-      break;
-    }
-
-    case 'playerLeft':
-      showModal(`<div class="modal-title">プレイヤーが退出しました</div>
-        <p style="color:var(--text2);margin:1rem 0">${msg.name} が退出しました</p>
-        <button class="btn btn-secondary" style="margin-top:1rem" onclick="closeModal()">閉じる</button>`);
-      break;
-  }
+  p.hand.push(G.field.splice(i, 1)[0]);
+  G.tphase = 'discard';
+  G.selIdx = -1;
+  render();
 }
 
-// ===== ゲーム描画 =====
-function renderGameState(state) {
-  // スコアボード
-  const sb = document.getElementById('score-board');
-  sb.innerHTML = state.scores.map((s, i) => {
-    const isCurrent = i === state.currentTurn;
-    const isBotTurn = isCurrent && state.scores[i].isBot;
-    return `<div class="score-item ${isCurrent ? 'current-turn' : ''} ${isBotTurn ? 'is-bot-turn' : ''}">
-      <div class="score-name ${s.isBot ? 'is-bot' : ''}">${s.name.length > 6 ? s.name.slice(0,5)+'…' : s.name}</div>
-      <div class="score-val">${s.score}</div>
-    </div>`;
-  }).join('');
-
-  // 相手プレイヤー
-  const oa = document.getElementById('opponents-area');
-  oa.innerHTML = state.opponents.map(opp => {
-    const botClass = opp.isBot ? ' is-bot' : '';
-    const turnClass = opp.isCurrentTurn ? ' is-turn' : '';
-    const indicator = opp.isCurrentTurn
-      ? `<div class="turn-indicator ${opp.isBot ? 'bot-turn' : ''}"></div>`
-      : '';
-    const thinking = opp.isBot && opp.isCurrentTurn
-      ? `<div class="bot-thinking"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div></div>`
-      : '';
-    const diffLabel = { easy: '弱', normal: '普通', hard: '強' }[opp.difficulty] || '';
-    const botTag = opp.isBot ? `<span style="font-size:0.6rem;color:var(--bot-color2);margin-left:2px">[AI${diffLabel}]</span>` : '';
-    return `<div class="opponent-card${botClass}${turnClass}">
-      <div class="opponent-name ${opp.isBot ? 'is-bot' : ''}">
-        ${indicator}${opp.name}${botTag}
-        <span style="font-size:0.68rem;color:var(--gold2);margin-left:auto">${opp.score}点</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <div class="opponent-tiles">
-          ${Array(opp.handCount).fill(0).map(() => '<div class="tile-back"></div>').join('')}
-        </div>
-        ${thinking}
-      </div>
-    </div>`;
-  }).join('');
-
-  // 場の牌
-  const ft = document.getElementById('field-tiles');
-  if (state.fieldFaceUp.length === 0) {
-    ft.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;padding:0.5rem">場に牌はありません</div>';
+/* Click on own hand tile → select / swap */
+function clickHand(i) {
+  if (G.phase !== 'playing') return;
+  const prev = G.selIdx;
+  if (prev === -1) {
+    G.selIdx = i;
+  } else if (prev === i) {
+    G.selIdx = -1;   // deselect
   } else {
-    ft.innerHTML = state.fieldFaceUp.map(tile =>
-      renderTile(tile, { field: true, onClick: `pickFromField('${tile.id}')` })
-    ).join('');
+    // swap
+    const h = G.players[0].hand;
+    [h[prev], h[i]] = [h[i], h[prev]];
+    G.selIdx = -1;
   }
-
-  document.getElementById('stock-count').textContent =
-    `山: ${state.stockCount}枚 / 場(裏): ${state.fieldFaceDownCount}枚`;
-
-  // 手牌
-  const mt = document.getElementById('my-tiles');
-  mt.innerHTML = state.myHand.map(tile => `
-    <div class="tile-wrapper">
-      ${renderTile(tile, { selected: selectedTile === tile.id, onClick: `selectTile('${tile.id}')` })}
-      <button class="tile-flip-btn" onclick="flipTile('${tile.id}')">反転</button>
-    </div>
-  `).join('');
-
-  // アクション状態
-  const isMyTurn = state.currentTurn === myIndex;
-  const drawBtn = document.getElementById('btn-draw-stock');
-  const statusEl = document.getElementById('status-text');
-
-  if (isMyTurn) {
-    if (state.myHand.length === 5) {
-      drawBtn.disabled = false;
-      statusEl.innerHTML = '<span class="my-turn-text">あなたの番 — 牌を引いてください</span>';
-    } else {
-      drawBtn.disabled = true;
-      statusEl.innerHTML = '<span class="my-turn-text">捨てる牌を選択 → 「捨てる」か「上がる！」</span>';
-    }
-  } else {
-    drawBtn.disabled = true;
-    const cur = state.scores[state.currentTurn];
-    if (cur && cur.isBot) {
-      statusEl.innerHTML = `<span style="color:var(--bot-color2)">${cur.name} が考え中...</span>`;
-    } else {
-      statusEl.textContent = `${cur ? cur.name : '相手'} の番です...`;
-    }
-  }
-
-  // 役プレビュー
-  const hint = checkWinLocal(state.myHand);
-  document.getElementById('hand-hint').textContent =
-    hint.won ? `★ 役あり: ${hint.role}（${hint.points}点）— 上がれます！` : '役なし（まだ完成していません）';
+  render();
 }
 
-// ===== ローカル役チェック =====
-function checkWinLocal(hand) {
-  if (hand.length < 6) return { won: false };
-  const values = hand.map(t => t.flipped ? t.bottom : t.top);
-  if (values.every(v => v === values[0])) return { won: true, role: '六華', points: 6 };
-  const sorted = [...values].sort((a, b) => a - b);
-  if (isThreeStraightLocal(sorted)) return { won: true, role: '三連', points: 3 };
-  const top = hand.map(t => t.top);
-  const bottom = hand.map(t => t.bottom);
-  if (top.every(v => v === top[0]) || bottom.every(v => v === bottom[0])) return { won: true, role: '一色', points: 2 };
-  return { won: false };
-}
-
-function isThreeStraightLocal(sorted) {
-  if (sorted.length !== 6) return false;
-  const counts = {};
-  sorted.forEach(v => counts[v] = (counts[v] || 0) + 1);
-  const vals = Object.keys(counts).map(Number).sort((a, b) => a - b);
-  if (vals.length === 3 && vals.every(v => counts[v] === 2)) {
-    return vals[1] === vals[0] + 1 && vals[2] === vals[1] + 1;
-  }
+/* Right-click on hand tile → flip */
+function flipHand(e, i) {
+  e.preventDefault();
+  if (G.phase !== 'playing') return;
+  G.players[0].hand[i].flip = !G.players[0].hand[i].flip;
+  render();
   return false;
 }
 
-// ===== アクション =====
-function selectTile(id) {
-  selectedTile = selectedTile === id ? null : id;
-  if (gameState) renderGameState(gameState);
+/* Discard selected tile */
+function doDiscard() {
+  if (G.tphase!=='discard' || G.turn!==0) return;
+  const p = G.players[0];
+  if (G.selIdx === -1) { toast('捨てる牌を選んでください'); return; }
+  if (p.hand.length <= 5) { toast('これ以上捨てれないよ'); return; }
+
+  G.field.push(p.hand.splice(G.selIdx, 1)[0]);
+  G.selIdx = -1;
+  nextTurn();
 }
 
-function flipTile(id) { ws.send(JSON.stringify({ type: 'flipTile', tileId: id })); }
-function drawFromStock() { ws.send(JSON.stringify({ type: 'drawFromStock' })); }
-
-function pickFromField(id) {
-  if (!gameState) return;
-  if (gameState.currentTurn !== myIndex) return;
-  if (gameState.myHand.length >= 6) return;
-  ws.send(JSON.stringify({ type: 'drawFromField', tileId: id }));
+/* Declare win */
+function doWin() {
+  if (G.tphase!=='discard' || G.turn!==0) return;
+  const res = checkWin(G.players[0].hand);
+  if (!res) return;
+  processWin(0, res);
 }
 
-function discardSelected() {
-  if (!selectedTile) { showToast('捨てる牌を選択してください'); return; }
-  ws.send(JSON.stringify({ type: 'discard', tileId: selectedTile }));
-  selectedTile = null;
+// ============================================================
+//  TURN MANAGEMENT
+// ============================================================
+function nextTurn() {
+  G.turn = (G.turn + 1) % G.players.length;
+  G.tphase = 'pick';
+  G.selIdx = -1;
+  render();
+  if (G.players[G.turn].isBot) scheduleBot();
 }
 
-function declareWin() { ws.send(JSON.stringify({ type: 'declareWin' })); }
+// ============================================================
+//  BOT AI
+// ============================================================
+function scheduleBot() {
+  if (G.phase !== 'playing') return;
+  const bot = G.players[G.turn];
+  if (!bot?.isBot) return;
+  const delay = {easy:1400, normal:950, hard:550}[bot.diff] || 950;
+  setTimeout(runBot, delay);
+}
 
-// ===== ロビー =====
-function joinRoom() {
-  const name = document.getElementById('input-name').value.trim();
-  let room = document.getElementById('input-room').value.trim();
-  if (!name) { document.getElementById('lobby-error').textContent = 'プレイヤー名を入力してください'; return; }
-  if (!room) room = Math.random().toString(36).substring(2, 8).toUpperCase();
-  document.getElementById('input-room').value = room;
-  myName = name;
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    connectWS();
-    ws.addEventListener('open', () => {
-      ws.send(JSON.stringify({ type: 'join', roomId: room, playerName: name }));
-    }, { once: true });
-  } else {
-    ws.send(JSON.stringify({ type: 'join', roomId: room, playerName: name }));
+function runBot() {
+  if (G.phase !== 'playing') return;
+  const bot = G.players[G.turn];
+  if (!bot?.isBot) return;
+  const delay = {easy:1100, normal:750, hard:400}[bot.diff] || 750;
+
+  /* ---- Pick phase ---- */
+  if (G.tphase === 'pick') {
+    if (G.field.length === 0) { nextTurn(); return; }
+
+    const pi = bot.diff==='easy'
+      ? Math.floor(Math.random() * G.field.length)
+      : botPickIdx(bot, G.field, bot.diff);
+
+    bot.hand.push(G.field.splice(pi, 1)[0]);
+    G.tphase = 'discard';
+    render();
+
+    // Check immediate win
+    const wr = checkWin(bot.hand);
+    if (wr) { setTimeout(() => processWin(G.turn, wr), delay); return; }
+
+    // Schedule discard
+    setTimeout(() => {
+      if (G.phase !== 'playing') return;
+      const di = bot.diff==='easy'
+        ? Math.floor(Math.random() * bot.hand.length)
+        : botDiscardIdx(bot, bot.diff);
+      G.field.push(bot.hand.splice(di, 1)[0]);
+      render();
+      setTimeout(nextTurn, 200);
+    }, delay);
   }
 }
 
-function createRandomRoom() {
-  document.getElementById('input-room').value = '';
-  joinRoom();
+/* Choose best field tile to pick */
+function botPickIdx(bot, field, diff) {
+  let best=-Infinity, bestI=0;
+  field.forEach((t,i) => {
+    const s = evalHand([...bot.hand, t], diff);
+    if (s > best) { best=s; bestI=i; }
+  });
+  return bestI;
 }
 
-function addBot() {
-  const diff = document.getElementById('bot-difficulty').value;
-  ws.send(JSON.stringify({ type: 'addBot', difficulty: diff }));
+/* Choose worst hand tile to discard */
+function botDiscardIdx(bot, diff) {
+  let best=-Infinity, bestI=0;
+  bot.hand.forEach((_,i) => {
+    const s = evalHand(bot.hand.filter((_,j)=>j!==i), diff);
+    if (s > best) { best=s; bestI=i; }
+  });
+  return bestI;
 }
 
-function removeBot() {
-  ws.send(JSON.stringify({ type: 'removeBot' }));
+/* Score a hand (higher = better) */
+function evalHand(hand, diff) {
+  if (hand.length===6) {
+    const w = checkWin(hand); if (w) return w.pts*100;
+  }
+  // Try flip combinations (limited for perf)
+  let best = 0;
+  const n = hand.length;
+  const lim = diff==='hard' ? (1<<n) : Math.min(1<<n, 32);
+  for (let m=0; m<lim; m++) {
+    const h = hand.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
+    best = Math.max(best, scoreVals(h.map(eff)));
+  }
+  // Also check natural tops/bots
+  best = Math.max(best, scoreVals(hand.map(t=>t.top)), scoreVals(hand.map(t=>t.bot)));
+  return best;
 }
 
-function leaveRoom() { if (ws) ws.close(); location.reload(); }
-function startGame() { ws.send(JSON.stringify({ type: 'startGame' })); }
-
-// ===== モーダル =====
-function showWinModal(msg) {
-  const hand = msg.hand || [];
-  const isBot = msg.isBot;
-  const emoji = isBot ? '🤖' : '🎆';
-  const subtitle = isBot
-    ? `<p style="color:var(--bot-color2);font-size:0.88rem">${msg.player} (AI) が完成</p>`
-    : `<p style="color:var(--text2);font-size:0.88rem">${msg.player} が完成</p>`;
-  showModal(`
-    <div class="modal-title">${emoji} 上がり！</div>
-    ${subtitle}
-    <div class="win-role">${msg.role}</div>
-    <div class="win-points">+${msg.points}点</div>
-    <div class="win-hand">${hand.map(t => renderTile(t, {})).join('')}</div>
-    <table class="score-table">
-      ${msg.scores.map(s => `<tr class="${s.isBot ? 'bot-row' : ''}"><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
-    </table>
-    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="nextRound()">次のゲームへ</button>
-  `);
+function scoreVals(vs) {
+  const freq = {};
+  vs.forEach(v => freq[v]=(freq[v]||0)+1);
+  const mf = Math.max(...Object.values(freq));
+  // Consecutive-pair bonus
+  const s = [...vs].sort((a,b)=>a-b);
+  const cnt = {};
+  s.forEach(v => cnt[v]=(cnt[v]||0)+1);
+  const ks = Object.keys(cnt).map(Number).sort((a,b)=>a-b);
+  let cp = 0;
+  for (let i=0; i<ks.length-1; i++)
+    if (ks[i+1]===ks[i]+1 && cnt[ks[i]]>=2 && cnt[ks[i+1]]>=2) cp++;
+  return mf*20 + cp*15;
 }
 
-function showGameOverModal(msg) {
-  const isBot = msg.isBot;
-  const winMsg = isBot
-    ? `<div style="font-size:1.1rem;color:var(--bot-color2);margin:0.625rem 0">AI（${msg.winner}）の勝利...</div>`
-    : `<div style="font-size:1.4rem;color:var(--gold3);margin:0.625rem 0;font-family:'Noto Serif JP',serif">${msg.winner} の勝利！</div>`;
-  showModal(`
-    <div class="modal-title">🏆 ゲーム終了！</div>
-    ${winMsg}
-    <table class="score-table">
-      ${msg.scores.map(s => `<tr class="${s.isBot ? 'bot-row' : ''}"><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
-    </table>
-    <button class="btn btn-primary" style="margin-top:0.875rem" onclick="location.reload()">もう一度</button>
-  `);
+// ============================================================
+//  WIN PROCESSING
+// ============================================================
+function processWin(pi, res) {
+  G.phase = 'roundEnd';
+  const p = G.players[pi];
+  p.score += res.pts;
+  showWinModal(p, res);
 }
 
-function nextRound() { closeModal(); ws.send(JSON.stringify({ type: 'nextRound' })); }
-function showModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').style.display = 'flex'; }
-function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+// ============================================================
+//  MODALS
+// ============================================================
+function showWinModal(p, res) {
+  const rows = G.players.map(pl =>
+    `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
+  const tiles = p.hand.map(t => tileSVG(t,'','htile')).join('');
+  const over = p.score >= WIN_SCORE;
 
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = `position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
-    background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
-    padding:0.7rem 1.4rem;color:var(--text2);font-size:0.83rem;z-index:200;
-    animation:modalIn 0.2s ease-out`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2000);
+  document.getElementById('mbox').innerHTML = `
+    <div class="mtitle">${p.isBot?'🤖':'🎆'} 上がり！</div>
+    <p style="color:#8a7860;font-size:.83rem">${esc(p.name)} が役を完成</p>
+    <div class="mrole">${res.role}</div>
+    <div class="mpts">+${res.pts}点</div>
+    <div class="mhand">${tiles}</div>
+    <table class="mscores">${rows}</table>
+    ${over
+      ? `<button class="mbtn" onclick="showGameOver()">ゲーム終了を確認</button>`
+      : `<button class="mbtn" onclick="doNextRound()">次のゲームへ</button>`}
+  `;
+  document.getElementById('modal').classList.add('open');
 }
 
-function showScreen(name) {
+function showGameOver() {
+  const winner = G.players.reduce((a,b)=>a.score>b.score?a:b);
+  const rows = G.players.map(p =>
+    `<tr><td>${esc(p.name)}</td><td>${p.score}点</td></tr>`).join('');
+  document.getElementById('mbox').innerHTML = `
+    <div class="mtitle">🏆 ゲーム終了！</div>
+    <div style="font-size:1.5rem;color:#f5e0a0;margin:.5rem 0;font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
+    <table class="mscores">${rows}</table>
+    <button class="mbtn" onclick="goLobby()">もう一度</button>
+  `;
+}
+
+function doNextRound() {
+  document.getElementById('modal').classList.remove('open');
+  dealRound();
+  G.phase = 'playing';
+  G.turn  = 0;
+  render();
+  if (G.players[G.turn].isBot) scheduleBot();
+}
+
+function goLobby() {
+  document.getElementById('modal').classList.remove('open');
+  showScreen('lobby');
+}
+
+// ============================================================
+//  UTILS
+// ============================================================
+function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(`screen-${name}`).classList.add('active');
+  document.getElementById(id).classList.add('active');
 }
 
-connectWS();
+let _toastTm = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTm);
+  _toastTm = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Long-press for mobile right-click (flip)
+let _lpTm = null;
+document.addEventListener('touchstart', e => {
+  const tile = e.target.closest('#hand-tiles .tile');
+  if (!tile) return;
+  _lpTm = setTimeout(() => {
+    const tiles = [...document.querySelectorAll('#hand-tiles .tile')];
+    const i = tiles.indexOf(tile);
+    if (i >= 0) { G.players[0].hand[i].flip = !G.players[0].hand[i].flip; render(); }
+  }, 600);
+}, {passive:true});
+document.addEventListener('touchend', () => clearTimeout(_lpTm), {passive:true});
+document.addEventListener('touchmove', () => clearTimeout(_lpTm), {passive:true});
 </script>
 </body>
 </html>
