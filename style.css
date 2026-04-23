@@ -1,77 +1,77 @@
+/* 全体 */
 body {
-  text-align: center;
-  background: linear-gradient(#0b5e2b, #063d1c);
-  color: white;
   font-family: sans-serif;
-  margin: 0;
+  background: #2e7d32;
+  color: white;
+  text-align: center;
 }
 
-h1 {
-  margin: 10px;
-}
-
-/* 場（広めにして手札と距離とる） */
+/* 場 */
 #field {
   position: relative;
-  width: 100%;
-  max-width: 800px;
-  height: 500px;
+  width: 800px;
+  height: 400px;
   margin: 0 auto;
-  border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 10px;
 }
 
-/* 手札（完全に下固定） */
+/* 手札 */
 #hand {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: rgba(0,0,0,0.35);
-  padding: 6px 0;
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 /* 牌 */
 .card {
   width: 60px;
-  height: 110px;
+  height: 100px;
   background: white;
-  border-radius: 12px;
-  color: black;
+  border-radius: 10px;
+  border: 2px solid black;
   position: absolute;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: center;
   padding: 5px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-  transition: transform 0.2s;
+  box-sizing: border-box;
+  color: black;
+  transition: 0.2s;
 }
 
-/* 手札用 */
+/* 手札だけ通常配置 */
 .hand-card {
   position: static;
+  cursor: pointer;
 }
 
 /* 浮く */
 .card:hover {
-  transform: scale(1.15) !important;
+  transform: scale(1.1);
   z-index: 10;
-  cursor: pointer;
 }
 
 /* 裏 */
 .back {
-  background: repeating-linear-gradient(
-    45deg,
-    #ccc,
-    #ccc 5px,
-    #aaa 5px,
-    #aaa 10px
-  );
+  background: gray;
 }
+
+/* テストボタン */
+#test-buttons {
+  position: fixed;
+  left: 10px;
+  top: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#test-buttons button {
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* 捨てるボタン（牌風） */
 #discardBtn {
   position: fixed;
   bottom: 80px;
@@ -90,7 +90,6 @@ h1 {
   color: red;
   font-size: 16px;
 
-  display: flex;
   align-items: center;
   justify-content: center;
 
@@ -98,7 +97,6 @@ h1 {
   cursor: pointer;
 }
 
-/* 浮く */
 #discardBtn:hover {
   transform: scale(1.1);
 }
