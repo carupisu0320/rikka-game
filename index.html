@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六華（リッカ）オンライン対戦</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0d0a08;
+    --bg2: #1a1410;
+    --bg3: #241c16;
+    --surface: #2e2318;
+    --surface2: #3d2f1f;
+    --gold: #c9a84c;
+    --gold2: #e8c97a;
+    --gold3: #f5e0a0;
+    --red: #d94a3a;
+    --red2: #f07060;
+    --teal: #4a9e8a;
+    --teal2: #6fc4ae;
+    --text: #f0e8d8;
+    --text2: #c8b898;
+    --text3: #8a7860;
+    --border: #4a3828;
+    --border2: #6a5030;
+    --shadow: rgba(0,0,0,0.6);
+    --glow: rgba(201,168,76,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 背景装飾 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 10%, rgba(201,168,76,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 20% 80%, rgba(74,158,138,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { 
+    position: relative; z-index: 1;
+    display: none; 
+    min-height: 100vh;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ===== ロビー画面 ===== */
+  #screen-lobby {
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .title-area {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .title-kanji {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(4rem, 10vw, 7rem);
+    font-weight: 700;
+    color: var(--gold2);
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 40px rgba(201,168,76,0.3), 0 2px 8px rgba(0,0,0,0.8);
+    line-height: 1;
+  }
+
+  .title-ruby {
+    font-size: 1rem;
+    letter-spacing: 0.6em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+  }
+
+  .title-tagline {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  /* 花火装飾 */
+  .firework-deco {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .fw-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.6;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .fw-dot:nth-child(2) { animation-delay: 0.3s; background: var(--teal); }
+  .fw-dot:nth-child(3) { animation-delay: 0.6s; background: var(--red); }
+  .fw-dot:nth-child(4) { animation-delay: 0.9s; background: var(--gold); }
+  .fw-dot:nth-child(5) { animation-delay: 1.2s; background: var(--teal); }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.5); opacity: 1; }
+  }
+
+  .lobby-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .form-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 0.875rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%);
+    color: #1a1000;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(201,168,76,0.3);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    margin-top: 0.75rem;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface2);
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* プレイヤーリスト */
+  .player-list {
+    margin: 1.25rem 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .player-list-header {
+    background: var(--surface);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  .player-item {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .player-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+  }
+
+  .error-msg {
+    color: var(--red2);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  /* ===== ゲーム画面 ===== */
+  #screen-game {
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .game-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0.625rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .game-title-small {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.25rem;
+    color: var(--gold2);
+    letter-spacing: 0.2em;
+  }
+
+  .score-board {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .score-item {
+    text-align: center;
+    min-width: 60px;
+  }
+
+  .score-name {
+    font-size: 0.7rem;
+    color: var(--text3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .score-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gold2);
+  }
+
+  .score-item.current-turn .score-name {
+    color: var(--teal2);
+  }
+
+  /* ゲームメイン */
+  .game-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+    overflow-y: auto;
+  }
+
+  /* 相手プレイヤーエリア */
+  .opponents-area {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .opponent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.625rem 1rem;
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+  }
+
+  .opponent-card.is-turn {
+    border-color: var(--teal);
+    box-shadow: 0 0 12px rgba(74,158,138,0.2);
+  }
+
+  .opponent-name {
+    font-size: 0.8rem;
+    color: var(--text3);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .turn-indicator {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .opponent-tiles {
+    display: flex;
+    gap: 3px;
+  }
+
+  .tile-back {
+    width: 22px;
+    height: 38px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tile-back::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(201,168,76,0.05) 2px,
+      rgba(201,168,76,0.05) 4px
+    );
+  }
+
+  /* 場エリア */
+  .field-area {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .field-label {
+    font-size: 0.75rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  .stock-info {
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+
+  .field-tiles {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 56px;
+  }
+
+  /* 牌コンポーネント */
+  .tile {
+    width: 36px;
+    height: 60px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .tile:hover {
+    border-color: var(--gold);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  }
+
+  .tile.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(201,168,76,0.4);
+    transform: translateY(-8px);
+  }
+
+  .tile.field-tile:hover {
+    border-color: var(--teal);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(74,158,138,0.3);
+  }
+
+  .tile-half {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .tile-top { border-bottom: 1px solid var(--border); }
+
+  .tile-divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* 数字→絵文字マッピング */
+  .sym-1 { color: #e86060; }
+  .sym-2 { color: #e8a060; }
+  .sym-3 { color: #e8d060; }
+  .sym-4 { color: #60e880; }
+  .sym-5 { color: #60a0e8; }
+  .sym-6 { color: #a060e8; }
+
+  /* 役バッジ（プレビュー） */
+  .win-preview {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #1a1000;
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    letter-spacing: 0;
+  }
+
+  /* 手牌エリア */
+  .my-hand-area {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .my-hand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .my-hand-label {
+    font-size: 0.75rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  .hand-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-small {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .btn-small:hover {
+    background: var(--surface2);
+    border-color: var(--gold);
+    color: var(--gold2);
+  }
+
+  .btn-win {
+    background: linear-gradient(135deg, var(--gold) 0%, #b8902e 100%);
+    color: #1a1000;
+    font-weight: 700;
+    border: none;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-win:hover {
+    box-shadow: 0 4px 14px rgba(201,168,76,0.4);
+    transform: translateY(-1px);
+  }
+
+  .my-tiles {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tile-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tile-flip-btn {
+    font-size: 0.6rem;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 1px 4px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .tile-flip-btn:hover {
+    color: var(--gold2);
+    border-color: var(--gold);
+  }
+
+  /* アクションエリア */
+  .action-area {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-draw {
+    flex: 1;
+    max-width: 200px;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    color: var(--text2);
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .btn-draw:hover:not(:disabled) {
+    border-color: var(--teal);
+    color: var(--teal2);
+    box-shadow: 0 4px 12px rgba(74,158,138,0.2);
+  }
+
+  .btn-draw:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .status-text {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text3);
+    padding: 0.5rem;
+  }
+
+  .my-turn-text {
+    color: var(--teal2);
+    font-weight: 500;
+  }
+
+  /* ===== モーダル ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+    animation: modalIn 0.3s ease-out;
+  }
+
+  @keyframes modalIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.5rem;
+    color: var(--gold2);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+
+  .win-role {
+    font-size: 2rem;
+    font-family: 'Noto Serif JP', serif;
+    color: var(--gold3);
+    margin: 0.5rem 0;
+  }
+
+  .win-points {
+    font-size: 1rem;
+    color: var(--text2);
+    margin-bottom: 1.5rem;
+  }
+
+  .win-hand {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+  }
+
+  .score-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  .score-table td {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .score-table td:last-child {
+    text-align: right;
+    color: var(--gold2);
+    font-weight: 700;
+  }
+
+  /* 役説明 */
+  .roles-info {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.875rem;
+    font-size: 0.8rem;
+  }
+
+  .role-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .role-row:last-child { border-bottom: none; }
+
+  .role-name {
+    font-family: 'Noto Serif JP', serif;
+    color: var(--gold2);
+  }
+
+  .role-desc {
+    color: var(--text3);
+    flex: 1;
+    padding: 0 0.75rem;
+  }
+
+  .role-pts {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* 接続中インジケーター */
+  .connecting {
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* レスポンシブ */
+  @media (max-width: 600px) {
+    .game-header { padding: 0.5rem 0.75rem; }
+    .game-title-small { font-size: 1rem; }
+    .tile { width: 30px; height: 50px; }
+    .tile-half { font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== ロビー画面 ===== -->
+<div id="screen-lobby" class="screen active">
+  <div class="title-area">
+    <div class="title-kanji">六華</div>
+    <div class="title-ruby">R I K K A</div>
+    <div class="firework-deco">
+      <div class="fw-dot"></div><div class="fw-dot"></div><div class="fw-dot"></div>
+      <div class="fw-dot"></div><div class="fw-dot"></div>
+    </div>
+    <div class="title-tagline">麻雀の体験をシンプルに再構築した牌ゲーム</div>
+  </div>
+
+  <div class="lobby-card">
+    <div id="lobby-form">
+      <div class="form-group">
+        <label class="form-label">プレイヤー名</label>
+        <input type="text" id="input-name" class="form-input" placeholder="名前を入力" maxlength="12">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ルームID</label>
+        <input type="text" id="input-room" class="form-input" placeholder="ルームIDを入力（英数字）" maxlength="20">
+      </div>
+      <button class="btn btn-primary" onclick="joinRoom()">ルームに参加</button>
+      <button class="btn btn-secondary" onclick="createRandomRoom()">新しいルームを作成</button>
+      <div id="lobby-error" class="error-msg"></div>
+    </div>
+
+    <div id="waiting-room" style="display:none">
+      <div class="player-list">
+        <div class="player-list-header">参加中のプレイヤー</div>
+        <div id="waiting-players"></div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem;text-align:center">
+        ルームID: <span id="display-room-id" style="color:var(--gold2);font-weight:700"></span>
+        <br><span style="font-size:0.75rem">このIDを友達に共有してください</span>
+      </div>
+      <button class="btn btn-primary" id="btn-start" onclick="startGame()" disabled>ゲームを開始</button>
+      <button class="btn btn-secondary" onclick="leaveRoom()">ルームを退出</button>
+      <div id="waiting-error" class="error-msg"></div>
+    </div>
+
+    <div style="margin-top:1.5rem">
+      <div class="roles-info">
+        <div style="font-size:0.75rem;color:var(--text3);margin-bottom:0.5rem;letter-spacing:0.1em">— 役の種類 —</div>
+        <div class="role-row">
+          <span class="role-name">六華</span>
+          <span class="role-desc">6枚全て同じ数字</span>
+          <span class="role-pts">6点</span>
+        </div>
+        <div class="role-row">
+          <span class="role-name">三連</span>
+          <span class="role-desc">3連続×2組</span>
+          <span class="role-pts">3点</span>
+        </div>
+        <div class="role-row">
+          <span class="role-name">一色</span>
+          <span class="role-desc">上or下が全て同じ</span>
+          <span class="role-pts">2点</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <div class="game-title-small">六華</div>
+    <div id="score-board" class="score-board"></div>
+    <div style="font-size:0.75rem;color:var(--text3)">10点先取</div>
+  </div>
+
+  <div class="game-main">
+    <!-- 相手プレイヤー -->
+    <div id="opponents-area" class="opponents-area"></div>
+
+    <!-- 場 -->
+    <div class="field-area">
+      <div class="field-header">
+        <div class="field-label">— 場 —</div>
+        <div id="stock-count" class="stock-info"></div>
+      </div>
+      <div id="field-tiles" class="field-tiles">
+        <div style="color:var(--text3);font-size:0.8rem;padding:0.5rem">場に牌はありません</div>
+      </div>
+    </div>
+
+    <!-- アクション -->
+    <div class="action-area">
+      <button id="btn-draw-stock" class="btn-draw" onclick="drawFromStock()">
+        山からツモ
+      </button>
+      <div id="status-text" class="status-text"></div>
+    </div>
+
+    <!-- 手牌 -->
+    <div class="my-hand-area">
+      <div class="my-hand-header">
+        <div class="my-hand-label">— 手牌 —</div>
+        <div class="hand-actions">
+          <button class="btn-small btn-win" onclick="declareWin()">上がる！</button>
+          <button class="btn-small" onclick="discardSelected()">選択牌を捨てる</button>
+        </div>
+      </div>
+      <div id="my-tiles" class="my-tiles"></div>
+      <div id="hand-hint" style="font-size:0.75rem;color:var(--text3);margin-top:0.5rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル ===== -->
+<div id="modal-overlay" class="modal-overlay" style="display:none">
+  <div id="modal-content" class="modal"></div>
+</div>
+
+<script>
+// ===== WebSocket接続 =====
+let ws = null;
+let myName = '';
+let myIndex = -1;
+let gameState = null;
+let selectedTile = null;
+let roomId = '';
+
+// WebSocketのURLを自動検出
+const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsUrl = `${wsProtocol}//${location.host}`;
+
+function connectWS() {
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => console.log('接続しました');
+  ws.onmessage = (e) => handleServerMessage(JSON.parse(e.data));
+  ws.onclose = () => {
+    setTimeout(() => {
+      if (document.getElementById('screen-game').classList.contains('active')) {
+        showModal(`<div class="modal-title">接続が切断されました</div>
+          <p style="color:var(--text2);margin:1rem 0">サーバーとの接続が失われました</p>
+          <button class="btn btn-primary" style="margin-top:1rem" onclick="location.reload()">再接続</button>`);
+      }
+    }, 500);
+  };
+  ws.onerror = (e) => console.error('WS error:', e);
+}
+
+// シンボルマッピング（花火モチーフ）
+const symbols = ['', '✦', '✿', '◈', '✺', '⬡', '❋'];
+const symClass = ['', 'sym-1', 'sym-2', 'sym-3', 'sym-4', 'sym-5', 'sym-6'];
+
+function renderTile(tile, opts = {}) {
+  const topVal = tile.flipped ? tile.bottom : tile.top;
+  const bottomVal = tile.flipped ? tile.top : tile.bottom;
+  const selected = opts.selected ? ' selected' : '';
+  const fieldCls = opts.field ? ' field-tile' : '';
+  const onClick = opts.onClick || '';
+  
+  return `<div class="tile${selected}${fieldCls}" onclick="${onClick}" data-id="${tile.id}">
+    <div class="tile-half tile-top ${symClass[topVal]}">${symbols[topVal]}</div>
+    <div class="tile-half ${symClass[bottomVal]}">${symbols[bottomVal]}</div>
+  </div>`;
+}
+
+// ===== メッセージハンドラー =====
+function handleServerMessage(msg) {
+  switch (msg.type) {
+    case 'joined':
+      roomId = msg.roomId;
+      document.getElementById('display-room-id').textContent = roomId;
+      document.getElementById('lobby-form').style.display = 'none';
+      document.getElementById('waiting-room').style.display = 'block';
+      break;
+
+    case 'lobby':
+      const ul = document.getElementById('waiting-players');
+      ul.innerHTML = msg.players.map(n =>
+        `<div class="player-item"><div class="player-dot"></div>${n}</div>`
+      ).join('');
+      document.getElementById('btn-start').disabled = !msg.canStart;
+      break;
+
+    case 'gameStart':
+      showScreen('game');
+      break;
+
+    case 'gameState':
+      myIndex = msg.myIndex;
+      gameState = msg;
+      renderGameState(msg);
+      break;
+
+    case 'win':
+      showWinModal(msg);
+      break;
+
+    case 'gameOver':
+      showGameOverModal(msg);
+      break;
+
+    case 'error':
+      const errEl = document.getElementById('lobby-error') || 
+                    document.getElementById('waiting-error');
+      if (errEl) errEl.textContent = msg.message;
+      break;
+
+    case 'playerLeft':
+      showModal(`<div class="modal-title">プレイヤーが退出しました</div>
+        <p style="color:var(--text2);margin:1rem 0">${msg.name} が退出しました</p>`);
+      break;
+  }
+}
+
+// ===== ゲーム描画 =====
+function renderGameState(state) {
+  // スコアボード
+  const sb = document.getElementById('score-board');
+  sb.innerHTML = state.scores.map((s, i) => `
+    <div class="score-item ${i === state.currentTurn ? 'current-turn' : ''}">
+      <div class="score-name">${s.name}</div>
+      <div class="score-val">${s.score}</div>
+    </div>
+  `).join('');
+
+  // 相手プレイヤー
+  const oa = document.getElementById('opponents-area');
+  oa.innerHTML = state.opponents.map(opp => `
+    <div class="opponent-card ${opp.isCurrentTurn ? 'is-turn' : ''}">
+      <div class="opponent-name">
+        ${opp.isCurrentTurn ? '<div class="turn-indicator"></div>' : ''}
+        ${opp.name}
+        <span style="font-size:0.7rem;color:var(--gold2);margin-left:auto">${opp.score}点</span>
+      </div>
+      <div class="opponent-tiles">
+        ${Array(opp.handCount).fill(0).map(() => '<div class="tile-back"></div>').join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // 場の牌
+  const ft = document.getElementById('field-tiles');
+  if (state.fieldFaceUp.length === 0) {
+    ft.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;padding:0.5rem">場に牌はありません</div>';
+  } else {
+    ft.innerHTML = state.fieldFaceUp.map(tile =>
+      renderTile(tile, { field: true, onClick: `pickFromField('${tile.id}')` })
+    ).join('');
+  }
+
+  // ストック情報
+  document.getElementById('stock-count').textContent =
+    `山: ${state.stockCount}枚 / 裏向き: ${state.fieldFaceDownCount}枚`;
+
+  // 手牌
+  const mt = document.getElementById('my-tiles');
+  mt.innerHTML = state.myHand.map(tile => `
+    <div class="tile-wrapper">
+      ${renderTile(tile, {
+        selected: selectedTile === tile.id,
+        onClick: `selectTile('${tile.id}')`
+      })}
+      <button class="tile-flip-btn" onclick="flipTile('${tile.id}')">反転</button>
+    </div>
+  `).join('');
+
+  // アクション状態
+  const isMyTurn = state.currentTurn === myIndex;
+  const hasDrawn = state.myHand.length === 6;
+  const needsDraw = state.myHand.length === 5;
+
+  const drawBtn = document.getElementById('btn-draw-stock');
+  const statusEl = document.getElementById('status-text');
+
+  if (isMyTurn) {
+    if (needsDraw) {
+      drawBtn.disabled = false;
+      statusEl.innerHTML = '<span class="my-turn-text">あなたの番です — 牌を引いてください</span>';
+    } else {
+      drawBtn.disabled = true;
+      statusEl.innerHTML = '<span class="my-turn-text">捨てる牌を選んで「捨てる」か「上がる！」</span>';
+    }
+  } else {
+    drawBtn.disabled = true;
+    const currentPlayerName = state.scores[state.currentTurn]?.name || '相手';
+    statusEl.textContent = `${currentPlayerName} の番です...`;
+  }
+
+  // 役プレビュー
+  const hint = checkWinLocal(state.myHand);
+  document.getElementById('hand-hint').textContent =
+    hint.won ? `👑 役あり: ${hint.role}（${hint.points}点）` : '役なし';
+}
+
+// ===== ローカル役チェック =====
+function checkWinLocal(hand) {
+  if (hand.length < 6) return { won: false };
+  
+  const values = hand.map(t => t.flipped ? t.bottom : t.top);
+  
+  if (values.every(v => v === values[0])) {
+    return { won: true, role: '六華', points: 6 };
+  }
+  
+  const sorted = [...values].sort((a, b) => a - b);
+  if (isThreeStraightLocal(sorted)) {
+    return { won: true, role: '三連', points: 3 };
+  }
+  
+  const top = hand.map(t => t.top);
+  const bottom = hand.map(t => t.bottom);
+  if (top.every(v => v === top[0]) || bottom.every(v => v === bottom[0])) {
+    return { won: true, role: '一色', points: 2 };
+  }
+  
+  return { won: false };
+}
+
+function isThreeStraightLocal(sorted) {
+  if (sorted.length !== 6) return false;
+  const counts = {};
+  sorted.forEach(v => counts[v] = (counts[v] || 0) + 1);
+  const vals = Object.keys(counts).map(Number).sort((a, b) => a - b);
+  if (vals.length === 3 && vals.every(v => counts[v] === 2)) {
+    return vals[1] === vals[0] + 1 && vals[2] === vals[1] + 1;
+  }
+  return false;
+}
+
+// ===== アクション =====
+function selectTile(id) {
+  selectedTile = selectedTile === id ? null : id;
+  if (gameState) renderGameState(gameState);
+}
+
+function flipTile(id) {
+  ws.send(JSON.stringify({ type: 'flipTile', tileId: id }));
+}
+
+function drawFromStock() {
+  ws.send(JSON.stringify({ type: 'drawFromStock' }));
+}
+
+function pickFromField(id) {
+  if (!gameState) return;
+  if (gameState.currentTurn !== myIndex) return;
+  if (gameState.myHand.length >= 6) return;
+  ws.send(JSON.stringify({ type: 'drawFromField', tileId: id }));
+}
+
+function discardSelected() {
+  if (!selectedTile) {
+    showToast('捨てる牌を選択してください');
+    return;
+  }
+  ws.send(JSON.stringify({ type: 'discard', tileId: selectedTile }));
+  selectedTile = null;
+}
+
+function declareWin() {
+  ws.send(JSON.stringify({ type: 'declareWin' }));
+}
+
+// ===== ロビー操作 =====
+function joinRoom() {
+  const name = document.getElementById('input-name').value.trim();
+  const room = document.getElementById('input-room').value.trim();
+  
+  if (!name) { showLobbyError('プレイヤー名を入力してください'); return; }
+  if (!room) { showLobbyError('ルームIDを入力してください'); return; }
+  
+  myName = name;
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    connectWS();
+    ws.addEventListener('open', () => {
+      ws.send(JSON.stringify({ type: 'join', roomId: room, playerName: name }));
+    }, { once: true });
+  } else {
+    ws.send(JSON.stringify({ type: 'join', roomId: room, playerName: name }));
+  }
+}
+
+function createRandomRoom() {
+  const id = Math.random().toString(36).substring(2, 8).toUpperCase();
+  document.getElementById('input-room').value = id;
+  joinRoom();
+}
+
+function leaveRoom() {
+  if (ws) ws.close();
+  location.reload();
+}
+
+function startGame() {
+  ws.send(JSON.stringify({ type: 'startGame' }));
+}
+
+// ===== モーダル =====
+function showWinModal(msg) {
+  const hand = msg.hand || [];
+  showModal(`
+    <div class="modal-title">🎆 上がり！</div>
+    <p style="color:var(--text2);font-size:0.9rem">${msg.player} が完成</p>
+    <div class="win-role">${msg.role}</div>
+    <div class="win-points">+${msg.points}点</div>
+    <div class="win-hand">
+      ${hand.map(t => renderTile(t, {})).join('')}
+    </div>
+    <table class="score-table">
+      ${msg.scores.map(s => `<tr><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
+    </table>
+    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="nextRound()">次のゲームへ</button>
+  `);
+}
+
+function showGameOverModal(msg) {
+  showModal(`
+    <div class="modal-title">🏆 ゲーム終了！</div>
+    <div style="font-size:1.5rem;color:var(--gold3);margin:0.75rem 0;font-family:'Noto Serif JP',serif">${msg.winner} の勝利！</div>
+    <table class="score-table">
+      ${msg.scores.map(s => `<tr><td>${s.name}</td><td>${s.score}点</td></tr>`).join('')}
+    </table>
+    <button class="btn btn-primary" style="margin-top:1rem" onclick="location.reload()">もう一度</button>
+  `);
+}
+
+function nextRound() {
+  closeModal();
+  ws.send(JSON.stringify({ type: 'nextRound' }));
+}
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+    background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+    padding:0.75rem 1.5rem;color:var(--text2);font-size:0.85rem;z-index:200;
+    animation:modalIn 0.2s ease-out`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+function showLobbyError(msg) {
+  document.getElementById('lobby-error').textContent = msg;
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+}
+
+// 初期化
+connectWS();
+</script>
+</body>
+</html>
