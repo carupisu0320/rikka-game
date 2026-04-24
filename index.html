@@ -9,256 +9,344 @@
 html,body{height:100%;overflow:hidden}
 body{
   font-family:'Hiragino Sans','Yu Gothic UI','Noto Sans JP',sans-serif;
-  background:#0d0a08;color:#f0e8d8;
-  user-select:none;height:100vh;
+  background:#0d0a08;color:#f0e8d8;user-select:none;height:100vh;
 }
-
-/* ── SCREENS ── */
 .screen{display:none;width:100vw;height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
 /* ── LOBBY ── */
 #lobby{
-  align-items:center;justify-content:center;
+  align-items:center;justify-content:center;overflow-y:auto;
   background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.09) 0%,transparent 60%);
-  overflow-y:auto;
 }
-.lobby-inner{width:100%;max-width:420px;padding:2rem 1.5rem}
-
-.logo{text-align:center;margin-bottom:1.75rem}
+.lobby-inner{width:100%;max-width:480px;padding:2rem 1.5rem}
+.logo{text-align:center;margin-bottom:1.4rem}
 .logo-kanji{
-  font-size:clamp(3.5rem,12vw,6rem);font-weight:700;
-  color:#e8c97a;letter-spacing:.25em;line-height:1;
+  font-size:clamp(4rem,14vw,7rem);font-weight:700;color:#e8c97a;
+  letter-spacing:.25em;line-height:1;
   text-shadow:0 0 40px rgba(201,168,76,.4),0 2px 8px rgba(0,0,0,.8);
   font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
 }
-.logo-sub{font-size:.78rem;letter-spacing:.55em;color:#6a5830;margin-top:.3rem;text-transform:uppercase}
-
-.sparks{display:flex;justify-content:center;gap:9px;margin:.9rem 0}
-.sp{width:7px;height:7px;border-radius:50%;animation:sp 2s infinite}
-.sp:nth-child(1){background:#f06060;animation-delay:0s}
-.sp:nth-child(2){background:#f0a060;animation-delay:.25s}
-.sp:nth-child(3){background:#d4c040;animation-delay:.5s}
-.sp:nth-child(4){background:#50c870;animation-delay:.75s}
-.sp:nth-child(5){background:#60a8f0;animation-delay:1s}
-.sp:nth-child(6){background:#a070e8;animation-delay:1.25s}
-@keyframes sp{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.7);opacity:1}}
-
-.flabel{display:block;font-size:.73rem;color:#6a5830;letter-spacing:.1em;margin-bottom:.35rem}
+.logo-sub{font-size:1rem;letter-spacing:.55em;color:#6a5830;margin-top:.4rem;text-transform:uppercase}
+.sparks{display:flex;justify-content:center;gap:9px;margin:.85rem 0}
+.sp{width:8px;height:8px;border-radius:50%;animation:sp 2s infinite}
+.sp:nth-child(1){background:#f06060}.sp:nth-child(2){background:#f0a060;animation-delay:.25s}
+.sp:nth-child(3){background:#d4c040;animation-delay:.5s}.sp:nth-child(4){background:#50c870;animation-delay:.75s}
+.sp:nth-child(5){background:#60a8f0;animation-delay:1s}.sp:nth-child(6){background:#a070e8;animation-delay:1.25s}
+@keyframes sp{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.8);opacity:1}}
+.flabel{display:block;font-size:.95rem;color:#8a7048;letter-spacing:.06em;margin-bottom:.4rem}
 .finput{
   width:100%;background:#1a1410;border:1px solid #3e2e1e;border-radius:8px;
-  padding:.65rem .9rem;font-size:.95rem;color:#f0e8d8;font-family:inherit;
+  padding:.8rem 1rem;font-size:1.05rem;color:#f0e8d8;font-family:inherit;
   outline:none;transition:border-color .18s;
 }
 .finput:focus{border-color:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.1)}
-
-.fgroup{margin-bottom:.9rem}
-
-.bot-row{display:flex;gap:.5rem}
+.fgroup{margin-bottom:1rem}
+.bot-row{display:flex;gap:.6rem}
 .fselect{
   flex:1;background:#1a1410;border:1px solid #3e2e1e;border-radius:8px;
-  padding:.6rem .75rem;color:#c8b898;font-size:.85rem;font-family:inherit;outline:none;cursor:pointer;
+  padding:.75rem .9rem;color:#c8b898;font-size:1rem;font-family:inherit;outline:none;cursor:pointer;
 }
-.fselect:focus{border-color:#8a6aad}
-
 .lbtn{
-  display:block;width:100%;padding:.8rem;border:none;border-radius:10px;
-  font-family:inherit;font-size:.95rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .18s;
+  display:block;width:100%;padding:.95rem;border:none;border-radius:10px;
+  font-family:inherit;font-size:1.1rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .18s;
 }
 .lbtn-gold{background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00}
 .lbtn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(201,168,76,.35)}
-.btn-group{display:flex;flex-direction:column;gap:.5rem;margin-top:1rem}
-
+.btn-group{margin-top:1.1rem}
 .rules-card{
   background:#141008;border:1px solid #3e2e1e;border-radius:10px;
-  padding:.875rem;margin-top:1.25rem;font-size:.77rem;
+  padding:1.1rem;margin-top:1.25rem;
 }
-.rules-title{color:#6a5830;letter-spacing:.1em;margin-bottom:.5rem}
-.rrow{display:flex;align-items:center;padding:.24rem 0;border-bottom:1px solid #221810}
+.rules-title{color:#8a7048;letter-spacing:.08em;margin-bottom:.65rem;font-size:.9rem}
+.rrow{display:flex;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid #221810;gap:.5rem}
 .rrow:last-child{border-bottom:none}
-.rname{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:#e8c97a;min-width:2.5rem}
-.rdesc{color:#6a5830;flex:1;padding:0 .6rem}
-.rpts{font-weight:700;color:#f0e8d8;min-width:2rem;text-align:right}
-.rnote{margin-top:.6rem;font-size:.68rem;color:#5a4820}
+.rname{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:#e8c97a;
+  min-width:3.2rem;font-size:1.05rem;font-weight:700;
+}
+.rdesc{color:#9a8858;flex:1;font-size:.88rem;line-height:1.55}
+.rpts{font-weight:700;color:#f0e8d8;min-width:2.5rem;text-align:right;font-size:1rem;padding-top:.1rem}
+.rnote{margin-top:.75rem;font-size:.82rem;color:#5a4820;line-height:1.65;
+  background:#0d0a06;border-radius:6px;padding:.6rem .8rem}
 
-/* ── GAME SCREEN ── */
-#game{background:#0d0a08}
-
-/* Header */
+/* ── GAME ── */
+#game{background:#0d0a08;overflow:hidden}
 #hdr{
   display:flex;align-items:center;justify-content:space-between;
-  padding:.45rem 1rem;background:#120e0a;border-bottom:1px solid #221810;
-  flex-shrink:0;min-height:46px;
+  padding:.6rem 1.2rem;background:#120e0a;border-bottom:1px solid #221810;
+  flex-shrink:0;gap:.5rem;
 }
 .hdr-logo{
   font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
-  font-size:1.25rem;color:#e8c97a;letter-spacing:.2em;
+  font-size:1.55rem;color:#e8c97a;letter-spacing:.2em;flex-shrink:0;
 }
-#scoreboard{display:flex;gap:.5rem;flex-wrap:wrap}
+#scoreboard{display:flex;gap:.5rem;flex-wrap:wrap;flex:1;justify-content:center}
 .spill{
-  background:#1e1612;border:1px solid #3e2e1e;border-radius:16px;
-  padding:.18rem .65rem;font-size:.7rem;display:flex;align-items:center;gap:.35rem;
+  background:#1e1612;border:1px solid #3e2e1e;border-radius:20px;
+  padding:.26rem .85rem;font-size:.88rem;display:flex;align-items:center;gap:.45rem;
   transition:border-color .3s,box-shadow .3s;
 }
-.spill.active-human{border-color:#4a9e8a;box-shadow:0 0 8px rgba(74,158,138,.25)}
-.spill.active-bot{border-color:#8a6aad;box-shadow:0 0 8px rgba(138,106,173,.25)}
-.spill .sn{color:#6a5830;max-width:5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.spill .sv{color:#e8c97a;font-weight:700;font-size:.82rem}
+.spill.active-human{border-color:#4a9e8a;box-shadow:0 0 10px rgba(74,158,138,.3)}
+.spill.active-bot{border-color:#8a6aad;box-shadow:0 0 10px rgba(138,106,173,.3)}
+.spill .sn{color:#8a7048;max-width:5.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spill .sv{color:#e8c97a;font-weight:700;font-size:1rem}
 
 /* Opponents */
 #opp-area{
-  display:flex;gap:.45rem;padding:.45rem 1rem;
-  flex-shrink:0;flex-wrap:wrap;
-  min-height:0;
+  display:flex;gap:.5rem;padding:.5rem 1.2rem;
+  flex-shrink:0;flex-wrap:wrap;background:#0d0a08;
 }
 .ocard{
-  background:#141008;border:1px solid #2a1e12;border-radius:8px;
-  padding:.3rem .7rem;display:flex;align-items:center;gap:.45rem;
-  font-size:.76rem;flex:1;min-width:90px;max-width:200px;
-  transition:border-color .3s;
+  background:#141008;border:1px solid #2a1e12;border-radius:9px;
+  padding:.42rem .9rem;display:flex;align-items:center;gap:.5rem;
+  font-size:.92rem;flex:1;min-width:120px;max-width:240px;transition:border-color .3s;
 }
 .ocard.oactive{border-color:#8a6aad;box-shadow:0 0 10px rgba(138,106,173,.2)}
-.oname{color:#b08dd4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
-.ohand{display:flex;gap:2px;flex-wrap:wrap}
-.tback{width:13px;height:22px;background:#2a1e12;border:1px solid #3a2a1a;border-radius:2px;flex-shrink:0}
+.oname{color:#b08dd4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.ohand{display:flex;gap:3px;flex-wrap:wrap}
+.tback{
+  width:20px;height:33px;border-radius:3px;
+  background:linear-gradient(135deg,#2a1e12,#1a1208);
+  border:1px solid #4a3a28;flex-shrink:0;position:relative;overflow:hidden;
+}
+.tback::after{
+  content:'';position:absolute;inset:2px;
+  background:repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(201,168,76,.05) 2px,rgba(201,168,76,.05) 4px);
+  border-radius:2px;
+}
 .oscore{margin-left:auto;color:#e8c97a;font-weight:700;white-space:nowrap}
-.tdots{display:flex;gap:2px;margin-left:3px}
-.tdot{width:4px;height:4px;border-radius:50%;background:#8a6aad;animation:tdot 1.2s infinite}
+.tdots{display:flex;gap:3px;margin-left:4px}
+.tdot{width:5px;height:5px;border-radius:50%;background:#8a6aad;animation:tdot 1.2s infinite}
 .tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
 @keyframes tdot{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1.1);opacity:1}}
 
-/* Field */
-#field-wrap{flex:1;overflow-y:auto;padding:.5rem 1rem;border-bottom:1px solid #1a1208}
+/* ── FIELD ── */
+#field-wrap{
+  flex:1;overflow-y:auto;padding:.6rem 1.2rem;
+  border-bottom:1px solid #1a1208;min-height:0;
+}
 .field-hdr{
   display:flex;justify-content:space-between;align-items:center;
-  font-size:.7rem;color:#6a5830;letter-spacing:.1em;margin-bottom:.45rem;
+  font-size:.88rem;color:#8a7048;letter-spacing:.06em;margin-bottom:.55rem;
 }
-#field-grid{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+#field-grid{display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start}
 
-/* Tile base */
+/* Section label inside field */
+.fsec{
+  width:100%;font-size:.78rem;color:#5a4820;
+  display:flex;align-items:center;gap:.45rem;
+  margin-bottom:4px;margin-top:6px;
+  padding-bottom:3px;border-bottom:1px dashed #1e1610;
+}
+.fsec:first-child{margin-top:0}
+
+/* ── TILE base ── */
 .tile{
-  width:34px;height:58px;border-radius:5px;
-  background:#1e1612;border:1.5px solid #3a2a1a;
+  width:46px;height:76px;border-radius:6px;
+  background:#1e1612;border:2px solid #3a2a1a;
   display:flex;flex-direction:column;cursor:pointer;
   transition:transform .12s,border-color .12s,box-shadow .12s;
   position:relative;overflow:hidden;flex-shrink:0;
 }
 .tile .th,.tile .tb{
   flex:1;display:flex;align-items:center;justify-content:center;
-  font-size:.95rem;line-height:1;pointer-events:none;
+  font-size:1.25rem;line-height:1;pointer-events:none;
 }
-.tile .th{border-bottom:1px solid #3a2a1a}
+.tile .th{border-bottom:1.5px solid #3a2a1a}
+.tile.pickable:hover{
+  border-color:#4a9e8a;transform:translateY(-6px);
+  box-shadow:0 8px 20px rgba(74,158,138,.4);
+}
+.tile.nopick{cursor:default;opacity:.8}
 
-/* Field tile hover */
-.tile.pickable:hover{border-color:#4a9e8a;transform:translateY(-4px);box-shadow:0 6px 16px rgba(74,158,138,.3)}
-.tile.not-pick{cursor:default;opacity:.75}
+/* 最近捨てられた牌（別色ボーダー） */
+.tile.discarded{border-color:#5a3020}
+.tile.discarded.pickable:hover{border-color:#d46040;box-shadow:0 8px 20px rgba(212,96,60,.4)}
 
-/* Hand tile */
-.htile{width:44px;height:74px}
-.htile .th,.htile .tb{font-size:1.18rem}
-.htile:hover{border-color:#c9a84c;transform:translateY(-4px);box-shadow:0 6px 16px rgba(201,168,76,.25)}
+/* ── HAND tile (bigger) ── */
+.htile{width:56px;height:92px}
+.htile .th,.htile .tb{font-size:1.55rem}
+.htile .th{border-bottom:1.5px solid #3a2a1a}
+.htile:hover{border-color:#c9a84c;transform:translateY(-5px);box-shadow:0 8px 18px rgba(201,168,76,.3)}
 .htile.selected{
-  border-color:#ff4040 !important;
-  box-shadow:0 0 18px rgba(255,60,60,.75),0 0 6px rgba(255,60,60,.5) !important;
-  transform:translateY(-10px) !important;
+  border-color:#ff2020!important;
+  box-shadow:0 0 24px rgba(255,30,30,.85),0 0 8px rgba(255,30,30,.5)!important;
+  transform:translateY(-14px)!important;
+}
+
+/* ── RULEBOOK TILE ── */
+.rule-tile{
+  width:56px;height:92px;border-radius:6px;
+  background:linear-gradient(160deg,#1e1a10,#2a2210);
+  border:2px solid #7a6030;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;
+  flex-shrink:0;gap:4px;position:relative;overflow:hidden;
+}
+.rule-tile::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    45deg,transparent,transparent 4px,
+    rgba(201,168,76,.04) 4px,rgba(201,168,76,.04) 5px
+  );
+}
+.rule-tile:hover{
+  border-color:#c9a84c;transform:translateY(-5px);
+  box-shadow:0 8px 18px rgba(201,168,76,.3);
+}
+.rule-tile-icon{font-size:1.55rem;pointer-events:none;position:relative;z-index:1}
+.rule-tile-label{
+  font-size:.55rem;color:#c9a84c;letter-spacing:.05em;
+  pointer-events:none;position:relative;z-index:1;text-align:center;line-height:1.3;
 }
 
 /* Sym colors */
 .s1{color:#f06868}.s2{color:#f0a050}.s3{color:#d4c030}
 .s4{color:#50c870}.s5{color:#58a8f0}.s6{color:#a870e8}
 
-/* Hand area */
+/* ── HAND AREA ── */
 #hand-area{
-  flex-shrink:0;background:#0a0806;border-top:1px solid #221810;
-  padding:.5rem 1rem .6rem;
+  flex-shrink:0;background:#0a0806;border-top:1.5px solid #221810;
+  padding:.65rem 1.2rem .8rem;
 }
 .hand-hdr{
   display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:.35rem;
+  margin-bottom:.45rem;
 }
-.hand-label{font-size:.7rem;color:#6a5830;letter-spacing:.1em}
-#hand-hint{font-size:.72rem;color:#6a5830}
-#hand-hint.can-win{color:#c9a84c;font-weight:700}
+.hand-label{font-size:.92rem;color:#8a7048;letter-spacing:.06em}
+#hand-hint{font-size:.88rem;color:#6a5830}
+#hand-hint.can-win{color:#f0c030;font-weight:700;font-size:.98rem}
 
 #status{
-  font-size:.78rem;text-align:center;padding:.22rem 0 .35rem;
-  min-height:22px;color:#6a5830;
+  font-size:.93rem;text-align:center;padding:.28rem 0 .45rem;
+  min-height:28px;color:#6a5830;
 }
 #status.myturn{color:#6fc4ae}
 #status.boturn{color:#b08dd4}
 
-.hand-row{display:flex;align-items:flex-end;gap:.6rem}
-#hand-tiles{display:flex;gap:5px;flex:1;min-width:0}
-#hand-btns{display:flex;flex-direction:column;gap:.35rem;flex-shrink:0}
+.hand-row{display:flex;align-items:flex-end;gap:.8rem}
+#hand-tiles{display:flex;gap:8px;flex:1;min-width:0;overflow-x:auto;padding-bottom:4px}
+
+/* Right side of hand: rulebook tile + action buttons */
+.hand-right{display:flex;align-items:flex-end;gap:.55rem;flex-shrink:0}
+#hand-btns{display:flex;flex-direction:column;gap:.45rem}
 
 .abtn{
-  padding:.4rem .85rem;border-radius:7px;border:none;
-  font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;
+  padding:.6rem 1.1rem;border-radius:8px;border:none;
+  font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
   white-space:nowrap;transition:all .15s;
 }
-.abtn:disabled{opacity:.35;cursor:not-allowed !important;transform:none !important}
-#btn-discard{
-  background:#7a1818;color:#ffd0d0;
-  display:none; /* shown via JS */
-}
+.abtn:disabled{opacity:.25;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
+#btn-discard{background:#7a1818;color:#ffd0d0;display:none}
 #btn-discard:hover:not(:disabled){background:#a02020}
 #btn-win{background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00}
-#btn-win:hover:not(:disabled){box-shadow:0 4px 14px rgba(201,168,76,.4);transform:translateY(-1px)}
+#btn-win:hover:not(:disabled){box-shadow:0 5px 18px rgba(201,168,76,.5);transform:translateY(-2px)}
 
-/* Toast */
+/* ── TOAST ── */
 #toast{
-  position:fixed;bottom:160px;left:50%;transform:translateX(-50%) translateY(10px);
-  background:#3a2010;border:1px solid #6a4020;border-radius:9px;
-  padding:.65rem 1.25rem;font-size:.88rem;color:#f0d8b0;z-index:300;
-  pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;
-  white-space:nowrap;
+  position:fixed;bottom:185px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:#3a2010;border:1.5px solid #7a5020;border-radius:10px;
+  padding:.78rem 1.55rem;font-size:1.05rem;color:#f0d8b0;z-index:300;
+  pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;white-space:nowrap;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Modal */
+/* ── MODAL (win / gameover) ── */
 #modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.87);
-  display:none;align-items:center;justify-content:center;z-index:200;
-  backdrop-filter:blur(3px);
+  position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);
 }
 #modal.open{display:flex}
 .mbox{
-  background:#1a1410;border:1px solid #4a3018;border-radius:16px;
-  padding:1.75rem;max-width:400px;width:90%;text-align:center;
-  animation:mboxin .25s ease-out;
+  background:#1a1410;border:1.5px solid #4a3018;border-radius:16px;
+  padding:2rem;max-width:460px;width:92%;text-align:center;
+  animation:mboxin .25s ease-out;max-height:92vh;overflow-y:auto;
 }
 @keyframes mboxin{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
-.mtitle{
-  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
-  font-size:1.4rem;color:#e8c97a;margin-bottom:.3rem;
-}
-.mrole{
-  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
-  font-size:2.1rem;color:#f5e0a0;margin:.3rem 0;
-}
-.mpts{color:#a89878;margin-bottom:.9rem;font-size:.9rem}
-.mhand{display:flex;gap:5px;justify-content:center;margin:.75rem 0;flex-wrap:wrap}
-.mscores{width:100%;border-collapse:collapse;margin:.7rem 0;font-size:.87rem}
-.mscores td{padding:.3rem .6rem;border-bottom:1px solid #2a1e12}
+.mtitle{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.6rem;color:#e8c97a;margin-bottom:.4rem}
+.mrole{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:2.5rem;color:#f5e0a0;margin:.35rem 0}
+.mpts{color:#a89878;margin-bottom:1rem;font-size:1.05rem}
+.mhand{display:flex;gap:7px;justify-content:center;margin:.85rem 0;flex-wrap:wrap}
+.mscores{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:1rem}
+.mscores td{padding:.42rem .75rem;border-bottom:1px solid #2a1e12}
 .mscores td:last-child{text-align:right;color:#e8c97a;font-weight:700}
 .mbtn{
-  display:block;width:100%;padding:.75rem;border:none;border-radius:9px;
-  font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;
+  display:block;width:100%;padding:.88rem;border:none;border-radius:9px;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
   background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00;
-  margin-top:.75rem;transition:all .15s;letter-spacing:.06em;
+  margin-top:.85rem;transition:all .15s;letter-spacing:.06em;
 }
 .mbtn:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(201,168,76,.35)}
 
-/* Scrollbar */
-::-webkit-scrollbar{width:4px}
+/* ── RULEBOOK MODAL ── */
+#rule-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;z-index:250;backdrop-filter:blur(4px);
+}
+#rule-modal.open{display:flex}
+.rbook{
+  background:#1a1610;border:1.5px solid #7a6030;border-radius:16px;
+  padding:1.8rem;max-width:500px;width:94%;
+  animation:mboxin .25s ease-out;max-height:92vh;overflow-y:auto;
+}
+.rbook-title{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.45rem;color:#e8c97a;text-align:center;margin-bottom:1.2rem;
+  letter-spacing:.15em;
+}
+.rb-section{margin-bottom:1.2rem}
+.rb-section-title{
+  font-size:.82rem;color:#8a7048;letter-spacing:.12em;
+  border-bottom:1px solid #2e2010;padding-bottom:.3rem;margin-bottom:.75rem;
+}
+.rb-role{
+  display:flex;align-items:flex-start;gap:.75rem;
+  padding:.6rem 0;border-bottom:1px solid #1e1608;
+}
+.rb-role:last-child{border-bottom:none}
+.rb-role-name{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.15rem;color:#e8c97a;min-width:3.5rem;font-weight:700;
+}
+.rb-role-pts{
+  font-size:1rem;color:#f0d080;font-weight:700;min-width:2.5rem;text-align:right;
+}
+.rb-role-desc{color:#a89868;font-size:.88rem;line-height:1.65;flex:1}
+.rb-role-ex{
+  font-size:.78rem;color:#6a5830;margin-top:.3rem;
+  background:#0d0a06;border-radius:5px;padding:.35rem .55rem;display:inline-block;
+}
+.rb-op-row{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.45rem 0;border-bottom:1px solid #1e1608;font-size:.9rem;
+}
+.rb-op-row:last-child{border-bottom:none}
+.rb-op-key{
+  background:#2a2010;border:1px solid #4a3820;border-radius:5px;
+  padding:.18rem .6rem;color:#c9a84c;font-size:.82rem;white-space:nowrap;
+  min-width:5.5rem;text-align:center;
+}
+.rb-op-desc{color:#9a8858;line-height:1.5}
+.rbook-close{
+  display:block;width:100%;padding:.8rem;border:none;border-radius:9px;
+  font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;
+  background:#2a2010;border:1.5px solid #4a3820;color:#c9a84c;
+  margin-top:1rem;transition:all .15s;
+}
+.rbook-close:hover{background:#3a3018;border-color:#c9a84c}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#3a2a1a;border-radius:2px}
 
 @media(max-width:480px){
-  .htile{width:38px;height:64px}
-  .htile .th,.htile .tb{font-size:1rem}
-  .tile{width:28px;height:48px}
-  .tile .th,.tile .tb{font-size:.82rem}
+  .htile,.rule-tile{width:48px;height:80px}
+  .htile .th,.htile .tb{font-size:1.3rem}
+  .rule-tile-icon{font-size:1.3rem}
+  .tile{width:40px;height:66px}
+  .tile .th,.tile .tb{font-size:1.05rem}
 }
 </style>
 </head>
@@ -275,7 +363,6 @@ body{
     <div class="sp"></div><div class="sp"></div><div class="sp"></div>
     <div class="sp"></div><div class="sp"></div><div class="sp"></div>
   </div>
-
   <div class="fgroup">
     <label class="flabel">あなたの名前</label>
     <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10">
@@ -299,13 +386,28 @@ body{
   <div class="btn-group">
     <button class="lbtn lbtn-gold" onclick="startGame()">ゲームスタート</button>
   </div>
-
   <div class="rules-card">
     <div class="rules-title">— 役の種類（10点先取で勝利）—</div>
-    <div class="rrow"><span class="rname">六華</span><span class="rdesc">6枚すべて同じ数字（反転後で判定）</span><span class="rpts">6点</span></div>
-    <div class="rrow"><span class="rname">三連</span><span class="rdesc">3連続×2組　例: 2,2,3,3,4,4</span><span class="rpts">3点</span></div>
-    <div class="rrow"><span class="rname">一色</span><span class="rdesc">上面か下面がすべて同じ数字</span><span class="rpts">2点</span></div>
-    <div class="rnote">🖱 右クリック（スマホ長押し）で牌を反転　/ 牌をクリックして選択、別の牌をクリックで並び替え</div>
+    <div class="rrow">
+      <span class="rname">一色</span>
+      <span class="rdesc">6枚の<b style="color:#f0a050">下の数</b>をすべて同じに（上は何でもOK）</span>
+      <span class="rpts">1点</span>
+    </div>
+    <div class="rrow">
+      <span class="rname">三連</span>
+      <span class="rdesc">「<b style="color:#f0a050">下が同じ3枚＋上が連番</b>」のセットを2組</span>
+      <span class="rpts">3点</span>
+    </div>
+    <div class="rrow">
+      <span class="rname">六華</span>
+      <span class="rdesc">6枚の<b style="color:#f0a050">下の数</b>が同じ＋<b style="color:#f06868">上が1〜6の連番</b></span>
+      <span class="rpts">6点</span>
+    </div>
+    <div class="rnote">
+      💡 右クリック（スマホ長押し）で牌を反転<br>
+      💡 牌を選択して別の牌をクリックで並び替え<br>
+      💡 ゲーム中の牌アイコン📖でルール確認
+    </div>
   </div>
 </div>
 </div>
@@ -315,7 +417,7 @@ body{
   <div id="hdr">
     <div class="hdr-logo">六華</div>
     <div id="scoreboard"></div>
-    <div style="font-size:.68rem;color:#5a4820">10点先取</div>
+    <div style="font-size:.85rem;color:#5a4820;flex-shrink:0">10点先取</div>
   </div>
 
   <div id="opp-area"></div>
@@ -323,7 +425,7 @@ body{
   <div id="field-wrap">
     <div class="field-hdr">
       <span>— 場の牌 —</span>
-      <span id="field-cnt"></span>
+      <span id="field-cnt" style="font-size:.82rem"></span>
     </div>
     <div id="field-grid"></div>
   </div>
@@ -336,56 +438,169 @@ body{
     <div id="status"></div>
     <div class="hand-row">
       <div id="hand-tiles"></div>
-      <div id="hand-btns">
-        <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
-        <button id="btn-win"     class="abtn" onclick="doWin()" disabled>上がる！</button>
+      <div class="hand-right">
+        <!-- ルールブック牌 -->
+        <div class="rule-tile" onclick="openRuleBook()" title="ルールブック">
+          <div class="rule-tile-icon">📖</div>
+          <div class="rule-tile-label">ルール<br>ブック</div>
+        </div>
+        <!-- ボタン群 -->
+        <div id="hand-btns">
+          <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
+          <button id="btn-win"     class="abtn" onclick="doWin()">上がる！</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ── 勝利/ゲームオーバーモーダル ── -->
 <div id="toast"></div>
 <div id="modal"><div class="mbox" id="mbox"></div></div>
 
+<!-- ── ルールブックモーダル ── -->
+<div id="rule-modal">
+  <div class="rbook">
+    <div class="rbook-title">📖 ルールブック</div>
+
+    <!-- 役 -->
+    <div class="rb-section">
+      <div class="rb-section-title">― 役の種類 ―</div>
+      <div class="rb-role">
+        <div>
+          <div class="rb-role-name">一色<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">イッシキ</span></div>
+          <div style="font-size:.75rem;color:#6a5830">1点</div>
+        </div>
+        <div class="rb-role-desc">
+          手牌6枚の<b style="color:#f0a050">下の数</b>を1種類にそろえる。<br>
+          上の数は何でもOK。
+          <div class="rb-role-ex">例）下が全部❋（6）→ 上はバラバラでOK</div>
+        </div>
+      </div>
+      <div class="rb-role">
+        <div>
+          <div class="rb-role-name">三連<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">サンレン</span></div>
+          <div style="font-size:.75rem;color:#6a5830">3点</div>
+        </div>
+        <div class="rb-role-desc">
+          「3枚セット」を2つ作る。<br>
+          3枚セット＝<b style="color:#f0a050">下の数が同じ3枚</b>で<b style="color:#f06868">上の数が連番</b>の形。<br>
+          ※ 6と1はつながらない（循環なし）<br>
+          ※ 2組の下の数は同じでも違ってもOK
+          <div class="rb-role-ex">例）上2,3,4／下✦✦✦　＋　上2,3,4／下❋❋❋</div>
+        </div>
+      </div>
+      <div class="rb-role">
+        <div>
+          <div class="rb-role-name">六華<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">リッカ</span></div>
+          <div style="font-size:.75rem;color:#6a5830">6点</div>
+        </div>
+        <div class="rb-role-desc">
+          手牌6枚の<b style="color:#f0a050">下の数</b>を1種類にそろえ、<br>
+          かつ<b style="color:#f06868">上の数を1〜6の連番</b>にする（順不同OK）。
+          <div class="rb-role-ex">例）上1,2,3,4,5,6 ／ 下が全部✿（2）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 牌について -->
+    <div class="rb-section">
+      <div class="rb-section-title">― 牌について ―</div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">牌の構造</div>
+        <div class="rb-op-desc">牌には<b style="color:#f0a050">上の数</b>と<b style="color:#f0a050">下の数</b>がある。反転すると上下が入れ替わる。</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">枚数</div>
+        <div class="rb-op-desc">全42枚。ゾロ目（1-1, 2-2 … 6-6）は各2枚、それ以外は各1枚。</div>
+      </div>
+    </div>
+
+    <!-- ゲームの流れ -->
+    <div class="rb-section">
+      <div class="rb-section-title">― ゲームの流れ ―</div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">① 配布</div>
+        <div class="rb-op-desc">各プレイヤーに5枚ずつ配る。残りが場に出る（全部見える）。</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">② 引く</div>
+        <div class="rb-op-desc">場から好きな牌を1枚選んで手牌に加える（手牌が6枚になる）。</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">③ 捨てる</div>
+        <div class="rb-op-desc">手牌から1枚選んで場に捨てる（手牌が5枚に戻る）。</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">④ 上がり</div>
+        <div class="rb-op-desc">6枚のときに役が揃ったら「上がる！」を押す。</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">⑤ 勝利</div>
+        <div class="rb-op-desc">10点を先取したプレイヤーの勝ち！</div>
+      </div>
+    </div>
+
+    <!-- 操作方法 -->
+    <div class="rb-section">
+      <div class="rb-section-title">― 操作方法 ―</div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">場の牌クリック</div>
+        <div class="rb-op-desc">その牌を手牌に加える（ピック）</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">手牌クリック</div>
+        <div class="rb-op-desc">牌を選択（赤く光る）。選択済み牌を別の牌でクリックすると並び替え</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">右クリック</div>
+        <div class="rb-op-desc">手牌を上下反転（スマホは長押し）</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">「捨てる」ボタン</div>
+        <div class="rb-op-desc">選択中の牌を場に捨てる</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">「上がる！」ボタン</div>
+        <div class="rb-op-desc">役が揃ったときに光る → 押して得点獲得</div>
+      </div>
+    </div>
+
+    <button class="rbook-close" onclick="closeRuleBook()">閉じる</button>
+  </div>
+</div>
+
 <script>
 // ============================================================
-//  CONSTANTS
+//  定数
 // ============================================================
-const SYM       = ['','✦','✿','◈','✺','⬡','❋'];
-const SCLS      = ['','s1','s2','s3','s4','s5','s6'];
-const BNAMES    = ['AIさくら','AIあおい','AIひなた','AIつばき'];
+const SYM    = ['','✦','✿','◈','✺','⬡','❋'];
+const SCLS   = ['','s1','s2','s3','s4','s5','s6'];
+const BNAMES = ['AIさくら','AIあおい','AIひなた','AIつばき'];
 const WIN_SCORE = 10;
 
 // ============================================================
-//  GAME STATE
+//  状態
+//  G.field    = 場の全牌（プレイヤーが選べる）
+//  G.discards = 捨て牌（別表示用、実際はG.fieldの末尾に追加）
+//              → 今回は G.field 1本で管理し、discarded フラグで区別
 // ============================================================
 let G = null;
 
-function newState() {
-  return {
-    phase: 'lobby',   // lobby | playing | roundEnd | gameOver
-    players: [],      // [{name,hand,score,isBot,diff}]
-    field: [],        // tiles not held by anyone
-    turn: 0,          // index into players
-    tphase: 'pick',   // pick | discard
-    selIdx: -1,       // selected hand tile index (-1 = none)
-    toastTm: null,
-  };
-}
-
 // ============================================================
-//  DECK  (42 tiles)
-//  36 ordered pairs (i,j) 1≤i,j≤6 + 6 extra doubles = 42
+//  山札生成（42枚）
+//  ゾロ目(1-1 〜 6-6): 各2枚 / 非ゾロ目: 各1枚
 // ============================================================
 function makeDeck() {
   const d = [];
   let id = 0;
-  for (let t = 1; t <= 6; t++)
-    for (let b = 1; b <= 6; b++)
-      d.push({id: id++, top: t, bot: b, flip: false});
-  for (let i = 1; i <= 6; i++)
-    d.push({id: id++, top: i, bot: i, flip: false});
-  return shuffle(d);
+  for (let t = 1; t <= 6; t++) {
+    for (let b = 1; b <= 6; b++) {
+      d.push({id: id++, top: t, bot: b, flip: false, discarded: false});
+      if (t === b) d.push({id: id++, top: t, bot: b, flip: false, discarded: false});
+    }
+  }
+  return shuffle(d); // 42枚
 }
 
 function shuffle(a) {
@@ -397,57 +612,79 @@ function shuffle(a) {
   return r;
 }
 
-// ============================================================
-//  WIN CHECK
-// ============================================================
-function eff(t) { return t.flip ? t.bot : t.top; }
+// 反転後の上／下の数
+function eTop(t) { return t.flip ? t.bot : t.top; }
+function eBot(t) { return t.flip ? t.top : t.bot; }
 
+// ============================================================
+//  役判定（画像ルール準拠）
+//
+//  一色(1点): 下の数が全部同じ（上は何でもOK）
+//  三連(3点): 「下が同じ3枚＋上が連番」のセット×2
+//  六華(6点): 下が全部同じ ＋ 上が1〜6の連番
+// ============================================================
 function checkWin(hand) {
   if (hand.length !== 6) return null;
-  const v = hand.map(eff);
 
-  // 六華: all effective same
-  if (v.every(x => x === v[0])) return {role:'六華', pts:6};
+  const tops = hand.map(eTop);
+  const bots = hand.map(eBot);
+  const allBotSame = bots.every(v => v === bots[0]);
 
-  // 三連: sorted → two groups of 3 consecutive
-  const s = [...v].sort((a,b)=>a-b);
-  const cnt = {};
-  s.forEach(x => cnt[x] = (cnt[x]||0)+1);
-  const ks = Object.keys(cnt).map(Number).sort((a,b)=>a-b);
-  if (ks.length===3 && ks.every(k=>cnt[k]===2) && ks[1]===ks[0]+1 && ks[2]===ks[1]+1)
-    return {role:'三連', pts:3};
+  // 六華
+  if (allBotSame) {
+    const st = [...tops].sort((a,b)=>a-b);
+    if (st.join(',') === '1,2,3,4,5,6') return {role:'六華', pts:6};
+  }
 
-  // 一色: natural top all same OR natural bottom all same
-  const tops = hand.map(t=>t.top);
-  const bots = hand.map(t=>t.bot);
-  if (tops.every(x=>x===tops[0]) || bots.every(x=>x===bots[0]))
-    return {role:'一色', pts:2};
+  // 三連
+  if (isSanren(hand)) return {role:'三連', pts:3};
+
+  // 一色
+  if (allBotSame) return {role:'一色', pts:1};
 
   return null;
 }
 
+function isSanren(hand) {
+  // C(6,3)=20通りの分け方を試す
+  for (let mask = 0; mask < (1 << 6); mask++) {
+    if (popcount(mask) !== 3) continue;
+    const g1 = [], g2 = [];
+    for (let i = 0; i < 6; i++) (mask & (1<<i) ? g1 : g2).push(hand[i]);
+    if (isSet3(g1) && isSet3(g2)) return true;
+  }
+  return false;
+}
+
+// 3枚セット: 下が全部同じ AND 上が連続3つ
+function isSet3(g) {
+  if (g.length !== 3) return false;
+  const bots = g.map(eBot);
+  if (!bots.every(v => v === bots[0])) return false;
+  const tops = g.map(eTop).sort((a,b)=>a-b);
+  return tops[1] === tops[0]+1 && tops[2] === tops[1]+1;
+}
+
+function popcount(n) {
+  let c = 0; while(n){c+=n&1;n>>=1;} return c;
+}
+
 // ============================================================
-//  START GAME
+//  ゲーム開始
 // ============================================================
 function startGame() {
-  const name   = document.getElementById('pname').value.trim() || 'プレイヤー';
-  const bcnt   = parseInt(document.getElementById('bcnt').value);
-  const bdiff  = document.getElementById('bdiff').value;
+  const name  = document.getElementById('pname').value.trim() || 'プレイヤー';
+  const bcnt  = parseInt(document.getElementById('bcnt').value);
+  const bdiff = document.getElementById('bdiff').value;
 
-  G = newState();
-  G.players = [{name, hand:[], score:0, isBot:false}];
+  const players = [{name, hand:[], score:0, isBot:false}];
   for (let i = 0; i < bcnt; i++)
-    G.players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
+    players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
 
+  G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'};
   dealRound();
-  G.phase = 'playing';
-  G.turn  = 0;
-  G.tphase= 'pick';
-  G.selIdx= -1;
-
   showScreen('game');
   render();
-
   if (G.players[G.turn].isBot) scheduleBot();
 }
 
@@ -455,13 +692,15 @@ function dealRound() {
   const deck = makeDeck();
   let idx = 0;
   G.players.forEach(p => { p.hand = deck.slice(idx, idx+5); idx += 5; });
-  G.field = deck.slice(idx);
-  G.selIdx = -1;
-  G.tphase = 'pick';
+  G.field   = deck.slice(idx); // 残り全部が場（全て表向き）
+  G.turn    = 0;
+  G.tphase  = 'pick';
+  G.selIdx  = -1;
+  G.phase   = 'playing';
 }
 
 // ============================================================
-//  RENDER
+//  描画
 // ============================================================
 function render() {
   renderHeader();
@@ -471,128 +710,163 @@ function render() {
   renderStatus();
 }
 
-/* ----- Header / Scoreboard ----- */
 function renderHeader() {
-  document.getElementById('scoreboard').innerHTML = G.players.map((p,i) => {
-    const active = i === G.turn;
-    const cls = active ? (p.isBot ? 'active-bot' : 'active-human') : '';
-    return `<div class="spill ${cls}">
-      <span class="sn">${esc(p.name)}</span>
-      <span class="sv">${p.score}</span>
-    </div>`;
-  }).join('');
+  document.getElementById('scoreboard').innerHTML =
+    G.players.map((p,i) => {
+      const act = i === G.turn;
+      const cls = act ? (p.isBot ? 'active-bot' : 'active-human') : '';
+      return `<div class="spill ${cls}">
+        <span class="sn">${esc(p.name)}</span>
+        <span class="sv">${p.score}</span>
+      </div>`;
+    }).join('');
 }
 
-/* ----- Opponents ----- */
 function renderOpponents() {
   const el = document.getElementById('opp-area');
   const bots = G.players.filter(p => p.isBot);
   if (!bots.length) { el.innerHTML=''; return; }
   el.innerHTML = bots.map(p => {
-    const pi = G.players.indexOf(p);
-    const act = pi === G.turn;
-    const backs = p.hand.map(() => '<div class="tback"></div>').join('');
-    const dots  = act ? '<div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>' : '';
+    const act   = G.players.indexOf(p) === G.turn;
+    const backs = p.hand.map(()=>'<div class="tback"></div>').join('');
+    const dots  = act
+      ? `<div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>`
+      : '';
     return `<div class="ocard${act?' oactive':''}">
       <span class="oname">${esc(p.name)}</span>
-      <div class="ohand">${backs}</div>
-      ${dots}
+      <div class="ohand">${backs}</div>${dots}
       <span class="oscore">${p.score}点</span>
     </div>`;
   }).join('');
 }
 
-/* ----- Field ----- */
 function renderField() {
-  const canPick = G.turn===0 && G.tphase==='pick' && !G.players[0].isBot;
-  document.getElementById('field-cnt').textContent = `${G.field.length}枚`;
-  document.getElementById('field-grid').innerHTML =
-    G.field.map((t,i) => tileSVG(t, canPick?`onclick="pickField(${i})"`:'', canPick?'pickable':'not-pick')).join('');
+  const myTurn  = G.turn === 0 && !G.players[0].isBot;
+  const canPick = myTurn && G.tphase === 'pick';
+
+  // 場の牌を通常牌と捨て牌に分けて表示
+  const normalTiles   = G.field.filter(t => !t.discarded);
+  const discardTiles  = G.field.filter(t =>  t.discarded);
+
+  document.getElementById('field-cnt').textContent =
+    `場 ${normalTiles.length}枚 ／ 捨て牌 ${discardTiles.length}枚`;
+
+  let html = '';
+
+  // 通常の場の牌
+  if (normalTiles.length > 0) {
+    html += `<div class="fsec">🀄 場の牌（好きな1枚を選ぼう）</div>`;
+    html += normalTiles.map(t => {
+      const fi  = G.field.indexOf(t);
+      const cls = `tile${canPick ? ' pickable' : ' nopick'}`;
+      const ev  = canPick ? `onclick="pickField(${fi})"` : '';
+      return tileHTML(t, ev, cls);
+    }).join('');
+  }
+
+  // 捨て牌
+  if (discardTiles.length > 0) {
+    html += `<div class="fsec" style="margin-top:${normalTiles.length>0?'8px':'0'}">♻ 捨て牌（引いてもOK）</div>`;
+    html += discardTiles.map(t => {
+      const fi  = G.field.indexOf(t);
+      const cls = `tile discarded${canPick ? ' pickable' : ' nopick'}`;
+      const ev  = canPick ? `onclick="pickField(${fi})"` : '';
+      return tileHTML(t, ev, cls);
+    }).join('');
+  }
+
+  if (G.field.length === 0) {
+    html = `<div style="color:#5a4820;font-size:.95rem;padding:.6rem">場に牌がありません</div>`;
+  }
+
+  document.getElementById('field-grid').innerHTML = html;
 }
 
-/* ----- Hand ----- */
 function renderHand() {
   const p = G.players[0];
+
   document.getElementById('hand-tiles').innerHTML =
     p.hand.map((t,i) => {
-      const sel = i===G.selIdx ? 'selected' : '';
-      return tileSVG(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `htile ${sel}`);
+      const sel = i === G.selIdx ? ' selected' : '';
+      return tileHTML(t,
+        `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`,
+        `tile htile${sel}`
+      );
     }).join('');
 
-  const isMyDiscard = G.turn===0 && G.tphase==='discard';
-  const hasSel = G.selIdx !== -1;
-  const winRes = isMyDiscard ? checkWin(p.hand) : null;
+  const isMyTurn  = G.turn === 0 && !G.players[0].isBot;
+  const isDiscard = isMyTurn && G.tphase === 'discard';
+  const hasSel    = G.selIdx !== -1;
+  const has6      = p.hand.length === 6;
+  const winRes    = (isDiscard && has6) ? checkWin(p.hand) : null;
 
-  // 捨てる button: show only when my discard phase AND a tile is selected
+  // 捨てるボタン
   const db = document.getElementById('btn-discard');
-  db.style.display = (isMyDiscard && hasSel) ? 'block' : 'none';
+  db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
+  db.disabled = false;
 
-  // 上がる button
-  const wb = document.getElementById('btn-win');
-  wb.disabled = !(isMyDiscard && winRes);
+  // 上がるボタン
+  document.getElementById('btn-win').disabled = !winRes;
 
-  // Hint
+  // ヒント
   const hh = document.getElementById('hand-hint');
-  if (isMyDiscard && winRes) {
+  if (winRes) {
     hh.textContent = `★ ${winRes.role}（${winRes.pts}点）上がれます！`;
     hh.className = 'can-win';
+  } else if (p.hand.length < 6) {
+    hh.textContent = `手牌 ${p.hand.length}枚 — 場から1枚引いてください`;
+    hh.className = '';
   } else {
-    hh.textContent = `手牌 ${p.hand.length}枚`;
+    hh.textContent = `手牌 ${p.hand.length}枚 — 捨てるか役を揃えて上がろう`;
     hh.className = '';
   }
 }
 
-/* ----- Status bar ----- */
 function renderStatus() {
   const el = document.getElementById('status');
-  const myTurn = G.turn === 0 && !G.players[0].isBot;
-  if (myTurn) {
+  if (G.turn === 0 && !G.players[0].isBot) {
     el.className = 'myturn';
-    el.textContent = G.tphase==='pick'
-      ? '場から牌を1枚選んでください'
-      : '捨てる牌を選択 → 「捨てる」ボタン（右クリックで反転）';
+    el.textContent = G.tphase === 'pick'
+      ? '📥 場から好きな牌を1枚選んでください'
+      : '📤 捨てる牌を選んで「捨てる」 ／ 役が揃ったら「上がる！」';
   } else {
     el.className = 'boturn';
-    el.textContent = `${G.players[G.turn].name} が考え中...`;
+    el.textContent = `🤖 ${G.players[G.turn].name} が考え中...`;
   }
 }
 
-/* ----- Tile HTML ----- */
-function tileSVG(t, events='', extra='') {
-  const tv = t.flip ? t.bot : t.top;
-  const bv = t.flip ? t.top : t.bot;
-  return `<div class="tile ${extra}" ${events}>
+// ============================================================
+//  牌HTML
+// ============================================================
+function tileHTML(t, events='', cls='tile') {
+  const tv = eTop(t), bv = eBot(t);
+  return `<div class="${cls}" ${events}>
     <div class="th ${SCLS[tv]}">${SYM[tv]}</div>
     <div class="tb ${SCLS[bv]}">${SYM[bv]}</div>
   </div>`;
 }
 
 // ============================================================
-//  HUMAN ACTIONS
+//  プレイヤー操作
 // ============================================================
-
-/* Click on a field tile → pick it */
 function pickField(i) {
   if (G.phase!=='playing' || G.turn!==0 || G.tphase!=='pick') return;
   const p = G.players[0];
-  if (p.hand.length >= 6) { toast('もう持てないよ'); return; }
-
+  if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
   p.hand.push(G.field.splice(i, 1)[0]);
   G.tphase = 'discard';
   G.selIdx = -1;
   render();
 }
 
-/* Click on own hand tile → select / swap */
 function clickHand(i) {
-  if (G.phase !== 'playing') return;
+  if (G.phase!=='playing') return;
   const prev = G.selIdx;
   if (prev === -1) {
     G.selIdx = i;
   } else if (prev === i) {
-    G.selIdx = -1;   // deselect
+    G.selIdx = -1;
   } else {
-    // swap
     const h = G.players[0].hand;
     [h[prev], h[i]] = [h[i], h[prev]];
     G.selIdx = -1;
@@ -600,40 +874,40 @@ function clickHand(i) {
   render();
 }
 
-/* Right-click on hand tile → flip */
 function flipHand(e, i) {
   e.preventDefault();
-  if (G.phase !== 'playing') return;
+  if (G.phase!=='playing') return;
   G.players[0].hand[i].flip = !G.players[0].hand[i].flip;
   render();
   return false;
 }
 
-/* Discard selected tile */
 function doDiscard() {
   if (G.tphase!=='discard' || G.turn!==0) return;
   const p = G.players[0];
   if (G.selIdx === -1) { toast('捨てる牌を選んでください'); return; }
-  if (p.hand.length <= 5) { toast('これ以上捨てれないよ'); return; }
-
-  G.field.push(p.hand.splice(G.selIdx, 1)[0]);
+  if (p.hand.length <= 5) { toast('これ以上捨てれないよ！'); return; }
+  const tile = p.hand.splice(G.selIdx, 1)[0];
+  tile.discarded = true;
+  G.field.push(tile);
   G.selIdx = -1;
   nextTurn();
 }
 
-/* Declare win */
 function doWin() {
   if (G.tphase!=='discard' || G.turn!==0) return;
-  const res = checkWin(G.players[0].hand);
-  if (!res) return;
+  const p = G.players[0];
+  if (p.hand.length !== 6) { toast('手牌が6枚のときだけ上がれます'); return; }
+  const res = checkWin(p.hand);
+  if (!res) { toast('まだ役が揃っていません'); return; }
   processWin(0, res);
 }
 
 // ============================================================
-//  TURN MANAGEMENT
+//  ターン管理
 // ============================================================
 function nextTurn() {
-  G.turn = (G.turn + 1) % G.players.length;
+  G.turn   = (G.turn + 1) % G.players.length;
   G.tphase = 'pick';
   G.selIdx = -1;
   render();
@@ -641,154 +915,148 @@ function nextTurn() {
 }
 
 // ============================================================
-//  BOT AI
+//  ボットAI
 // ============================================================
 function scheduleBot() {
-  if (G.phase !== 'playing') return;
+  if (G.phase!=='playing') return;
   const bot = G.players[G.turn];
   if (!bot?.isBot) return;
-  const delay = {easy:1400, normal:950, hard:550}[bot.diff] || 950;
-  setTimeout(runBot, delay);
+  const d = {easy:1500, normal:1000, hard:600}[bot.diff] || 1000;
+  setTimeout(runBot, d);
 }
 
 function runBot() {
-  if (G.phase !== 'playing') return;
+  if (G.phase!=='playing') return;
   const bot = G.players[G.turn];
   if (!bot?.isBot) return;
-  const delay = {easy:1100, normal:750, hard:400}[bot.diff] || 750;
+  const d = {easy:1100, normal:750, hard:400}[bot.diff] || 750;
 
-  /* ---- Pick phase ---- */
   if (G.tphase === 'pick') {
     if (G.field.length === 0) { nextTurn(); return; }
 
-    const pi = bot.diff==='easy'
-      ? Math.floor(Math.random() * G.field.length)
-      : botPickIdx(bot, G.field, bot.diff);
+    let fi;
+    if (bot.diff === 'easy') {
+      fi = Math.floor(Math.random() * G.field.length);
+    } else {
+      // 全場牌から最善を選ぶ
+      let best = -Infinity;
+      fi = 0;
+      G.field.forEach((t, i) => {
+        const s = evalHand([...bot.hand, t]);
+        if (s > best) { best = s; fi = i; }
+      });
+    }
 
-    bot.hand.push(G.field.splice(pi, 1)[0]);
+    bot.hand.push(G.field.splice(fi, 1)[0]);
     G.tphase = 'discard';
     render();
 
-    // Check immediate win
     const wr = checkWin(bot.hand);
-    if (wr) { setTimeout(() => processWin(G.turn, wr), delay); return; }
+    if (wr) { setTimeout(() => processWin(G.turn, wr), d); return; }
 
-    // Schedule discard
     setTimeout(() => {
-      if (G.phase !== 'playing') return;
-      const di = bot.diff==='easy'
-        ? Math.floor(Math.random() * bot.hand.length)
-        : botDiscardIdx(bot, bot.diff);
-      G.field.push(bot.hand.splice(di, 1)[0]);
+      if (G.phase!=='playing') return;
+      let di;
+      if (bot.diff === 'easy') {
+        di = Math.floor(Math.random() * bot.hand.length);
+      } else {
+        di = botBestDiscard(bot.hand);
+      }
+      const tile = bot.hand.splice(di, 1)[0];
+      tile.discarded = true;
+      // ボットの手牌を上の数で昇順ソートして整理
+      bot.hand.sort((a,b) => eTop(a) - eTop(b));
+      G.field.push(tile);
       render();
       setTimeout(nextTurn, 200);
-    }, delay);
+    }, d);
   }
 }
 
-/* Choose best field tile to pick */
-function botPickIdx(bot, field, diff) {
-  let best=-Infinity, bestI=0;
-  field.forEach((t,i) => {
-    const s = evalHand([...bot.hand, t], diff);
-    if (s > best) { best=s; bestI=i; }
+function botBestDiscard(hand) {
+  let best = -Infinity, bi = 0;
+  hand.forEach((_, i) => {
+    const s = evalHand(hand.filter((_,j)=>j!==i));
+    if (s > best) { best = s; bi = i; }
   });
-  return bestI;
+  return bi;
 }
 
-/* Choose worst hand tile to discard */
-function botDiscardIdx(bot, diff) {
-  let best=-Infinity, bestI=0;
-  bot.hand.forEach((_,i) => {
-    const s = evalHand(bot.hand.filter((_,j)=>j!==i), diff);
-    if (s > best) { best=s; bestI=i; }
-  });
-  return bestI;
-}
-
-/* Score a hand (higher = better) */
-function evalHand(hand, diff) {
-  if (hand.length===6) {
-    const w = checkWin(hand); if (w) return w.pts*100;
+function evalHand(hand) {
+  if (hand.length === 6) {
+    const w = checkWin(hand); if (w) return w.pts * 100;
   }
-  // Try flip combinations (limited for perf)
   let best = 0;
   const n = hand.length;
-  const lim = diff==='hard' ? (1<<n) : Math.min(1<<n, 32);
-  for (let m=0; m<lim; m++) {
+  const lim = Math.min(1 << n, 64);
+  for (let m = 0; m < lim; m++) {
     const h = hand.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
-    best = Math.max(best, scoreVals(h.map(eff)));
+    best = Math.max(best, scoreBots(h));
   }
-  // Also check natural tops/bots
-  best = Math.max(best, scoreVals(hand.map(t=>t.top)), scoreVals(hand.map(t=>t.bot)));
   return best;
 }
 
-function scoreVals(vs) {
+function scoreBots(hand) {
+  const bots = hand.map(eBot);
   const freq = {};
-  vs.forEach(v => freq[v]=(freq[v]||0)+1);
-  const mf = Math.max(...Object.values(freq));
-  // Consecutive-pair bonus
-  const s = [...vs].sort((a,b)=>a-b);
-  const cnt = {};
-  s.forEach(v => cnt[v]=(cnt[v]||0)+1);
-  const ks = Object.keys(cnt).map(Number).sort((a,b)=>a-b);
+  bots.forEach(v => freq[v] = (freq[v]||0)+1);
+  const maxFreq = Math.max(...Object.values(freq));
+  const tops = hand.map(eTop);
+  const tf = {};
+  tops.forEach(v => tf[v] = (tf[v]||0)+1);
+  const ks = Object.keys(tf).map(Number).sort((a,b)=>a-b);
   let cp = 0;
-  for (let i=0; i<ks.length-1; i++)
-    if (ks[i+1]===ks[i]+1 && cnt[ks[i]]>=2 && cnt[ks[i+1]]>=2) cp++;
-  return mf*20 + cp*15;
+  for (let i=0; i<ks.length-1; i++) if (ks[i+1]===ks[i]+1) cp++;
+  return maxFreq * 25 + cp * 12;
 }
 
 // ============================================================
-//  WIN PROCESSING
+//  勝利処理
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  const p = G.players[pi];
-  p.score += res.pts;
-  showWinModal(p, res);
+  G.players[pi].score += res.pts;
+  showWinModal(G.players[pi], res);
 }
 
 // ============================================================
-//  MODALS
+//  モーダル（勝利・ゲームオーバー）
 // ============================================================
 function showWinModal(p, res) {
-  const rows = G.players.map(pl =>
+  const over  = p.score >= WIN_SCORE;
+  const rows  = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
-  const tiles = p.hand.map(t => tileSVG(t,'','htile')).join('');
-  const over = p.score >= WIN_SCORE;
-
+  const tiles = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
   document.getElementById('mbox').innerHTML = `
     <div class="mtitle">${p.isBot?'🤖':'🎆'} 上がり！</div>
-    <p style="color:#8a7860;font-size:.83rem">${esc(p.name)} が役を完成</p>
+    <p style="color:#8a7860;font-size:.95rem;margin-bottom:.2rem">${esc(p.name)} が役を完成</p>
     <div class="mrole">${res.role}</div>
     <div class="mpts">+${res.pts}点</div>
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
     ${over
-      ? `<button class="mbtn" onclick="showGameOver()">ゲーム終了を確認</button>`
-      : `<button class="mbtn" onclick="doNextRound()">次のゲームへ</button>`}
+      ? `<button class="mbtn" onclick="showGameOver()">ゲーム終了を確認 →</button>`
+      : `<button class="mbtn" onclick="doNextRound()">次のラウンドへ →</button>`}
   `;
   document.getElementById('modal').classList.add('open');
 }
 
 function showGameOver() {
-  const winner = G.players.reduce((a,b)=>a.score>b.score?a:b);
-  const rows = G.players.map(p =>
+  const winner = G.players.reduce((a,b) => a.score > b.score ? a : b);
+  const rows   = G.players.map(p =>
     `<tr><td>${esc(p.name)}</td><td>${p.score}点</td></tr>`).join('');
   document.getElementById('mbox').innerHTML = `
     <div class="mtitle">🏆 ゲーム終了！</div>
-    <div style="font-size:1.5rem;color:#f5e0a0;margin:.5rem 0;font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
+    <div style="font-size:1.7rem;color:#f5e0a0;margin:.5rem 0;
+      font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
     <table class="mscores">${rows}</table>
-    <button class="mbtn" onclick="goLobby()">もう一度</button>
+    <button class="mbtn" onclick="goLobby()">タイトルへ戻る</button>
   `;
 }
 
 function doNextRound() {
   document.getElementById('modal').classList.remove('open');
   dealRound();
-  G.phase = 'playing';
-  G.turn  = 0;
   render();
   if (G.players[G.turn].isBot) scheduleBot();
 }
@@ -799,39 +1067,53 @@ function goLobby() {
 }
 
 // ============================================================
-//  UTILS
+//  ルールブック
+// ============================================================
+function openRuleBook()  { document.getElementById('rule-modal').classList.add('open'); }
+function closeRuleBook() { document.getElementById('rule-modal').classList.remove('open'); }
+
+// ルールブックモーダルの外側をクリックで閉じる
+document.getElementById('rule-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeRuleBook();
+});
+
+// ============================================================
+//  ユーティリティ
 // ============================================================
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-let _toastTm = null;
+let _tt = null;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  clearTimeout(_toastTm);
-  _toastTm = setTimeout(()=>el.classList.remove('show'), 2200);
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Long-press for mobile right-click (flip)
-let _lpTm = null;
+// スマホ長押しで反転
+let _lpt = null;
 document.addEventListener('touchstart', e => {
   const tile = e.target.closest('#hand-tiles .tile');
   if (!tile) return;
-  _lpTm = setTimeout(() => {
+  _lpt = setTimeout(() => {
     const tiles = [...document.querySelectorAll('#hand-tiles .tile')];
     const i = tiles.indexOf(tile);
-    if (i >= 0) { G.players[0].hand[i].flip = !G.players[0].hand[i].flip; render(); }
+    if (i >= 0 && G?.players[0]) {
+      G.players[0].hand[i].flip = !G.players[0].hand[i].flip;
+      render();
+    }
   }, 600);
 }, {passive:true});
-document.addEventListener('touchend', () => clearTimeout(_lpTm), {passive:true});
-document.addEventListener('touchmove', () => clearTimeout(_lpTm), {passive:true});
+document.addEventListener('touchend',  () => clearTimeout(_lpt), {passive:true});
+document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true});
 </script>
 </body>
 </html>
