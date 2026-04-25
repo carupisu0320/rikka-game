@@ -1,438 +1,310 @@
-const WebSocket = require('ws');
-const http = require('http');
-const path = require('path');
-const fs = require('fs');
+const express = require('express');
+const http    = require('http');
+const { Server } = require('socket.io');
+const path    = require('path');
 
-const PORT = process.env.PORT || 3000;
+const app    = express();
+const server = http.createServer(app);
+const io     = new Server(server, { cors: { origin: '*' } });
 
-// ゲームの状態管理
+app.use(express.static(path.join(__dirname)));
+
+const PORT     = process.env.PORT || 3000;
+const WIN_SCORE = 10;
+
+// ── ルーム管理 ──────────────────────────────────────
+// rooms: Map<roomId, RoomState>
+// RoomState = {
+//   players: [{socketId, name, hand, score}],
+//   field:    [{id,top,bot,flip,discarded}],  // 全牌
+//   turn:     number,   // players index
+//   tphase:   'pick'|'discard',
+//   phase:    'waiting'|'playing'|'roundEnd'|'gameOver',
+// }
 const rooms = new Map();
 
-// リッカ牌の生成（1-6のドミノ牌、42枚）
-function createDeck() {
-  const deck = [];
-  for (let top = 1; top <= 6; top++) {
-    for (let bottom = 1; bottom <= 6; bottom++) {
-      deck.push({ id: `${top}-${bottom}-a`, top, bottom, flipped: false });
+// ── デッキ生成 42枚 ──────────────────────────────────
+function makeDeck() {
+  const d = [];
+  let id = 0;
+  for (let t = 1; t <= 6; t++)
+    for (let b = 1; b <= 6; b++) {
+      d.push({ id: id++, top: t, bot: b, flip: false, discarded: false });
+      if (t === b) d.push({ id: id++, top: t, bot: b, flip: false, discarded: false });
     }
-  }
-  // 6×6 = 36枚だが、実際は42枚なので特殊牌を追加
-  // アークライト公式では1-6が2セット = 42枚なので両面同じ牌6枚を追加
-  for (let i = 1; i <= 6; i++) {
-    deck.push({ id: `${i}-${i}-b`, top: i, bottom: i, flipped: false });
-  }
-  return shuffleDeck(deck);
+  return shuffle(d);
 }
-
-function shuffleDeck(deck) {
-  const arr = [...deck];
-  for (let i = arr.length - 1; i > 0; i--) {
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [r[i], r[j]] = [r[j], r[i]];
   }
-  return arr;
+  return r;
 }
 
-// 役の判定
-function checkHand(hand) {
-  // 手牌は6枚、各牌の「上」か「下」の値を使う
-  // 牌をflipした場合はtopとbottomが入れ替わる
-  const values = hand.map(tile => tile.flipped ? tile.bottom : tile.top);
-  
-  const results = [];
-  
-  // 六華（全て同じ数字）
-  if (values.every(v => v === values[0])) {
-    results.push({ name: '六華', points: 6, bonus: 0 });
-  }
-  
-  // 一色（全て同じ数字）- 六華と同じ条件だが六華が最上位
-  // 実際のルールでは一色 = 6枚全部同じ上の数字
-  
-  // 三連（上の数字が連続3つ×2組）
-  const sorted = [...values].sort((a, b) => a - b);
-  if (isThreeStraight(sorted)) {
-    results.push({ name: '三連', points: 3, bonus: 0 });
-  }
-  
-  // 一色（全部同じ）
-  const isAllSame = values.every(v => v === values[0]);
-  if (isAllSame && results.length === 0) {
-    results.push({ name: '一色', points: 2, bonus: 0 });
-  }
-  
-  return results;
-}
+function eTop(t) { return t.flip ? t.bot : t.top; }
+function eBot(t) { return t.flip ? t.top : t.bot; }
 
-function isThreeStraight(sorted) {
-  // 6枚が3連続×2組
-  if (sorted.length !== 6) return false;
-  // パターン: [a,a+1,a+2, b,b+1,b+2]
-  const counts = {};
-  sorted.forEach(v => counts[v] = (counts[v] || 0) + 1);
-  
-  // 全部ペアになっているか
-  const vals = Object.keys(counts).map(Number).sort((a, b) => a - b);
-  if (vals.length === 3 && vals.every(v => counts[v] === 2)) {
-    // 3つが連続しているか
-    return vals[1] === vals[0] + 1 && vals[2] === vals[1] + 1;
+// ── 役判定 ───────────────────────────────────────────
+function checkWin(hand) {
+  if (hand.length !== 6) return null;
+  const tops = hand.map(eTop);
+  const bots = hand.map(eBot);
+  const allBotSame = bots.every(v => v === bots[0]);
+
+  if (allBotSame) {
+    const st = [...tops].sort((a, b) => a - b);
+    if (st.join(',') === '1,2,3,4,5,6') return { role: '六華', pts: 6 };
+  }
+  if (isSanren(hand)) return { role: '三連', pts: 3 };
+  if (allBotSame) return { role: '一色', pts: 1 };
+  return null;
+}
+function isSanren(hand) {
+  for (let mask = 0; mask < (1 << 6); mask++) {
+    if (popcount(mask) !== 3) continue;
+    const g1 = [], g2 = [];
+    for (let i = 0; i < 6; i++) (mask & (1 << i) ? g1 : g2).push(hand[i]);
+    if (isSet3(g1) && isSet3(g2)) return true;
   }
   return false;
 }
+function isSet3(g) {
+  if (g.length !== 3) return false;
+  const bots = g.map(eBot);
+  if (!bots.every(v => v === bots[0])) return false;
+  const tops = g.map(eTop).sort((a, b) => a - b);
+  return tops[1] === tops[0] + 1 && tops[2] === tops[1] + 1;
+}
+function popcount(n) { let c = 0; while (n) { c += n & 1; n >>= 1; } return c; }
+function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 
-function isIshoku(hand) {
-  const values = hand.map(tile => tile.flipped ? tile.bottom : tile.top);
-  return values.every(v => v === values[0]);
+// ── ゲーム開始 ───────────────────────────────────────
+function dealRound(room) {
+  const deck = makeDeck();
+  let idx = 0;
+  room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
+  room.field  = deck.slice(idx);
+  room.turn   = 0;
+  room.tphase = 'pick';
+  room.phase  = 'playing';
 }
 
-function checkWin(hand) {
-  const values = hand.map(tile => tile.flipped ? tile.bottom : tile.top);
-  
-  // 六華: 全部同じ（6点）
-  if (values.every(v => v === values[0])) {
-    return { won: true, role: '六華', points: 6 };
-  }
-  
-  // 三連: ソートして3連続×2組（3点）
-  const sorted = [...values].sort((a, b) => a - b);
-  if (isThreeStraight(sorted)) {
-    return { won: true, role: '三連', points: 3 };
-  }
-  
-  // 一色: 全部同じ（実際は上か下で揃える）（2点）
-  // 六華と重複するので、ここでは上の数値6枚同じ or 下の数値6枚同じ
-  const topValues = hand.map(t => t.top);
-  const bottomValues = hand.map(t => t.bottom);
-  if (topValues.every(v => v === topValues[0]) || bottomValues.every(v => v === bottomValues[0])) {
-    return { won: true, role: '一色', points: 2 };
-  }
-  
-  return { won: false };
+// ── 各クライアントへ state 送信 ──────────────────────
+function sendState(room) {
+  room.players.forEach((p, myIdx) => {
+    const opp = room.players.map((q, qi) => ({
+      name:      q.name,
+      score:     q.score,
+      handCount: q.hand.length,
+      isCurrentTurn: qi === room.turn,
+    })).filter((_, qi) => qi !== myIdx);
+
+    const normalCount  = room.field.filter(t => !t.discarded).length;
+    const discardTiles = room.field.filter(t =>  t.discarded);
+
+    io.to(p.socketId).emit('game_state', {
+      myHand:       p.hand,
+      myIndex:      myIdx,
+      currentTurn:  room.turn,
+      tphase:       room.tphase,
+      phase:        room.phase,
+      scores:       room.players.map(q => ({ name: q.name, score: q.score })),
+      opponents:    opp,
+      normalCount,       // 裏向き枚数
+      discardTiles,      // 捨て牌（表向き）
+    });
+  });
 }
 
-// HTTPサーバー
-const server = http.createServer((req, res) => {
-  let filePath = '.' + req.url;
-  if (filePath === './') filePath = './index.html';
-  
-  const extname = path.extname(filePath);
-  const contentTypes = {
-    '.html': 'text/html',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
+function broadcastRoom(roomId, event, data) {
+  io.to(roomId).emit(event, data);
+}
+
+function lobbyState(room) {
+  return {
+    players:  room.players.map(p => p.name),
+    canStart: room.players.length >= 2,
   };
-  
-  const contentType = contentTypes[extname] || 'text/plain';
-  
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      res.end('Not Found');
+}
+
+// ── Socket.IO ────────────────────────────────────────
+io.on('connection', (socket) => {
+  let myRoomId = null;
+
+  // ── 入室 ──
+  socket.on('join_room', ({ roomId, playerName }) => {
+    if (!rooms.has(roomId)) {
+      rooms.set(roomId, { players: [], field: [], turn: 0, tphase: 'pick', phase: 'waiting' });
+    }
+    const room = rooms.get(roomId);
+    if (room.phase !== 'waiting') {
+      socket.emit('error_msg', 'すでにゲームが始まっています');
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(data);
-  });
-});
-
-// WebSocketサーバー
-const wss = new WebSocket.Server({ server });
-
-function broadcast(room, message, excludeWs = null) {
-  room.players.forEach(player => {
-    if (player.ws !== excludeWs && player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify(message));
+    if (room.players.length >= 4) {
+      socket.emit('error_msg', '部屋が満員です（最大4人）');
+      return;
     }
+    room.players.push({ socketId: socket.id, name: playerName, hand: [], score: 0 });
+    socket.join(roomId);
+    myRoomId = roomId;
+    socket.emit('joined', { roomId, playerName });
+    broadcastRoom(roomId, 'room_update', lobbyState(room));
   });
-}
 
-function broadcastAll(room, message) {
-  room.players.forEach(player => {
-    if (player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify(message));
-    }
+  // ── ゲーム開始 ──
+  socket.on('start_game', () => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'waiting' || room.players.length < 2) return;
+    dealRound(room);
+    broadcastRoom(myRoomId, 'game_start', { playerNames: room.players.map(p => p.name) });
+    sendState(room);
   });
-}
 
-function sendGameState(room) {
-  room.players.forEach((player, index) => {
-    if (player.ws.readyState !== WebSocket.OPEN) return;
-    
-    const state = {
-      type: 'gameState',
-      myIndex: index,
-      currentTurn: room.currentTurn,
-      phase: room.phase,
-      scores: room.players.map(p => ({ name: p.name, score: p.score })),
-      myHand: player.hand,
-      opponents: room.players.map((p, i) => ({
-        name: p.name,
-        handCount: p.hand.length,
-        score: p.score,
-        isCurrentTurn: i === room.currentTurn,
-      })).filter((_, i) => i !== index),
-      fieldFaceUp: room.fieldFaceUp,
-      stockCount: room.stock.length,
-      fieldFaceDownCount: room.fieldFaceDown.length,
-      lastAction: room.lastAction,
-    };
-    
-    player.ws.send(JSON.stringify(state));
-  });
-}
+  // ── 裏向き場牌をピック（サーバーがランダムに選ぶ） ──
+  socket.on('pick_field', () => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    if (pi !== room.turn || room.tphase !== 'pick') return;
+    const p = room.players[pi];
+    if (p.hand.length >= 6) { socket.emit('error_msg', 'もう持てないよ！'); return; }
 
-function startGame(room) {
-  const deck = createDeck();
-  room.stock = [];
-  room.fieldFaceUp = [];
-  room.fieldFaceDown = [];
-  room.phase = 'playing';
-  room.lastAction = null;
-  
-  // 各プレイヤーに5枚配布
-  let deckIndex = 0;
-  room.players.forEach(player => {
-    player.hand = deck.slice(deckIndex, deckIndex + 5);
-    deckIndex += 5;
-  });
-  
-  // 残りをストックに
-  room.stock = deck.slice(deckIndex);
-  
-  // 最初のスタPをランダムに
-  room.currentTurn = Math.floor(Math.random() * room.players.length);
-  
-  broadcastAll(room, { type: 'gameStart', playerNames: room.players.map(p => p.name) });
-  sendGameState(room);
-}
+    const normals = room.field.map((t, i) => ({ t, i })).filter(x => !x.t.discarded);
+    if (normals.length === 0) { socket.emit('error_msg', '場に牌がありません'); return; }
+    const { t: tile, i: fi } = normals[Math.floor(Math.random() * normals.length)];
+    room.field.splice(fi, 1);
+    p.hand.push(tile);
+    room.tphase = 'discard';
 
-wss.on('connection', (ws) => {
-  ws.on('message', (data) => {
-    try {
-      const msg = JSON.parse(data);
-      handleMessage(ws, msg);
-    } catch (e) {
-      console.error('Parse error:', e);
-    }
+    // 引いた牌だけその人に通知
+    socket.emit('picked_tile', { tile });
+    sendState(room);
   });
-  
-  ws.on('close', () => {
-    // ルームからプレイヤーを削除
-    for (const [roomId, room] of rooms) {
-      const idx = room.players.findIndex(p => p.ws === ws);
-      if (idx !== -1) {
-        const playerName = room.players[idx].name;
-        room.players.splice(idx, 1);
-        if (room.players.length === 0) {
-          rooms.delete(roomId);
-        } else {
-          broadcastAll(room, { type: 'playerLeft', name: playerName });
-          sendGameState(room);
-        }
-        break;
-      }
-    }
-  });
-});
 
-function handleMessage(ws, msg) {
-  switch (msg.type) {
-    case 'join': {
-      const { roomId, playerName } = msg;
-      if (!rooms.has(roomId)) {
-        rooms.set(roomId, {
-          id: roomId,
-          players: [],
-          phase: 'waiting',
-          stock: [],
-          fieldFaceUp: [],
-          fieldFaceDown: [],
-          currentTurn: 0,
-          lastAction: null,
-        });
-      }
-      const room = rooms.get(roomId);
-      if (room.players.length >= 5) {
-        ws.send(JSON.stringify({ type: 'error', message: '部屋が満員です' }));
-        return;
-      }
+  // ── 捨て牌をピック ──
+  socket.on('pick_discard', ({ tileId }) => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    if (pi !== room.turn || room.tphase !== 'pick') return;
+    const p = room.players[pi];
+    if (p.hand.length >= 6) { socket.emit('error_msg', 'もう持てないよ！'); return; }
+
+    const fi = room.field.findIndex(t => t.discarded && t.id === tileId);
+    if (fi === -1) return;
+    const [tile] = room.field.splice(fi, 1);
+    tile.discarded = false;
+    p.hand.push(tile);
+    room.tphase = 'discard';
+    socket.emit('picked_tile', { tile });
+    sendState(room);
+  });
+
+  // ── 捨て牌 ──
+  socket.on('discard_tile', ({ tileId }) => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    if (pi !== room.turn || room.tphase !== 'discard') return;
+    const p = room.players[pi];
+    if (p.hand.length <= 5) { socket.emit('error_msg', 'これ以上捨てれないよ！'); return; }
+
+    const hi = p.hand.findIndex(t => t.id === tileId);
+    if (hi === -1) return;
+    const [tile] = p.hand.splice(hi, 1);
+    tile.discarded = true;
+    room.field.push(tile);
+    room.turn   = (room.turn + 1) % room.players.length;
+    room.tphase = 'pick';
+    sendState(room);
+  });
+
+  // ── 上がり宣言 ──
+  socket.on('declare_win', ({ flips }) => {
+    // flips: [{tileId, flip}] — クライアントの反転状態をサーバーに送る
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    if (pi !== room.turn || room.tphase !== 'discard') return;
+    const p = room.players[pi];
+    if (p.hand.length !== 6) return;
+
+    // フリップ状態を反映してから判定
+    if (flips) flips.forEach(({ tileId, flip }) => {
+      const t = p.hand.find(x => x.id === tileId);
+      if (t) t.flip = flip;
+    });
+
+    const res = checkWin(p.hand);
+    if (!res) { socket.emit('error_msg', 'まだ役が揃っていません'); return; }
+
+    const bonus = countZorome(p.hand);
+    res.bonus = bonus;
+    p.score += res.pts + bonus;
+    room.phase = 'roundEnd';
+
+    broadcastRoom(myRoomId, 'round_win', {
+      playerName: p.name,
+      role:       res.role,
+      pts:        res.pts,
+      bonus,
+      hand:       p.hand,
+      scores:     room.players.map(q => ({ name: q.name, score: q.score })),
+      isGameOver: p.score >= WIN_SCORE,
+      winner:     p.score >= WIN_SCORE ? p.name : null,
+    });
+  });
+
+  // ── 手牌の並び替えをサーバーに同期 ──
+  socket.on('reorder_hand', ({ order }) => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room) return;
+    const p = room.players.find(x => x.socketId === socket.id);
+    if (!p) return;
+    // order: [0,2,1,3,4,5] のような並び替えindex
+    const newHand = order.map(i => p.hand[i]).filter(Boolean);
+    if (newHand.length === p.hand.length) p.hand = newHand;
+  });
+
+  // ── 次のラウンド ──
+  socket.on('next_round', () => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room || room.phase !== 'roundEnd') return;
+    dealRound(room);
+    broadcastRoom(myRoomId, 'game_start', { playerNames: room.players.map(p => p.name) });
+    sendState(room);
+  });
+
+  // ── 切断 ──
+  socket.on('disconnect', () => {
+    const room = myRoomId && rooms.get(myRoomId);
+    if (!room) return;
+    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    if (pi === -1) return;
+    const name = room.players[pi].name;
+    room.players.splice(pi, 1);
+
+    if (room.players.length === 0) {
+      rooms.delete(myRoomId);
+    } else {
+      broadcastRoom(myRoomId, 'player_left', { name });
       if (room.phase === 'playing') {
-        ws.send(JSON.stringify({ type: 'error', message: 'ゲームはすでに開始されています' }));
-        return;
-      }
-      room.players.push({ ws, name: playerName, hand: [], score: 0 });
-      ws.send(JSON.stringify({ type: 'joined', roomId, playerName }));
-      broadcastAll(room, {
-        type: 'lobby',
-        players: room.players.map(p => p.name),
-        canStart: room.players.length >= 2,
-      });
-      break;
-    }
-    
-    case 'startGame': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'waiting') return;
-      if (room.players.length < 2) {
-        ws.send(JSON.stringify({ type: 'error', message: '2人以上必要です' }));
-        return;
-      }
-      startGame(room);
-      break;
-    }
-    
-    case 'drawFromStock': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'playing') return;
-      const playerIdx = room.players.findIndex(p => p.ws === ws);
-      if (playerIdx !== room.currentTurn) return;
-      
-      const player = room.players[playerIdx];
-      if (player.hand.length >= 6) return;
-      
-      if (room.stock.length === 0 && room.fieldFaceDown.length === 0) {
-        broadcastAll(room, { type: 'draw', message: 'ストックが尽きました' });
-        return;
-      }
-      
-      let tile;
-      if (room.stock.length > 0) {
-        tile = room.stock.pop();
+        // ゲーム中に抜けたらそのまま続行（人数が1人になったら終了）
+        if (room.players.length < 2) {
+          room.phase = 'waiting';
+          broadcastRoom(myRoomId, 'room_update', lobbyState(room));
+        } else {
+          if (room.turn >= room.players.length) room.turn = 0;
+          sendState(room);
+        }
       } else {
-        // フェイスダウンフィールドから
-        tile = room.fieldFaceDown.pop();
+        broadcastRoom(myRoomId, 'room_update', lobbyState(room));
       }
-      
-      player.hand.push(tile);
-      room.lastAction = { type: 'draw', player: player.name };
-      sendGameState(room);
-      break;
     }
-    
-    case 'drawFromField': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'playing') return;
-      const playerIdx = room.players.findIndex(p => p.ws === ws);
-      if (playerIdx !== room.currentTurn) return;
-      
-      const player = room.players[playerIdx];
-      if (player.hand.length >= 6) return;
-      
-      const { tileId } = msg;
-      const fieldIdx = room.fieldFaceUp.findIndex(t => t.id === tileId);
-      if (fieldIdx === -1) return;
-      
-      const tile = room.fieldFaceUp.splice(fieldIdx, 1)[0];
-      player.hand.push(tile);
-      room.lastAction = { type: 'drawField', player: player.name, tile };
-      sendGameState(room);
-      break;
-    }
-    
-    case 'discard': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'playing') return;
-      const playerIdx = room.players.findIndex(p => p.ws === ws);
-      if (playerIdx !== room.currentTurn) return;
-      
-      const player = room.players[playerIdx];
-      if (player.hand.length !== 6) return;
-      
-      const { tileId } = msg;
-      const handIdx = player.hand.findIndex(t => t.id === tileId);
-      if (handIdx === -1) return;
-      
-      const discarded = player.hand.splice(handIdx, 1)[0];
-      room.fieldFaceUp.push(discarded);
-      room.lastAction = { type: 'discard', player: player.name, tile: discarded };
-      
-      // 次のターンへ
-      room.currentTurn = (room.currentTurn + 1) % room.players.length;
-      sendGameState(room);
-      break;
-    }
-    
-    case 'flipTile': {
-      const room = findRoom(ws);
-      if (!room) return;
-      const playerIdx = room.players.findIndex(p => p.ws === ws);
-      const player = room.players[playerIdx];
-      
-      const { tileId } = msg;
-      const tile = player.hand.find(t => t.id === tileId);
-      if (tile) {
-        tile.flipped = !tile.flipped;
-        sendGameState(room);
-      }
-      break;
-    }
-    
-    case 'declareWin': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'playing') return;
-      const playerIdx = room.players.findIndex(p => p.ws === ws);
-      if (playerIdx !== room.currentTurn) return;
-      
-      const player = room.players[playerIdx];
-      const winResult = checkWin(player.hand);
-      
-      if (!winResult.won) {
-        ws.send(JSON.stringify({ type: 'error', message: '役が完成していません' }));
-        return;
-      }
-      
-      // 得点加算
-      player.score += winResult.points;
-      
-      // ついでに完成チェック
-      const bonusPlayers = [];
-      room.players.forEach((p, i) => {
-        if (i === playerIdx) return;
-        // あと1枚で役が完成 + その1枚が場に表向きにある
-        // 簡略実装: チェックだけ
-      });
-      
-      room.phase = 'roundEnd';
-      
-      broadcastAll(room, {
-        type: 'win',
-        player: player.name,
-        role: winResult.role,
-        points: winResult.points,
-        hand: player.hand,
-        scores: room.players.map(p => ({ name: p.name, score: p.score })),
-      });
-      
-      // 10点以上なら勝利
-      if (player.score >= 10) {
-        broadcastAll(room, {
-          type: 'gameOver',
-          winner: player.name,
-          scores: room.players.map(p => ({ name: p.name, score: p.score })),
-        });
-        room.phase = 'waiting';
-        room.players.forEach(p => p.score = 0);
-      }
-      break;
-    }
-    
-    case 'nextRound': {
-      const room = findRoom(ws);
-      if (!room || room.phase !== 'roundEnd') return;
-      room.players.forEach(p => p.hand = []);
-      startGame(room);
-      break;
-    }
-  }
-}
-
-function findRoom(ws) {
-  for (const room of rooms.values()) {
-    if (room.players.some(p => p.ws === ws)) return room;
-  }
-  return null;
-}
-
-server.listen(PORT, () => {
-  console.log(`六華サーバー起動: http://localhost:${PORT}`);
+  });
 });
+
+server.listen(PORT, () => console.log(`六華サーバー起動 → http://localhost:${PORT}`));
