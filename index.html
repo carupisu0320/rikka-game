@@ -74,7 +74,10 @@ body{
 #game{background:#0d0a08;overflow:hidden}
 #hdr{
   display:flex;align-items:center;justify-content:space-between;
-  padding:.6rem 1.2rem;background:#120e0a;border-bottom:1px solid #221810;
+  padding:.6rem 1.2rem;
+  background:linear-gradient(180deg,#1a1208 0%,#0e0a06 100%);
+  border-bottom:1px solid #3a2810;
+  box-shadow:0 2px 12px rgba(0,0,0,0.6);
   flex-shrink:0;gap:.5rem;
 }
 .hdr-logo{
@@ -124,7 +127,8 @@ body{
 /* ── FIELD ── */
 #field-wrap{
   flex:1;overflow-y:auto;padding:.6rem 1.2rem;
-  border-bottom:1px solid #1a1208;min-height:0;
+  border-bottom:1px solid #1e1208;min-height:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.04) 0%,transparent 70%);
 }
 .field-hdr{
   display:flex;justify-content:space-between;align-items:center;
@@ -143,32 +147,40 @@ body{
 
 /* ── TILE base ── */
 .tile{
-  width:46px;height:76px;border-radius:6px;
-  background:#1e1612;border:2px solid #3a2a1a;
+  width:46px;height:76px;border-radius:7px;
+  background:linear-gradient(180deg,#ffffff 0%,#efe4ce 100%);
+  border:1.5px solid #b89860;
+  box-shadow:0 3px 10px rgba(0,0,0,0.4),0 1px 2px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,1);
   display:flex;flex-direction:column;cursor:pointer;
-  transition:transform .12s,border-color .12s,box-shadow .12s;
+  transition:transform .13s,border-color .13s,box-shadow .13s;
   position:relative;overflow:hidden;flex-shrink:0;
 }
 .tile .th,.tile .tb{
   flex:1;display:flex;align-items:center;justify-content:center;
-  font-size:1.25rem;line-height:1;pointer-events:none;
+  pointer-events:none;overflow:hidden;position:relative;
 }
-.tile .th{border-bottom:1.5px solid #3a2a1a}
+.tile .th{border-bottom:1.5px solid #c8a870;background:rgba(255,255,255,0.5)}
+.tile .tb{background:rgba(235,218,192,0.3)}
+.tile .th svg,.tile .tb svg{width:68%;height:68%;display:block;overflow:visible}
 .tile.pickable:hover{
-  border-color:#4a9e8a;transform:translateY(-6px);
-  box-shadow:0 8px 20px rgba(74,158,138,.4);
+  border-color:#30a090;transform:translateY(-6px);
+  box-shadow:0 10px 24px rgba(48,160,144,.55),0 3px 8px rgba(0,0,0,0.3);
 }
-.tile.nopick{cursor:default;opacity:.8}
+.tile.nopick{cursor:default;opacity:.85}
 
-/* 最近捨てられた牌（別色ボーダー） */
-.tile.discarded{border-color:#5a3020}
-.tile.discarded.pickable:hover{border-color:#d46040;box-shadow:0 8px 20px rgba(212,96,60,.4)}
+/* 捨て牌（オレンジ系ボーダー） */
+.tile.discarded{border-color:#c09050}
+.tile.discarded.pickable:hover{border-color:#d47830;box-shadow:0 10px 24px rgba(212,120,48,.5),0 3px 8px rgba(0,0,0,0.3)}
 
 /* ── 場の裏向き牌 ── */
 .fback{
-  width:46px;height:76px;border-radius:6px;
-  background:linear-gradient(160deg,#2a1e12,#1a1208);
-  border:2px solid #4a3828;
+  width:46px;height:76px;border-radius:7px;
+  background:linear-gradient(165deg,#2e2018 0%,#120c06 100%);
+  border:1.5px solid #5a4028;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -1px 0 rgba(0,0,0,0.4),
+    0 2px 6px rgba(0,0,0,0.5);
   position:relative;overflow:hidden;flex-shrink:0;
   transition:transform .12s,border-color .12s,box-shadow .12s;
 }
@@ -192,13 +204,20 @@ body{
 }
 
 /* ── HAND tile (bigger) ── */
-.htile{width:56px;height:92px}
-.htile .th,.htile .tb{font-size:1.55rem}
-.htile .th{border-bottom:1.5px solid #3a2a1a}
-.htile:hover{border-color:#c9a84c;transform:translateY(-5px);box-shadow:0 8px 18px rgba(201,168,76,.3)}
+.htile{
+  width:56px;height:92px;border-radius:8px;
+  background:linear-gradient(180deg,#ffffff 0%,#ece0c8 100%);
+  border:1.5px solid #a89060;
+  box-shadow:0 4px 14px rgba(0,0,0,0.45),0 1px 3px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,1);
+}
+.htile .th{border-bottom:1.5px solid #c0a068}
+.htile:hover{
+  border-color:#b89840;transform:translateY(-5px);
+  box-shadow:0 10px 22px rgba(184,152,64,.5),0 3px 8px rgba(0,0,0,0.3);
+}
 .htile.selected{
-  border-color:#ff2020!important;
-  box-shadow:0 0 24px rgba(255,30,30,.85),0 0 8px rgba(255,30,30,.5)!important;
+  border-color:#e02020!important;
+  box-shadow:0 0 26px rgba(220,30,30,.8),0 0 8px rgba(220,30,30,.5)!important;
   transform:translateY(-14px)!important;
 }
 
@@ -228,22 +247,21 @@ body{
   pointer-events:none;position:relative;z-index:1;text-align:center;line-height:1.3;
 }
 
-/* Sym colors */
-.s1{color:#f06868}.s2{color:#f0a050}.s3{color:#d4c030}
-.s4{color:#50c870}.s5{color:#58a8f0}.s6{color:#a870e8}
-
 /* ゾロ目の輝き星マーク */
 .tile-star{
   position:absolute;left:50%;top:50%;
   transform:translate(-50%,-50%);
-  font-size:.7rem;color:#f5d040;
-  pointer-events:none;z-index:2;line-height:1;
+  font-size:.75rem;color:#A07800;
+  pointer-events:none;z-index:3;line-height:1;
 }
-.htile .tile-star{font-size:.85rem}
+.htile .tile-star{font-size:.92rem}
 
 /* ── HAND AREA ── */
 #hand-area{
-  flex-shrink:0;background:#0a0806;border-top:1.5px solid #221810;
+  flex-shrink:0;
+  background:linear-gradient(0deg,#060402 0%,#0e0a06 100%);
+  border-top:1px solid #3a2810;
+  box-shadow:0 -3px 14px rgba(0,0,0,0.55);
   padding:.65rem 1.2rem .8rem;
 }
 .hand-hdr{
@@ -623,10 +641,71 @@ body{
 // ============================================================
 //  定数
 // ============================================================
-const SYM    = ['','✦','✿','◈','✺','⬡','❋'];
-const SCLS   = ['','s1','s2','s3','s4','s5','s6'];
 const BNAMES = ['AIさくら','AIあおい','AIひなた','AIつばき'];
 const WIN_SCORE = 10;
+
+// ── ベジェ曲線で原作に近い模様を生成 ──
+function makeSym(n) {
+  // 原作の色
+  const C = ['','#E02828','#E87818','#80BC18','#20B840','#1878D8','#CC18B0'];
+  const c = C[n];
+  const O = `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">`;
+  const X = `</svg>`;
+  const cx = 14, cy = 14; // 中心
+
+  // ── 1: 赤い丸（シンプルな円） ──
+  if (n === 1) {
+    return `${O}<circle cx="14" cy="14" r="10.5" fill="${c}"/>${X}`;
+  }
+
+  // ── 2: 縦2粒の雫形（ベジェで涙型） ──
+  // 上の粒: 上が丸くて中心で尖る
+  // M=中心から出発, 左曲線→先端→右曲線→中心
+  if (n === 2) {
+    // 上粒: tip=y1, 中心=y14 → 上半分
+    const top  = `M 14 14 C 9 12 8.5 5 14 1 C 19.5 5 19 12 14 14 Z`;
+    // 下粒: 中心→下方向（上粒の鏡像）
+    const bot  = `M 14 14 C 9 16 8.5 23 14 27 C 19.5 23 19 16 14 14 Z`;
+    return `${O}<path d="${top}" fill="${c}"/><path d="${bot}" fill="${c}"/>${X}`;
+  }
+
+  // ── 3〜6: ベジェ花弁をN枚放射状 ──
+  // 花弁1枚のパス（上向き、中心14,14から先端へ）
+  // 各nで先端の距離と横幅を調整
+  //   tip  = 先端のy座標（小さいほど中心から遠い）
+  //   cpx  = 制御点の横広がり（大きいほど花弁が広い）
+  //   cpy1 = 根元側の制御点y
+  //   cpy2 = 先端側の制御点y
+  const pCfg = {
+    //        tip   cpx   cpy1  cpy2
+    3: { tip:  1.0, cpx: 5.5, cpy1: 10.5, cpy2:  4.0 },
+    4: { tip:  2.0, cpx: 5.0, cpy1: 11.0, cpy2:  5.0 },
+    5: { tip:  3.0, cpx: 4.5, cpy1: 11.5, cpy2:  6.0 },
+    6: { tip:  4.5, cpx: 4.0, cpy1: 12.0, cpy2:  7.5 },
+  };
+  const {tip, cpx, cpy1, cpy2} = pCfg[n];
+
+  // 1枚の花弁パス（ベジェ2本で構成）:
+  //   M 中心
+  //   C 左根元制御, 左先端制御, 先端
+  //   C 右先端制御, 右根元制御, 中心
+  //   Z
+  const petalPath =
+    `M ${cx} ${cy} ` +
+    `C ${cx-cpx} ${cpy1} ${cx-cpx*0.6} ${cpy2} ${cx} ${tip} ` +
+    `C ${cx+cpx*0.6} ${cpy2} ${cx+cpx} ${cpy1} ${cx} ${cy} Z`;
+
+  const step = 360 / n;
+  const petals = Array.from({length: n}, (_, i) =>
+    `<path d="${petalPath}" fill="${c}" transform="rotate(${step * i},${cx},${cy})"/>`
+  ).join('');
+
+  // 中心の小さな白丸（花の中心として引き締まる）
+  const dot = `<circle cx="${cx}" cy="${cy}" r="2.2" fill="rgba(255,255,255,0.55)"/>`;
+
+  return `${O}${petals}${dot}${X}`;
+}
+const SYM_SVG = ['', ...Array.from({length:6}, (_,i) => makeSym(i+1))];
 
 // ============================================================
 //  状態
@@ -892,13 +971,11 @@ function renderStatus() {
 // ============================================================
 function tileHTML(t, events='', cls='tile') {
   const tv = eTop(t), bv = eBot(t);
-  // ゾロ目（元の上下が同じ）なら中央に星マークを表示
-  const star = (t.top === t.bot)
-    ? `<div class="tile-star">★</div>` : '';
+  const star = (t.top === t.bot) ? `<div class="tile-star">★</div>` : '';
   return `<div class="${cls}" ${events}>
-    <div class="th ${SCLS[tv]}">${SYM[tv]}</div>
+    <div class="th">${SYM_SVG[tv]}</div>
     ${star}
-    <div class="tb ${SCLS[bv]}">${SYM[bv]}</div>
+    <div class="tb">${SYM_SVG[bv]}</div>
   </div>`;
 }
 
