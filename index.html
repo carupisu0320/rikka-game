@@ -164,6 +164,33 @@ body{
 .tile.discarded{border-color:#5a3020}
 .tile.discarded.pickable:hover{border-color:#d46040;box-shadow:0 8px 20px rgba(212,96,60,.4)}
 
+/* ── 場の裏向き牌 ── */
+.fback{
+  width:46px;height:76px;border-radius:6px;
+  background:linear-gradient(160deg,#2a1e12,#1a1208);
+  border:2px solid #4a3828;
+  position:relative;overflow:hidden;flex-shrink:0;
+  transition:transform .12s,border-color .12s,box-shadow .12s;
+}
+/* 和柄っぽい斜線模様 */
+.fback::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    45deg,transparent,transparent 4px,
+    rgba(201,168,76,.07) 4px,rgba(201,168,76,.07) 5px
+  );
+}
+/* 中央に小さな六華マーク */
+.fback::after{
+  content:'❋';position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:1.1rem;color:rgba(201,168,76,.25);pointer-events:none;
+}
+.fback-pickable:hover{
+  border-color:#4a9e8a;transform:translateY(-6px);
+  box-shadow:0 8px 20px rgba(74,158,138,.4);
+}
+
 /* ── HAND tile (bigger) ── */
 .htile{width:56px;height:92px}
 .htile .th,.htile .tb{font-size:1.55rem}
@@ -204,6 +231,15 @@ body{
 /* Sym colors */
 .s1{color:#f06868}.s2{color:#f0a050}.s3{color:#d4c030}
 .s4{color:#50c870}.s5{color:#58a8f0}.s6{color:#a870e8}
+
+/* ゾロ目の輝き星マーク */
+.tile-star{
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  font-size:.7rem;color:#f5d040;
+  pointer-events:none;z-index:2;line-height:1;
+}
+.htile .tile-star{font-size:.85rem}
 
 /* ── HAND AREA ── */
 #hand-area{
@@ -501,6 +537,19 @@ body{
           <div class="rb-role-ex">例）上1,2,3,4,5,6 ／ 下が全部✿（2）</div>
         </div>
       </div>
+      <!-- 輝きボーナス -->
+      <div class="rb-role" style="background:rgba(245,208,64,.05);border-radius:6px;padding:.6rem .4rem;margin-top:.4rem">
+        <div>
+          <div style="font-size:1.1rem;color:#f5d040;font-weight:700">★輝き</div>
+          <div style="font-size:.75rem;color:#9a8838">ボーナス</div>
+        </div>
+        <div class="rb-role-desc">
+          上がったとき、手牌に<b style="color:#f5d040">★マーク付きの牌（ゾロ目牌）</b>があると、<br>
+          その枚数分だけ追加で<b style="color:#f5d040">+1点ずつ</b>ボーナスを獲得！<br>
+          ゾロ目牌とは上と下の数が同じ牌（例: 上3・下3）。
+          <div class="rb-role-ex">例）手牌に★が2枚 → 役の点数に+2点ボーナス</div>
+        </div>
+      </div>
     </div>
 
     <!-- 牌について -->
@@ -753,14 +802,15 @@ function renderField() {
 
   let html = '';
 
-  // 通常の場の牌
+  // 通常の場の牌（裏向き）
   if (normalTiles.length > 0) {
-    html += `<div class="fsec">🀄 場の牌（好きな1枚を選ぼう）</div>`;
+    html += `<div class="fsec">🀄 場の牌（好きな1枚を選ぼう・中身は引いてからわかる）</div>`;
     html += normalTiles.map(t => {
       const fi  = G.field.indexOf(t);
-      const cls = `tile${canPick ? ' pickable' : ' nopick'}`;
       const ev  = canPick ? `onclick="pickField(${fi})"` : '';
-      return tileHTML(t, ev, cls);
+      const cur = canPick ? 'cursor:pointer' : 'cursor:default;opacity:.8';
+      const hvr = canPick ? 'fback-pickable' : '';
+      return `<div class="fback ${hvr}" ${ev} style="${cur}"></div>`;
     }).join('');
   }
 
@@ -811,7 +861,9 @@ function renderHand() {
   // ヒント
   const hh = document.getElementById('hand-hint');
   if (winRes) {
-    hh.textContent = `★ ${winRes.role}（${winRes.pts}点）上がれます！`;
+    const bonus = countZorome(p.hand);
+    const bonusTxt = bonus > 0 ? ` ＋★×${bonus}` : '';
+    hh.textContent = `★ ${winRes.role}（${winRes.pts}点${bonusTxt}）上がれます！`;
     hh.className = 'can-win';
   } else if (p.hand.length < 6) {
     hh.textContent = `手牌 ${p.hand.length}枚 — 場から1枚引いてください`;
@@ -840,10 +892,19 @@ function renderStatus() {
 // ============================================================
 function tileHTML(t, events='', cls='tile') {
   const tv = eTop(t), bv = eBot(t);
+  // ゾロ目（元の上下が同じ）なら中央に星マークを表示
+  const star = (t.top === t.bot)
+    ? `<div class="tile-star">★</div>` : '';
   return `<div class="${cls}" ${events}>
     <div class="th ${SCLS[tv]}">${SYM[tv]}</div>
+    ${star}
     <div class="tb ${SCLS[bv]}">${SYM[bv]}</div>
   </div>`;
+}
+
+// ゾロ目牌（輝き）の数を数える
+function countZorome(hand) {
+  return hand.filter(t => t.top === t.bot).length;
 }
 
 // ============================================================
@@ -1015,7 +1076,9 @@ function scoreBots(hand) {
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  G.players[pi].score += res.pts;
+  const bonus = countZorome(G.players[pi].hand); // ゾロ目1枚=+1点
+  res.bonus = bonus;
+  G.players[pi].score += res.pts + bonus;
   showWinModal(G.players[pi], res);
 }
 
@@ -1023,15 +1086,24 @@ function processWin(pi, res) {
 //  モーダル（勝利・ゲームオーバー）
 // ============================================================
 function showWinModal(p, res) {
-  const over  = p.score >= WIN_SCORE;
-  const rows  = G.players.map(pl =>
+  const over   = p.score >= WIN_SCORE;
+  const rows   = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
-  const tiles = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
+  const tiles  = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
+  const bonus  = res.bonus || 0;
+  const total  = res.pts + bonus;
+  const bonusLine = bonus > 0
+    ? `<div style="font-size:.88rem;color:#f5d040;margin-top:-.4rem;margin-bottom:.8rem">
+        ★ 輝きボーナス ×${bonus} = +${bonus}点
+        <span style="color:#a89878;font-size:.8rem">（合計 +${total}点）</span>
+       </div>`
+    : '';
   document.getElementById('mbox').innerHTML = `
     <div class="mtitle">${p.isBot?'🤖':'🎆'} 上がり！</div>
     <p style="color:#8a7860;font-size:.95rem;margin-bottom:.2rem">${esc(p.name)} が役を完成</p>
     <div class="mrole">${res.role}</div>
-    <div class="mpts">+${res.pts}点</div>
+    <div class="mpts">役: +${res.pts}点</div>
+    ${bonusLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
     ${over
@@ -1097,6 +1169,16 @@ function toast(msg) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// スペースキーで捨てる
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.key === ' ') {
+    e.preventDefault();
+    if (G?.phase === 'playing' && G.turn === 0 && G.tphase === 'discard' && G.selIdx !== -1) {
+      doDiscard();
+    }
+  }
+});
 
 // スマホ長押しで反転
 let _lpt = null;
