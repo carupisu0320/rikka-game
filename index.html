@@ -865,22 +865,33 @@ function joinRoom(){
 }
 
 function applyOnlineState(st){
-  myOnlineIdx=st.myIdx;
-  if(!G){
-    G={players:st.scores.map(s=>({name:s.name,hand:[],score:s.score,isBot:false})),
-       field:[],turn:0,tphase:'pick',selIdx:-1,phase:'playing'};
+  myOnlineIdx = st.myIdx;
+  // 毎回プレイヤー配列を再構築（ボット戦データが残らないよう）
+  if (!G || G.players.length !== st.scores.length) {
+    G = {
+      players: st.scores.map(s => ({name:s.name, hand:[], score:s.score, isBot:false})),
+      field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'
+    };
   }
-  G.players[st.myIdx].hand=st.myHand;
-  G.field=st.field;G.turn=st.turn;G.tphase=st.tphase;G.phase=st.phase;
-  st.scores.forEach((s,i)=>{G.players[i].score=s.score;G.players[i].name=s.name;});
-  st.oppCounts.forEach((cnt,i)=>{
-    if(i===st.myIdx) return;
-    G.players[i].hand=Array.from({length:Math.max(0,cnt)},(_,j)=>
-      ({id:`ph${i}_${j}`,top:1,bot:1,flip:false,discarded:false,hidden:true}));
+  G.players[st.myIdx].hand = st.myHand;
+  G.field   = st.field;
+  G.turn    = st.turn;
+  G.tphase  = st.tphase;
+  G.phase   = st.phase;
+  G.selIdx  = -1;
+  st.scores.forEach((s,i) => {
+    G.players[i].score = s.score;
+    G.players[i].name  = s.name;
+    G.players[i].isBot = false;
   });
-  G.selIdx=-1;
-  showScreen('game');render();
-  if(st.phase==='playing') document.getElementById('modal').classList.remove('open');
+  st.oppCounts.forEach((cnt,i) => {
+    if (i === st.myIdx) return;
+    G.players[i].hand = Array.from({length: Math.max(0,cnt)}, (_,j) =>
+      ({id:`ph${i}_${j}`, top:1, bot:1, flip:false, discarded:false, hidden:true}));
+  });
+  showScreen('game');
+  render();
+  if (st.phase === 'playing') document.getElementById('modal').classList.remove('open');
 }
 
 function showOnlineWinMsg(wd){
@@ -1151,8 +1162,7 @@ function renderOpponents() {
 
 function renderField() {
   const isMyTurn = G.turn === myOnlineIdx;
-  const canPick  = isMyTurn && G.tphase === 'pick' &&
-    (onlineMode || (!G.players[0].isBot));
+  const canPick  = isMyTurn && G.tphase === 'pick';
 
   const normalTiles  = G.field.filter(t => !t.discarded);
   const discardTiles = G.field.filter(t =>  t.discarded);
