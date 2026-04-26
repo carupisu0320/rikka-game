@@ -460,20 +460,26 @@ body{
   <!-- ── オンライン設定 ── -->
   <div id="panel-online" style="display:none">
 
+    <!-- サーバーURL設定（デプロイ後に変更） -->
+    <div style="background:#0d0a06;border:1px solid #3a2810;border-radius:8px;
+      padding:.7rem .85rem;margin-bottom:.9rem;font-size:.8rem;color:#6a5830">
+      サーバー: <span id="server-url-display" style="color:#c9a84c"></span>
+    </div>
+
     <!-- クイックマッチ -->
     <button id="btn-quick" class="lbtn"
       style="background:linear-gradient(135deg,#2a9e8e,#1a6e60);color:#e0fff8;margin-bottom:.45rem"
       onclick="doQuickMatch()">⚡ クイックマッチ</button>
-    <p style="font-size:.78rem;color:#5a4820;text-align:center;margin-bottom:.7rem">
-      自動で対戦相手を探します（同じ時間帯にいる人とマッチング）
+    <p style="font-size:.78rem;color:#5a4820;text-align:center;margin-bottom:.5rem">
+      自動で対戦相手を探します
     </p>
-    <div id="online-status" style="font-size:.82rem;text-align:center;min-height:1.1em;
-      margin-bottom:.5rem;white-space:pre-line;line-height:1.5"></div>
+    <div id="online-status" style="font-size:.84rem;text-align:center;min-height:1.2em;
+      margin-bottom:.4rem;color:#6a5030"></div>
     <button id="btn-cancel-quick" class="lbtn lbtn-ghost"
-      style="display:none;margin-bottom:.8rem" onclick="cancelQuickMatch()">キャンセル</button>
+      style="display:none;margin-bottom:.8rem" onclick="cancelQueue()">キャンセル</button>
 
     <!-- 仕切り -->
-    <div style="display:flex;align-items:center;gap:.6rem;margin:.1rem 0 .75rem;color:#3e2e1e;font-size:.82rem">
+    <div style="display:flex;align-items:center;gap:.6rem;margin:.2rem 0 .75rem;color:#3e2e1e;font-size:.82rem">
       <div style="flex:1;height:1px;background:#3e2e1e"></div>または<div style="flex:1;height:1px;background:#3e2e1e"></div>
     </div>
 
@@ -486,21 +492,17 @@ body{
     <div id="room-host-box" style="display:none;background:#0d0a06;border:1px solid #4a7050;
       border-radius:10px;padding:1rem;text-align:center;margin-bottom:.8rem">
       <div style="font-size:.78rem;color:#5a8060;letter-spacing:.1em;margin-bottom:.3rem">
-        ルームコード（友達に伝えよう）
+        ルームコード（4文字・友達に伝えよう）
       </div>
       <div id="room-code-display"
-        style="font-size:2.2rem;font-weight:700;color:#60e8a0;letter-spacing:.3em;
+        style="font-size:2.5rem;font-weight:700;color:#60e8a0;letter-spacing:.4em;
                font-family:'Hiragino Mincho ProN','Yu Mincho',serif"></div>
-      <input id="room-code-full" type="hidden" value="">
       <button onclick="copyRoomCode()"
         style="margin-top:.5rem;background:transparent;border:1px solid #3a5a3a;color:#5a8060;
                border-radius:5px;padding:.2rem .7rem;font-size:.75rem;cursor:pointer;font-family:inherit">
         📋 コピー
       </button>
-      <div style="font-size:.75rem;color:#3a5a3a;margin-top:.5rem">
-        ※ ゲストはこのコードを「参加コード」欄に入力
-      </div>
-      <div style="font-size:.78rem;color:#3a5a3a;margin-top:.35rem">
+      <div style="font-size:.78rem;color:#3a5a3a;margin-top:.45rem">
         <span id="room-status-text">友達の参加を待っています...</span>
       </div>
       <div id="room-players-list" style="margin-top:.55rem;text-align:left"></div>
@@ -518,11 +520,11 @@ body{
     </div>
 
     <!-- ルーム参加 -->
-    <label class="flabel">ルームコードを入力して参加</label>
+    <label class="flabel">ルームコードを入力して参加（4文字）</label>
     <div style="display:flex;gap:.5rem">
       <input id="join-code-input" class="finput"
-        style="letter-spacing:.15em;font-size:1rem;text-transform:uppercase"
-        type="text" maxlength="20" placeholder="コードを貼り付け or 入力">
+        style="letter-spacing:.25em;font-size:1.1rem;text-transform:uppercase"
+        type="text" maxlength="4" placeholder="XXXX">
       <button onclick="joinRoom()"
         style="padding:.78rem 1.1rem;border:none;border-radius:8px;
                background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00;
@@ -730,7 +732,7 @@ body{
   </div>
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ============================================================
 //  定数
@@ -739,390 +741,173 @@ const BNAMES = ['AIさくら','AIあおい','AIひなた','AIつばき'];
 const WIN_SCORE = 10;
 
 // ============================================================
-//  オンライン (PeerJS P2P) ─ サーバー不要
+//  オンライン (Socket.IO)
 // ============================================================
-let peer        = null;   // Peerインスタンス
-let hostConn    = null;   // ゲスト→ホストの接続
-let guestConns  = [];     // ホスト→ゲスト接続リスト
-let isHost      = false;
+
+// ★ Render.comにデプロイ後、このURLを自分のサーバーURLに変更してください ★
+const SERVER_URL = 'https://rikka-server.onrender.com';
+
+let socket      = null;
 let onlineMode  = false;
 let myOnlineIdx = 0;
-let onlineNames = [];     // ルーム内プレイヤー名（ホストが管理）
-let quickTimer  = null;   // クイックマッチタイマー
+let currentCode = '';
 
 function myName() { return document.getElementById('pname').value.trim() || 'プレイヤー'; }
 
-// ─ タブ切り替え ─
 function switchTab(tab) {
-  const bot = document.getElementById('panel-bot');
-  const onl = document.getElementById('panel-online');
-  const tb  = document.getElementById('tab-bot');
-  const to  = document.getElementById('tab-online');
-  const GOLD = 'linear-gradient(135deg,#c9a84c,#a07020)';
-  const TEAL = 'linear-gradient(135deg,#2a9e8e,#1a6e60)';
-  const BASE = '#1a1410';
-  if (tab === 'bot') {
-    bot.style.display=''; onl.style.display='none';
-    tb.style.background=GOLD; tb.style.color='#160e00';
-    to.style.background=BASE; to.style.color='#6a5830';
-  } else {
-    bot.style.display='none'; onl.style.display='';
-    to.style.background=TEAL; to.style.color='#e0fff8';
-    tb.style.background=BASE; tb.style.color='#6a5830';
+  const bot=document.getElementById('panel-bot'),onl=document.getElementById('panel-online');
+  const tb=document.getElementById('tab-bot'),to=document.getElementById('tab-online');
+  const GOLD='linear-gradient(135deg,#c9a84c,#a07020)',TEAL='linear-gradient(135deg,#2a9e8e,#1a6e60)',BASE='#1a1410';
+  if(tab==='bot'){
+    bot.style.display='';onl.style.display='none';
+    tb.style.background=GOLD;tb.style.color='#160e00';
+    to.style.background=BASE;to.style.color='#6a5830';
+  }else{
+    bot.style.display='none';onl.style.display='';
+    to.style.background=TEAL;to.style.color='#e0fff8';
+    tb.style.background=BASE;tb.style.color='#6a5830';
+    const el=document.getElementById('server-url-display');
+    if(el) el.textContent=SERVER_URL.replace('https://','');
+    initSocket();
   }
 }
 
-// ─ Peer初期化（毎回新しく作る）─
-function makePeer(id) {
-  return new Promise((resolve, reject) => {
-    // 既存を破棄
-    if (peer && !peer.destroyed) { try{peer.destroy();}catch(e){} }
-    peer = id ? new Peer(id) : new Peer();
-    peer.on('open', peerId => { resolve(peerId); });
-    peer.on('error', e => { reject(e); });
+function initSocket() {
+  if(socket&&socket.connected) return;
+  if(socket){socket.disconnect();socket=null;}
+  setOnlineStatus('サーバーに接続中...','#8a7048');
+  try{ socket=io(SERVER_URL,{transports:['websocket','polling']}); }
+  catch(e){ setOnlineStatus('Socket.IOの読み込みに失敗しました','#f07050'); return; }
+
+  socket.on('connect',()=>{ setOnlineStatus('',''); });
+  socket.on('connect_error',()=>{ setOnlineStatus('サーバーに接続できません。URLを確認してください。','#f07050'); });
+
+  socket.on('queued',({pos})=>{
+    setOnlineStatus(`⟳ マッチング中... (待機${pos}人)`,'#6fc4ae');
+    document.getElementById('btn-cancel-quick').style.display='';
+  });
+  socket.on('matched',({code,names})=>{
+    currentCode=code;
+    setOnlineStatus(`✓ マッチング成立！(${names.join(' vs ')})`,'#60e888');
+    document.getElementById('btn-cancel-quick').style.display='none';
+  });
+  socket.on('queue_cancelled',()=>{
+    setOnlineStatus('','');
+    document.getElementById('btn-quick').disabled=false;
+    document.getElementById('btn-cancel-quick').style.display='none';
+  });
+  socket.on('room_created',({code})=>{
+    currentCode=code;
+    document.getElementById('room-code-display').textContent=code;
+    document.getElementById('room-host-box').style.display='';
+    document.getElementById('btn-create-room').disabled=false;
+  });
+  socket.on('room_update',({players,code})=>{
+    currentCode=code;
+    document.getElementById('room-players-list').innerHTML=
+      players.map(n=>`<div style="padding:.28rem .5rem;font-size:.88rem;display:flex;align-items:center;gap:.45rem">
+        <div style="width:7px;height:7px;border-radius:50%;background:#4a9e8a;flex-shrink:0"></div>${esc(n)}</div>`
+      ).join('');
+    const sb=document.getElementById('btn-host-start');
+    if(sb) sb.style.display=players.length>=2?'':'none';
+    const st=document.getElementById('room-status-text');
+    if(st) st.textContent=`${players.length}人参加中${players.length<2?' — 待機中':' — 開始できます'}`;
+    const js=document.getElementById('join-status');
+    if(js&&!js.textContent.includes('⟳')) js.textContent='✓ 参加しました！ホストの開始を待っています...';
+  });
+  socket.on('game_start',()=>{ onlineMode=true; showScreen('game'); });
+  socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
+  socket.on('round_win',wd=>showOnlineWinMsg(wd));
+  socket.on('err',msg=>{ toast(msg); const js=document.getElementById('join-status'); if(js) js.textContent=msg; });
+  socket.on('player_left',({name})=>{
+    showModal(`<div class="mtitle">⚠ 退出</div>
+      <p style="color:#a89868;margin:.8rem 0">${esc(name)} が退出しました</p>
+      <button class="mbtn" onclick="location.reload()">最初からやり直す</button>`);
+  });
+  socket.on('disconnect',()=>{
+    if(onlineMode) showModal(`<div class="mtitle">⚠ 切断</div>
+      <p style="color:#a89868;margin:.8rem 0">サーバーとの接続が切れました</p>
+      <button class="mbtn" onclick="location.reload()">最初からやり直す</button>`);
   });
 }
 
-// ─ クイックマッチ ─
-// 時間スロット（30秒ごと）をベースにしたIDで互いに探す
-async function doQuickMatch() {
-  setOnlineStatus('⟳ マッチング中... 対戦相手を探しています', '#6fc4ae');
-  document.getElementById('btn-quick').disabled = true;
-
-  const slot = Math.floor(Date.now() / 30000); // 30秒スロット
-  const qId  = 'RIKKA-Q-' + slot;
-
-  // まず今のスロットのホストに接続試行（ゲストとして）
-  try {
-    const myId = await makePeer();
-    // ゲスト側の接続ハンドラは常に設定（後でホストになった場合のために）
-    peer.on('connection', conn => handleIncomingConnection(conn));
-
-    setOnlineStatus('⟳ 待機中のプレイヤーを探しています...', '#6fc4ae');
-
-    const conn = peer.connect(qId, {reliable:true});
-    let connected = false;
-
-    conn.on('open', () => {
-      connected = true;
-      hostConn = conn;
-      isHost   = false;
-      onlineMode = true;
-      conn.send({type:'join', name:myName()});
-      conn.on('data', d => onGuestReceive(d));
-      conn.on('close', onOnlineDisconnect);
-      setOnlineStatus('✓ マッチング成立！ゲーム開始を待っています...', '#60e888');
-    });
-
-    // 5秒待って繋がらなければ自分がホストになる
-    quickTimer = setTimeout(async () => {
-      if (connected) return;
-      conn.close();
-      // ホストになる
-      try {
-        await becomeQuickHost(qId);
-      } catch(e2) {
-        // そのIDも取れなかった（別の人が先に取った）→少しずらしたIDで再試行
-        const qId2 = 'RIKKA-Q-' + (slot+1);
-        try { await becomeQuickHost(qId2); } catch(e3) {
-          setOnlineStatus('マッチングに失敗しました。再試行してください。', '#f07050');
-          document.getElementById('btn-quick').disabled = false;
-        }
-      }
-    }, 5000);
-
-  } catch(e) {
-    setOnlineStatus('接続エラー。ページを再読み込みして試してください。', '#f07050');
-    document.getElementById('btn-quick').disabled = false;
-  }
+function doQuickMatch(){
+  if(!socket||!socket.connected){initSocket();setTimeout(doQuickMatch,1000);return;}
+  document.getElementById('btn-quick').disabled=true;
+  setOnlineStatus('⟳ 対戦相手を探しています...','#6fc4ae');
+  socket.emit('quickmatch',{name:myName()});
 }
-
-async function becomeQuickHost(id) {
-  await makePeer(id);
-  isHost = true;
-  peer.on('connection', conn => handleIncomingConnection(conn));
-  onlineNames = [myName()];
-  setOnlineStatus(`⟳ ホストとして待機中... (ID: ${id.replace('RIKKA-','')})\n対戦相手が来たら自動開始します`, '#c9a84c');
-
-  // 30秒待ってなければ諦める
-  quickTimer = setTimeout(() => {
-    setOnlineStatus('タイムアウト。もう一度試してください。', '#f07050');
-    document.getElementById('btn-quick').disabled = false;
-  }, 30000);
+function cancelQueue(){
+  socket?.emit('cancel_queue');
+  document.getElementById('btn-quick').disabled=false;
+  setOnlineStatus('','');
 }
-
-function cancelQuickMatch() {
-  clearTimeout(quickTimer);
-  document.getElementById('btn-quick').disabled = false;
-  setOnlineStatus('', '');
-  if (peer && !peer.destroyed) { try{peer.destroy();}catch(e){} peer=null; }
+function createRoom(){
+  if(!socket||!socket.connected){initSocket();setTimeout(createRoom,1000);return;}
+  document.getElementById('btn-create-room').disabled=true;
+  socket.emit('create_room',{name:myName()});
 }
-
-// ─ ルーム作成 ─
-async function createRoom() {
-  document.getElementById('btn-create-room').disabled = true;
-  setOnlineStatus('⟳ ルームを作成中...', '#c9a84c');
-  try {
-    const peerId = await makePeer(); // ランダムIDで作成
-    isHost = true;
-    onlineNames = [myName()];
-    // 接続受け取りハンドラ設定（initPeerとは別に、毎回確実に設定）
-    peer.on('connection', conn => handleIncomingConnection(conn));
-
-    const code = peerId.slice(-4).toUpperCase();
-    document.getElementById('room-code-display').textContent = code;
-    const hiddenInput = document.getElementById('room-code-full');
-    if(hiddenInput) hiddenInput.value = peerId; // ゲスト参加時に使うフルID
-    document.getElementById('room-host-box').style.display = '';
-    document.getElementById('btn-create-room').disabled = false;
-    setOnlineStatus('', '');
-    updateRoomPlayersList();
-  } catch(e) {
-    setOnlineStatus('作成に失敗しました。再試行してください。', '#f07050');
-    document.getElementById('btn-create-room').disabled = false;
-  }
+function copyRoomCode(){
+  const code=document.getElementById('room-code-display').textContent;
+  navigator.clipboard?.writeText(code).then(()=>toast('コードをコピーしました！'));
 }
-
-function copyRoomCode() {
-  const fullId = document.getElementById('room-code-full')?.value;
-  const code   = document.getElementById('room-code-display').textContent;
-  // フルIDが取れる場合はそちらをコピー（参加時に使う）
-  const copyTarget = fullId || code;
-  navigator.clipboard?.writeText(copyTarget).then(()=>toast('コードをコピーしました！'));
-}
-
-function cancelRoom() {
+function cancelRoom(){
   document.getElementById('room-host-box').style.display='none';
   document.getElementById('btn-create-room').disabled=false;
-  guestConns.forEach(c=>{try{c.close();}catch(e){}});
-  guestConns=[]; isHost=false;
-  if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
+}
+function hostStartGame(){ socket?.emit('start_game',{code:currentCode}); }
+function joinRoom(){
+  const code=document.getElementById('join-code-input').value.toUpperCase().trim();
+  if(!code){document.getElementById('join-status').textContent='コードを入力してください';return;}
+  if(!socket||!socket.connected){initSocket();setTimeout(joinRoom,1000);return;}
+  document.getElementById('join-status').textContent='⟳ 参加中...';
+  socket.emit('join_room',{name:myName(),code});
 }
 
-function updateRoomPlayersList() {
-  document.getElementById('room-players-list').innerHTML =
-    onlineNames.map(n=>`<div style="padding:.28rem .5rem;font-size:.88rem;display:flex;align-items:center;gap:.45rem">
-      <div style="width:7px;height:7px;border-radius:50%;background:#4a9e8a;flex-shrink:0"></div>${esc(n)}</div>`
-    ).join('');
-  const sb = document.getElementById('btn-host-start');
-  sb.style.display = onlineNames.length >= 2 ? '' : 'none';
-  document.getElementById('room-status-text').textContent =
-    `${onlineNames.length}人参加中${onlineNames.length<2?' — 友達の参加を待っています':' — ゲームを開始できます'}`;
-}
-
-// ─ ルーム参加 ─
-async function joinRoom() {
-  const rawCode = document.getElementById('join-code-input').value.trim();
-  if (!rawCode) { setJoinStatus('コードを入力してください'); return; }
-  setJoinStatus('⟳ 接続中...');
-
-  try {
-    await makePeer(); // ゲスト用のランダムID
-    peer.on('connection', conn => handleIncomingConnection(conn)); // 念のため
-
-    // コードが短い(4文字)場合→ピアIDは完全には分からないので
-    // 最初の試みとして、コード = 末尾4文字として検索
-    // → 実際にはホストのフルPeerIDが必要。
-    // シンプルにするため: ルームコードはpeerIdの末尾4文字としてユーザーに伝える
-    // ゲスト側は「RIKKA-」プレフィックスを試す戦略
-    isHost = false;
-    const targets = [
-      rawCode,
-      'RIKKA-' + rawCode,
-    ];
-    let conn = null;
-    for (const t of targets) {
-      try {
-        conn = peer.connect(t, {reliable:true, timeout:5000});
-        await new Promise((res,rej)=>{
-          conn.on('open',()=>res());
-          setTimeout(()=>rej(new Error('timeout')),5000);
-          conn.on('error',rej);
-        });
-        break;
-      } catch(e) { conn=null; }
-    }
-    if (!conn) { setJoinStatus('ルームが見つかりません。コードを確認してください。'); return; }
-
-    hostConn = conn;
-    onlineMode = true;
-    conn.send({type:'join', name:myName()});
-    conn.on('data', d => onGuestReceive(d));
-    conn.on('close', onOnlineDisconnect);
-    setJoinStatus('✓ 接続しました！ホストのゲーム開始を待っています...');
-  } catch(e) {
-    setJoinStatus('接続に失敗しました。もう一度お試しください。');
+function applyOnlineState(st){
+  myOnlineIdx=st.myIdx;
+  if(!G){
+    G={players:st.scores.map(s=>({name:s.name,hand:[],score:s.score,isBot:false})),
+       field:[],turn:0,tphase:'pick',selIdx:-1,phase:'playing'};
   }
-}
-
-// ─ 接続受け取り（ホスト共通） ─
-function handleIncomingConnection(conn) {
-  conn.on('open', () => {
-    guestConns.push(conn);
-    conn.on('data', data => onHostReceive(data, conn));
-    conn.on('close', () => {
-      guestConns = guestConns.filter(c => c !== conn);
-      if (onlineMode && G) broadcastToGuests({type:'info',msg:'相手が切断しました'});
-    });
-    // クイックマッチの場合は2人揃ったら自動開始
-    if (!document.getElementById('room-host-box') ||
-        document.getElementById('room-host-box').style.display === 'none') {
-      // クイックマッチモード: ゲストから名前が来たら自動開始
-    }
-  });
-}
-
-// ─ ホスト受信 ─
-function onHostReceive(data, conn) {
-  if (data.type === 'join') {
-    const ci = guestConns.indexOf(conn);
-    while (onlineNames.length <= ci+1) onlineNames.push('?');
-    onlineNames[ci+1] = data.name || 'ゲスト';
-    const rhb = document.getElementById('room-host-box');
-    if (rhb && rhb.style.display !== 'none') {
-      updateRoomPlayersList(); // ルームロビー表示中
-    } else {
-      // クイックマッチ: 自動開始
-      clearTimeout(quickTimer);
-      setOnlineStatus(`✓ ${data.name} と対戦開始！`, '#60e888');
-      setTimeout(() => hostStartGame(), 800);
-    }
-    return;
-  }
-  if (!onlineMode || !G) return;
-  const pi = guestConns.indexOf(conn) + 1;
-  handleOnlineAction(data, pi);
-}
-
-// ─ ゲスト受信 ─
-function onGuestReceive(data) {
-  if (data.type === 'game_start') {
-    myOnlineIdx = data.myIdx;
-    onlineMode  = true;
-    return;
-  }
-  if (data.type === 'state') { applyOnlineState(data.state, myOnlineIdx); return; }
-  if (data.type === 'win') {
-    G.phase = 'roundEnd';
-    showOnlineWinMsg(data); return;
-  }
-  if (data.type === 'info') { toast(data.msg); return; }
-}
-
-// ─ ホスト: ゲーム開始 ─
-function hostStartGame() {
-  onlineMode = true;
-  const allNames = [myName(), ...guestConns.map((_,i) => onlineNames[i+1] || `ゲスト${i+1}`)];
-  startOnlineGame(allNames, 0);
-  guestConns.forEach((conn,i) => {
-    sendToGuest(conn, {type:'game_start', myIdx:i+1, names:allNames});
-    sendStateToGuest(conn, i+1);
-  });
-}
-
-// ─ アクション処理（ホスト） ─
-function handleOnlineAction(data, pi) {
-  if (data.type === 'next_round') {
-    dealRound(); broadcastStateToAll(); render(); return;
-  }
-  if (G.turn !== pi) return;
-  if (data.type === 'pick') {
-    const fi = data.fieldIdx;
-    if (fi<0||fi>=G.field.length) return;
-    G.players[pi].hand.push(G.field.splice(fi,1)[0]);
-    G.tphase='discard';
-  } else if (data.type === 'discard') {
-    const pl=G.players[pi];
-    const ti=pl.hand.findIndex(t=>t.id===data.tileId);
-    if(ti===-1||pl.hand.length<=5) return;
-    const tile=pl.hand.splice(ti,1)[0]; tile.discarded=true;
-    G.field.push(tile);
-    G.turn=(G.turn+1)%G.players.length; G.tphase='pick';
-  } else if (data.type === 'flip') {
-    const t=G.players[pi].hand.find(t=>t.id===data.tileId);
-    if(t) t.flip=!t.flip;
-  } else if (data.type === 'win') {
-    const res=checkWin(G.players[pi].hand); if(!res) return;
-    const bonus=countZorome(G.players[pi].hand);
-    G.players[pi].score+=res.pts+bonus; G.phase='roundEnd';
-    const wd={type:'win',winnerIdx:pi,winnerName:G.players[pi].name,
-      hand:G.players[pi].hand,role:res.role,pts:res.pts,bonus,
-      scores:G.players.map(p=>({name:p.name,score:p.score})),
-      isGameOver:G.players[pi].score>=WIN_SCORE};
-    showOnlineWinMsg(wd);
-    broadcastToGuests(wd); return;
-  }
-  broadcastStateToAll();
-  if(G.turn===0) render();
-}
-
-// ─ 通信ユーティリティ ─
-function broadcastStateToAll() {
-  render();
-  guestConns.forEach((conn,i)=>sendStateToGuest(conn,i+1));
-}
-function sendStateToGuest(conn,idx) { sendToGuest(conn,{type:'state',state:serializeFor(idx)}); }
-function broadcastToGuests(msg) { guestConns.forEach(c=>sendToGuest(c,msg)); }
-function sendToGuest(conn,msg) { try{if(conn.open)conn.send(msg);}catch(e){} }
-
-function serializeFor(myIdx) {
-  return {
-    myIdx, myHand:G.players[myIdx].hand,
-    field:G.field, turn:G.turn, tphase:G.tphase, phase:G.phase,
-    scores:G.players.map(p=>({name:p.name,score:p.score})),
-    hcs:G.players.map((p,i)=>i===myIdx?-1:p.hand.length),
-  };
-}
-
-function applyOnlineState(st, myIdx) {
-  if(!G) G={players:st.scores.map(s=>({name:s.name,hand:[],score:s.score,isBot:false})),
-             field:[],turn:0,tphase:'pick',selIdx:-1,phase:'playing'};
-  G.players[myIdx].hand=st.myHand;
-  G.field=st.field; G.turn=st.turn; G.tphase=st.tphase; G.phase=st.phase;
+  G.players[st.myIdx].hand=st.myHand;
+  G.field=st.field;G.turn=st.turn;G.tphase=st.tphase;G.phase=st.phase;
   st.scores.forEach((s,i)=>{G.players[i].score=s.score;G.players[i].name=s.name;});
-  st.hcs.forEach((cnt,i)=>{
-    if(i===myIdx) return;
+  st.oppCounts.forEach((cnt,i)=>{
+    if(i===st.myIdx) return;
     G.players[i].hand=Array.from({length:Math.max(0,cnt)},(_,j)=>
       ({id:`ph${i}_${j}`,top:1,bot:1,flip:false,discarded:false,hidden:true}));
   });
-  G.selIdx=-1; myOnlineIdx=myIdx;
-  showScreen('game'); render();
+  G.selIdx=-1;
+  showScreen('game');render();
   if(st.phase==='playing') document.getElementById('modal').classList.remove('open');
 }
 
-function startOnlineGame(allNames, myIdx) {
-  G={players:allNames.map(n=>({name:n,hand:[],score:0,isBot:false})),
-     field:[],turn:0,tphase:'pick',selIdx:-1,phase:'playing'};
-  dealRound(); myOnlineIdx=myIdx;
-  showScreen('game'); render();
-}
-
-function showOnlineWinMsg(wd) {
-  const {winnerName,hand,role,pts,bonus,scores,isGameOver} = wd;
-  const rows  = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
-  const tiles = (hand||[]).map(t=>tileHTML(t,'','tile htile')).join('');
-  const b     = bonus||0;
-  const bonusLine = b>0
-    ? `<div style="font-size:.88rem;color:#f5d040;margin-top:-.35rem;margin-bottom:.78rem">
-        ★ 輝きボーナス×${b}=+${b}点 <span style="color:#a89878">(計+${pts+b}点)</span></div>` : '';
-  document.getElementById('mbox').innerHTML = `
+function showOnlineWinMsg(wd){
+  const{winnerName,hand,role,pts,bonus,scores,isGameOver}=wd;
+  const rows=scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
+  const tiles=(hand||[]).map(t=>tileHTML(t,'','tile htile')).join('');
+  const b=bonus||0;
+  const bLine=b>0?`<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${b}=+${b}点 <span style="color:#a89878">(計+${pts+b}点)</span></div>`:'';
+  const scJson=JSON.stringify(scores).replace(/"/g,"'");
+  document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🎆 上がり！</div>
     <p style="color:#8a7860;font-size:.93rem">${esc(winnerName)} が役を完成</p>
     <div class="mrole">${role}</div>
-    <div class="mpts">役: +${pts}点</div>${bonusLine}
+    <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
     ${isGameOver
-      ? `<button class="mbtn" onclick="showOnlineGameOver(${JSON.stringify(scores).replace(/"/g,'&quot;')})">ゲーム終了を確認 →</button>`
+      ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
       : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
   `;
   document.getElementById('modal').classList.add('open');
 }
-
-function showOnlineGameOver(scores) {
-  const winner = scores.reduce((a,b)=>a.score>b.score?a:b);
-  const rows   = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
-  document.getElementById('mbox').innerHTML = `
+function showOnlineGameOver(scoresRaw){
+  const scores=typeof scoresRaw==='string'?JSON.parse(scoresRaw.replace(/'/g,'"')):scoresRaw;
+  const winner=scores.reduce((a,b)=>a.score>b.score?a:b);
+  const rows=scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
+  document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🏆 ゲーム終了！</div>
     <div style="font-size:1.65rem;color:#f5e0a0;margin:.5rem 0;
       font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
@@ -1130,28 +915,15 @@ function showOnlineGameOver(scores) {
     <button class="mbtn" onclick="location.reload()">最初からやり直す</button>
   `;
 }
-
-function doNextOnlineRound() {
+function doNextOnlineRound(){
   document.getElementById('modal').classList.remove('open');
-  if (isHost) { dealRound(); broadcastStateToAll(); render(); }
-  else { hostConn?.send({type:'next_round'}); }
+  socket?.emit('next_round',{code:currentCode});
 }
-
-function onOnlineDisconnect() {
-  if(onlineMode) showModal(`<div class="mtitle">⚠ 切断</div>
-    <p style="color:#a89868;margin:.8rem 0">接続が切れました</p>
-    <button class="mbtn" onclick="location.reload()">最初からやり直す</button>`);
-}
-
-function setOnlineStatus(msg,color) {
+function setOnlineStatus(msg,color){
   const el=document.getElementById('online-status');
-  if(el){ el.textContent=msg; el.style.color=color||'#6a5830'; }
+  if(el){el.textContent=msg;el.style.color=color||'#6a5030';}
   const cb=document.getElementById('btn-cancel-quick');
   if(cb) cb.style.display=msg?'':'none';
-}
-function setJoinStatus(msg) {
-  const el=document.getElementById('join-status');
-  if(el) el.textContent=msg;
 }
 
 // ── ベジェ曲線で原作に近い模様を生成 ──
