@@ -1,32 +1,21 @@
-const express = require('express');
-const http    = require('http');
+const express  = require('express');
+const http     = require('http');
 const { Server } = require('socket.io');
-const path    = require('path');
+const path     = require('path');
 
-const app    = express();
-const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const app  = express();
+const srv  = http.createServer(app);
+const io   = new Server(srv);
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const PORT     = process.env.PORT || 3000;
-const WIN_SCORE = 10;
-
-// ── ルーム管理 ──────────────────────────────────────
-// rooms: Map<roomId, RoomState>
-// RoomState = {
-//   players: [{socketId, name, hand, score}],
-//   field:    [{id,top,bot,flip,discarded}],  // 全牌
-//   turn:     number,   // players index
-//   tphase:   'pick'|'discard',
-//   phase:    'waiting'|'playing'|'roundEnd'|'gameOver',
-// }
 const rooms = new Map();
+const queue = [];
 
-// ── デッキ生成 42枚 ──────────────────────────────────
+// ── 牌 42枚 ──
 function makeDeck() {
-  const d = [];
-  let id = 0;
+  const d = []; let id = 0;
   for (let t = 1; t <= 6; t++)
     for (let b = 1; b <= 6; b++) {
       d.push({ id: id++, top: t, bot: b, flip: false, discarded: false });
@@ -43,268 +32,212 @@ function shuffle(a) {
   return r;
 }
 
-function eTop(t) { return t.flip ? t.bot : t.top; }
-function eBot(t) { return t.flip ? t.top : t.bot; }
+// ── 役判定 ──
+const eTop = t => t.flip ? t.bot : t.top;
+const eBot = t => t.flip ? t.top : t.bot;
 
-// ── 役判定 ───────────────────────────────────────────
 function checkWin(hand) {
   if (hand.length !== 6) return null;
-  const tops = hand.map(eTop);
-  const bots = hand.map(eBot);
-  const allBotSame = bots.every(v => v === bots[0]);
-
-  if (allBotSame) {
+  const tops = hand.map(eTop), bots = hand.map(eBot);
+  const allBot = bots.every(v => v === bots[0]);
+  if (allBot) {
     const st = [...tops].sort((a, b) => a - b);
     if (st.join(',') === '1,2,3,4,5,6') return { role: '六華', pts: 6 };
   }
   if (isSanren(hand)) return { role: '三連', pts: 3 };
-  if (allBotSame) return { role: '一色', pts: 1 };
+  if (allBot) return { role: '一色', pts: 1 };
   return null;
 }
 function isSanren(hand) {
-  for (let mask = 0; mask < (1 << 6); mask++) {
-    if (popcount(mask) !== 3) continue;
+  for (let m = 0; m < 64; m++) {
+    if (popcount(m) !== 3) continue;
     const g1 = [], g2 = [];
-    for (let i = 0; i < 6; i++) (mask & (1 << i) ? g1 : g2).push(hand[i]);
+    for (let i = 0; i < 6; i++) (m & (1 << i) ? g1 : g2).push(hand[i]);
     if (isSet3(g1) && isSet3(g2)) return true;
   }
   return false;
 }
 function isSet3(g) {
   if (g.length !== 3) return false;
-  const bots = g.map(eBot);
-  if (!bots.every(v => v === bots[0])) return false;
-  const tops = g.map(eTop).sort((a, b) => a - b);
-  return tops[1] === tops[0] + 1 && tops[2] === tops[1] + 1;
+  const b = g.map(eBot);
+  if (!b.every(v => v === b[0])) return false;
+  const t = g.map(eTop).sort((a, b) => a - b);
+  return t[1] === t[0] + 1 && t[2] === t[1] + 1;
 }
 function popcount(n) { let c = 0; while (n) { c += n & 1; n >>= 1; } return c; }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 
-// ── ゲーム開始 ───────────────────────────────────────
-function dealRound(room) {
-  const deck = makeDeck();
-  let idx = 0;
-  room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
-  room.field  = deck.slice(idx);
-  room.turn   = 0;
-  room.tphase = 'pick';
-  room.phase  = 'playing';
+function genCode() {
+  let c;
+  do { c = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (rooms.has(c));
+  return c;
 }
-
-// ── 各クライアントへ state 送信 ──────────────────────
+function dealRound(room) {
+  const deck = makeDeck(); let idx = 0;
+  room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
+  room.field = deck.slice(idx);
+  room.turn = 0; room.tphase = 'pick'; room.phase = 'playing';
+}
 function sendState(room) {
-  room.players.forEach((p, myIdx) => {
-    const opp = room.players.map((q, qi) => ({
-      name:      q.name,
-      score:     q.score,
-      handCount: q.hand.length,
-      isCurrentTurn: qi === room.turn,
-    })).filter((_, qi) => qi !== myIdx);
-
-    const normalCount  = room.field.filter(t => !t.discarded).length;
-    const discardTiles = room.field.filter(t =>  t.discarded);
-
-    io.to(p.socketId).emit('game_state', {
-      myHand:       p.hand,
-      myIndex:      myIdx,
-      currentTurn:  room.turn,
-      tphase:       room.tphase,
-      phase:        room.phase,
-      scores:       room.players.map(q => ({ name: q.name, score: q.score })),
-      opponents:    opp,
-      normalCount,       // 裏向き枚数
-      discardTiles,      // 捨て牌（表向き）
+  room.players.forEach((player, myIdx) => {
+    const sock = io.sockets.sockets.get(player.id);
+    if (!sock) return;
+    sock.emit('game_state', {
+      myIdx,
+      myHand:    player.hand,
+      opponents: room.players.filter((_, i) => i !== myIdx)
+                   .map(p => ({ name: p.name, handCount: p.hand.length, score: p.score })),
+      field:     room.field,
+      turn:      room.turn,
+      tphase:    room.tphase,
+      scores:    room.players.map(p => ({ name: p.name, score: p.score })),
+      phase:     room.phase,
     });
   });
 }
-
-function broadcastRoom(roomId, event, data) {
-  io.to(roomId).emit(event, data);
+function findRoom(sid) {
+  for (const r of rooms.values()) if (r.players.some(p => p.id === sid)) return r;
+  return null;
 }
 
-function lobbyState(room) {
-  return {
-    players:  room.players.map(p => p.name),
-    canStart: room.players.length >= 2,
-  };
-}
+io.on('connection', socket => {
 
-// ── Socket.IO ────────────────────────────────────────
-io.on('connection', (socket) => {
-  let myRoomId = null;
-
-  // ── 入室 ──
-  socket.on('join_room', ({ roomId, playerName }) => {
-    if (!rooms.has(roomId)) {
-      rooms.set(roomId, { players: [], field: [], turn: 0, tphase: 'pick', phase: 'waiting' });
+  socket.on('quickmatch', ({ name }) => {
+    if (queue.find(q => q.id === socket.id)) return;
+    queue.push({ id: socket.id, name });
+    socket.emit('queued', { pos: queue.length });
+    if (queue.length >= 2) {
+      const [p1, p2] = [queue.shift(), queue.shift()];
+      const code = genCode();
+      const room = {
+        code, host: null,
+        players: [
+          { id: p1.id, name: p1.name, hand: [], score: 0 },
+          { id: p2.id, name: p2.name, hand: [], score: 0 },
+        ],
+        field: [], turn: 0, tphase: 'pick', phase: 'playing',
+      };
+      rooms.set(code, room);
+      io.sockets.sockets.get(p1.id)?.join(code);
+      io.sockets.sockets.get(p2.id)?.join(code);
+      dealRound(room);
+      io.to(code).emit('matched', { code, players: room.players.map(p => p.name) });
+      sendState(room);
     }
-    const room = rooms.get(roomId);
-    if (room.phase !== 'waiting') {
-      socket.emit('error_msg', 'すでにゲームが始まっています');
-      return;
-    }
-    if (room.players.length >= 4) {
-      socket.emit('error_msg', '部屋が満員です（最大4人）');
-      return;
-    }
-    room.players.push({ socketId: socket.id, name: playerName, hand: [], score: 0 });
-    socket.join(roomId);
-    myRoomId = roomId;
-    socket.emit('joined', { roomId, playerName });
-    broadcastRoom(roomId, 'room_update', lobbyState(room));
   });
 
-  // ── ゲーム開始 ──
-  socket.on('start_game', () => {
-    const room = myRoomId && rooms.get(myRoomId);
-    if (!room || room.phase !== 'waiting' || room.players.length < 2) return;
+  socket.on('cancel_queue', () => {
+    const i = queue.findIndex(q => q.id === socket.id);
+    if (i !== -1) queue.splice(i, 1);
+  });
+
+  socket.on('create_room', ({ name }) => {
+    const code = genCode();
+    rooms.set(code, {
+      code, host: socket.id,
+      players: [{ id: socket.id, name, hand: [], score: 0 }],
+      field: [], turn: 0, tphase: 'pick', phase: 'waiting',
+    });
+    socket.join(code);
+    socket.emit('room_created', { code, players: [name] });
+  });
+
+  socket.on('join_room', ({ name, code }) => {
+    const c = (code || '').toUpperCase().trim();
+    const room = rooms.get(c);
+    if (!room)                    { socket.emit('err', '部屋が見つかりません'); return; }
+    if (room.phase !== 'waiting') { socket.emit('err', 'ゲームはすでに始まっています'); return; }
+    if (room.players.length >= 4) { socket.emit('err', '部屋が満員です（最大4人）'); return; }
+    room.players.push({ id: socket.id, name, hand: [], score: 0 });
+    socket.join(c);
+    io.to(c).emit('room_update', { players: room.players.map(p => p.name), code: c });
+  });
+
+  socket.on('start_game', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.host !== socket.id || room.players.length < 2) return;
     dealRound(room);
-    broadcastRoom(myRoomId, 'game_start', { playerNames: room.players.map(p => p.name) });
+    io.to(code).emit('game_start');
     sendState(room);
   });
 
-  // ── 裏向き場牌をピック（サーバーがランダムに選ぶ） ──
-  socket.on('pick_field', () => {
-    const room = myRoomId && rooms.get(myRoomId);
+  socket.on('pick_field', ({ code, fieldIdx }) => {
+    const room = rooms.get(code);
     if (!room || room.phase !== 'playing') return;
-    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi !== room.turn || room.tphase !== 'pick') return;
-    const p = room.players[pi];
-    if (p.hand.length >= 6) { socket.emit('error_msg', 'もう持てないよ！'); return; }
-
-    const normals = room.field.map((t, i) => ({ t, i })).filter(x => !x.t.discarded);
-    if (normals.length === 0) { socket.emit('error_msg', '場に牌がありません'); return; }
-    const { t: tile, i: fi } = normals[Math.floor(Math.random() * normals.length)];
-    room.field.splice(fi, 1);
-    p.hand.push(tile);
+    const player = room.players[pi];
+    if (player.hand.length >= 6 || fieldIdx < 0 || fieldIdx >= room.field.length) return;
+    player.hand.push(room.field.splice(fieldIdx, 1)[0]);
     room.tphase = 'discard';
-
-    // 引いた牌だけその人に通知
-    socket.emit('picked_tile', { tile });
     sendState(room);
   });
 
-  // ── 捨て牌をピック ──
-  socket.on('pick_discard', ({ tileId }) => {
-    const room = myRoomId && rooms.get(myRoomId);
+  socket.on('discard', ({ code, tileId }) => {
+    const room = rooms.get(code);
     if (!room || room.phase !== 'playing') return;
-    const pi = room.players.findIndex(p => p.socketId === socket.id);
-    if (pi !== room.turn || room.tphase !== 'pick') return;
-    const p = room.players[pi];
-    if (p.hand.length >= 6) { socket.emit('error_msg', 'もう持てないよ！'); return; }
-
-    const fi = room.field.findIndex(t => t.discarded && t.id === tileId);
-    if (fi === -1) return;
-    const [tile] = room.field.splice(fi, 1);
-    tile.discarded = false;
-    p.hand.push(tile);
-    room.tphase = 'discard';
-    socket.emit('picked_tile', { tile });
-    sendState(room);
-  });
-
-  // ── 捨て牌 ──
-  socket.on('discard_tile', ({ tileId }) => {
-    const room = myRoomId && rooms.get(myRoomId);
-    if (!room || room.phase !== 'playing') return;
-    const pi = room.players.findIndex(p => p.socketId === socket.id);
+    const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi !== room.turn || room.tphase !== 'discard') return;
-    const p = room.players[pi];
-    if (p.hand.length <= 5) { socket.emit('error_msg', 'これ以上捨てれないよ！'); return; }
-
-    const hi = p.hand.findIndex(t => t.id === tileId);
-    if (hi === -1) return;
-    const [tile] = p.hand.splice(hi, 1);
+    const player = room.players[pi];
+    const ti = player.hand.findIndex(t => t.id === tileId);
+    if (ti === -1 || player.hand.length <= 5) return;
+    const tile = player.hand.splice(ti, 1)[0];
     tile.discarded = true;
     room.field.push(tile);
-    room.turn   = (room.turn + 1) % room.players.length;
+    room.turn = (room.turn + 1) % room.players.length;
     room.tphase = 'pick';
     sendState(room);
   });
 
-  // ── 上がり宣言 ──
-  socket.on('declare_win', ({ flips }) => {
-    // flips: [{tileId, flip}] — クライアントの反転状態をサーバーに送る
-    const room = myRoomId && rooms.get(myRoomId);
-    if (!room || room.phase !== 'playing') return;
-    const pi = room.players.findIndex(p => p.socketId === socket.id);
-    if (pi !== room.turn || room.tphase !== 'discard') return;
-    const p = room.players[pi];
-    if (p.hand.length !== 6) return;
-
-    // フリップ状態を反映してから判定
-    if (flips) flips.forEach(({ tileId, flip }) => {
-      const t = p.hand.find(x => x.id === tileId);
-      if (t) t.flip = flip;
-    });
-
-    const res = checkWin(p.hand);
-    if (!res) { socket.emit('error_msg', 'まだ役が揃っていません'); return; }
-
-    const bonus = countZorome(p.hand);
-    res.bonus = bonus;
-    p.score += res.pts + bonus;
-    room.phase = 'roundEnd';
-
-    broadcastRoom(myRoomId, 'round_win', {
-      playerName: p.name,
-      role:       res.role,
-      pts:        res.pts,
-      bonus,
-      hand:       p.hand,
-      scores:     room.players.map(q => ({ name: q.name, score: q.score })),
-      isGameOver: p.score >= WIN_SCORE,
-      winner:     p.score >= WIN_SCORE ? p.name : null,
-    });
-  });
-
-  // ── 手牌の並び替えをサーバーに同期 ──
-  socket.on('reorder_hand', ({ order }) => {
-    const room = myRoomId && rooms.get(myRoomId);
+  socket.on('flip_tile', ({ code, tileId }) => {
+    const room = rooms.get(code);
     if (!room) return;
-    const p = room.players.find(x => x.socketId === socket.id);
-    if (!p) return;
-    // order: [0,2,1,3,4,5] のような並び替えindex
-    const newHand = order.map(i => p.hand[i]).filter(Boolean);
-    if (newHand.length === p.hand.length) p.hand = newHand;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi === -1) return;
+    const t = room.players[pi].hand.find(t => t.id === tileId);
+    if (t) { t.flip = !t.flip; sendState(room); }
   });
 
-  // ── 次のラウンド ──
-  socket.on('next_round', () => {
-    const room = myRoomId && rooms.get(myRoomId);
+  socket.on('declare_win', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi !== room.turn || room.tphase !== 'discard') return;
+    const player = room.players[pi];
+    if (player.hand.length !== 6) return;
+    const res = checkWin(player.hand);
+    if (!res) { socket.emit('err', '役が揃っていません'); return; }
+    const bonus = countZorome(player.hand);
+    player.score += res.pts + bonus;
+    room.phase = 'roundEnd';
+    io.to(code).emit('round_win', {
+      winnerIdx: pi, winnerName: player.name,
+      hand: player.hand, role: res.role,
+      pts: res.pts, bonus, total: res.pts + bonus,
+      scores: room.players.map(p => ({ name: p.name, score: p.score })),
+      isGameOver: player.score >= 10,
+    });
+  });
+
+  socket.on('next_round', ({ code }) => {
+    const room = rooms.get(code);
     if (!room || room.phase !== 'roundEnd') return;
     dealRound(room);
-    broadcastRoom(myRoomId, 'game_start', { playerNames: room.players.map(p => p.name) });
     sendState(room);
   });
 
-  // ── 切断 ──
   socket.on('disconnect', () => {
-    const room = myRoomId && rooms.get(myRoomId);
-    if (!room) return;
-    const pi = room.players.findIndex(p => p.socketId === socket.id);
-    if (pi === -1) return;
-    const name = room.players[pi].name;
-    room.players.splice(pi, 1);
-
-    if (room.players.length === 0) {
-      rooms.delete(myRoomId);
-    } else {
-      broadcastRoom(myRoomId, 'player_left', { name });
-      if (room.phase === 'playing') {
-        // ゲーム中に抜けたらそのまま続行（人数が1人になったら終了）
-        if (room.players.length < 2) {
-          room.phase = 'waiting';
-          broadcastRoom(myRoomId, 'room_update', lobbyState(room));
-        } else {
-          if (room.turn >= room.players.length) room.turn = 0;
-          sendState(room);
-        }
-      } else {
-        broadcastRoom(myRoomId, 'room_update', lobbyState(room));
+    const qi = queue.findIndex(q => q.id === socket.id);
+    if (qi !== -1) queue.splice(qi, 1);
+    const room = findRoom(socket.id);
+    if (room) {
+      const pi = room.players.findIndex(p => p.id === socket.id);
+      if (pi !== -1) {
+        io.to(room.code).emit('opponent_left', { name: room.players[pi].name });
+        rooms.delete(room.code);
       }
     }
   });
 });
 
-server.listen(PORT, () => console.log(`六華サーバー起動 → http://localhost:${PORT}`));
+srv.listen(PORT, () => console.log(`🀄 六華サーバー: http://localhost:${PORT}`));
