@@ -1257,14 +1257,7 @@ function pickField(fi) {
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
   if (onlineMode) {
-    if (isHost) {
-      // ホスト自身の操作
-      p.hand.push(G.field.splice(fi,1)[0]);
-      G.tphase='discard'; G.selIdx=-1;
-      broadcastStateToAll();
-    } else {
-      hostConn?.send({type:'pick', fieldIdx:fi});
-    }
+    socket?.emit('pick', { code: currentCode, fieldIdx: fi });
     return;
   }
   p.hand.push(G.field.splice(fi,1)[0]);
@@ -1292,8 +1285,7 @@ function flipHand(e, i) {
   tile.flip = !tile.flip;
   render();
   if (onlineMode) {
-    if (isHost) broadcastStateToAll();
-    else hostConn?.send({type:'flip', tileId:tile.id});
+    socket?.emit('flip', { code: currentCode, tileId: tile.id });
   }
   return false;
 }
@@ -1303,22 +1295,14 @@ function doDiscard() {
   const p = G.players[myOnlineIdx];
   if (G.selIdx === -1) { toast('捨てる牌を選んでください'); return; }
   if (p.hand.length <= 5) { toast('これ以上捨てれないよ！'); return; }
-  const tileId = p.hand[G.selIdx].id;
   if (onlineMode) {
-    if (isHost) {
-      const tile = p.hand.splice(G.selIdx,1)[0]; tile.discarded=true; G.field.push(tile);
-      G.turn=(G.turn+1)%G.players.length; G.tphase='pick'; G.selIdx=-1;
-      broadcastStateToAll();
-      if (G.turn===0) render(); // ホストのターン
-    } else {
-      hostConn?.send({type:'discard', tileId});
-      G.selIdx=-1; render();
-    }
+    socket?.emit('discard', { code: currentCode, tileId: p.hand[G.selIdx].id });
+    G.selIdx = -1; render();
     return;
   }
   const tile = p.hand.splice(G.selIdx,1)[0];
-  tile.discarded=true; G.field.push(tile);
-  G.selIdx=-1; nextTurn();
+  tile.discarded = true; G.field.push(tile);
+  G.selIdx = -1; nextTurn();
 }
 
 function doWin() {
@@ -1328,17 +1312,7 @@ function doWin() {
   const res = checkWin(p.hand);
   if (!res) { toast('まだ役が揃っていません'); return; }
   if (onlineMode) {
-    if (isHost) {
-      const bonus = countZorome(p.hand);
-      p.score += res.pts + bonus; G.phase='roundEnd';
-      const wd = {type:'win', winnerName:p.name, hand:p.hand,
-        role:res.role, pts:res.pts, bonus, scores:G.players.map(q=>({name:q.name,score:q.score})),
-        isGameOver:p.score>=WIN_SCORE};
-      showWinModal(wd.winnerName,wd.hand,{role:res.role,pts:res.pts,bonus:wd.bonus},false,wd.scores,wd.isGameOver,true);
-      broadcastToGuests(wd);
-    } else {
-      hostConn?.send({type:'win'});
-    }
+    socket?.emit('win', { code: currentCode });
     return;
   }
   processWin(myOnlineIdx, res);
