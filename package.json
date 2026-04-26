@@ -1,16 +1,15 @@
 {
   "name": "rikka-online",
   "version": "1.0.0",
-  "description": "六華（リッカ）ボードゲーム オンライン対戦",
+  "description": "六華オンライン対戦",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "express": "^4.18.3",
+    "socket.io": "^4.7.5"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "engines": { "node": ">=18" }
 }
