@@ -1261,6 +1261,8 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 //  プレイヤー操作（オンライン/ボット 共通ルーター）
 // ============================================================
 function pickField(fi) {
+  // デバッグ表示
+  toast(`turn=${G?.turn} myIdx=${myOnlineIdx} tphase=${G?.tphase} phase=${G?.phase}`);
   if (G.phase !== 'playing') return;
   if (G.turn !== myOnlineIdx) return;
   if (G.tphase !== 'pick') return;
