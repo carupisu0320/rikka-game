@@ -91,6 +91,7 @@ function sendState(room) {
       phase:     room.phase,
       scores:    room.players.map(p => ({ name: p.name, score: p.score })),
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
+      code:      room.code, 
     });
   });
 }
