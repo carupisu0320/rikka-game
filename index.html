@@ -184,7 +184,6 @@ body{
   position:relative;overflow:hidden;flex-shrink:0;
   transition:transform .12s,border-color .12s,box-shadow .12s;
 }
-/* 和柄っぽい斜線模様 */
 .fback::before{
   content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(
@@ -192,7 +191,6 @@ body{
     rgba(201,168,76,.07) 4px,rgba(201,168,76,.07) 5px
   );
 }
-/* 中央に小さな六華マーク */
 .fback::after{
   content:'❋';position:absolute;
   top:50%;left:50%;transform:translate(-50%,-50%);
@@ -864,31 +862,52 @@ function joinRoom(){
   socket.emit('join_room',{name:myName(),code});
 }
 
-function applyOnlineState(st){
-  myOnlineIdx = st.myIdx;
-  // 毎回プレイヤー配列を再構築（ボット戦データが残らないよう）
+// ============================================================
+//  ★ 修正1: applyOnlineState
+//  ・[st.scores.map](...) のリンク記法を通常の関数呼び出しに修正
+//  ・st.myIdx / st.turn を Number() で型統一
+// ============================================================
+function applyOnlineState(st) {
+  myOnlineIdx = Number(st.myIdx);
+
   if (!G || G.players.length !== st.scores.length) {
     G = {
-      players: st.scores.map(s => ({name:s.name, hand:[], score:s.score, isBot:false})),
-      field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'
+      players: st.scores.map(s => ({
+        name: s.name,
+        hand: [],
+        score: s.score,
+        isBot: false
+      })),
+      field: [],
+      turn: 0,
+      tphase: 'pick',
+      selIdx: -1,
+      phase: 'playing'
     };
   }
-  G.players[st.myIdx].hand = st.myHand;
-  G.field   = st.field;
-  G.turn    = st.turn;
-  G.tphase  = st.tphase;
-  G.phase   = st.phase;
-  G.selIdx  = -1;
-  st.scores.forEach((s,i) => {
+
+  G.turn   = Number(st.turn);
+  G.tphase = st.tphase;
+  G.phase  = st.phase;
+  G.selIdx = -1;
+
+  st.scores.forEach((s, i) => {
     G.players[i].score = s.score;
     G.players[i].name  = s.name;
     G.players[i].isBot = false;
   });
-  st.oppCounts.forEach((cnt,i) => {
-    if (i === st.myIdx) return;
-    G.players[i].hand = Array.from({length: Math.max(0,cnt)}, (_,j) =>
-      ({id:`ph${i}_${j}`, top:1, bot:1, flip:false, discarded:false, hidden:true}));
+
+  G.players[myOnlineIdx].hand = st.myHand;
+  G.field = st.field;
+
+  st.oppCounts.forEach((cnt, i) => {
+    if (i === myOnlineIdx) return;
+    G.players[i].hand = Array.from({ length: Math.max(0, cnt) }, (_, j) => ({
+      id: `ph${i}_${j}`,
+      top: 1, bot: 1, flip: false, discarded: false, hidden: true
+    }));
   });
+
   showScreen('game');
   render();
   if (st.phase === 'playing') document.getElementById('modal').classList.remove('open');
@@ -939,38 +958,23 @@ function setOnlineStatus(msg,color){
 
 // ── ベジェ曲線で原作に近い模様を生成 ──
 function makeSym(n) {
-  // 原作の色
   const C = ['','#E02828','#E87818','#80BC18','#20B840','#1878D8','#CC18B0'];
   const c = C[n];
   const O = `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">`;
   const X = `</svg>`;
-  const cx = 14, cy = 14; // 中心
+  const cx = 14, cy = 14;
 
-  // ── 1: 赤い丸（シンプルな円） ──
   if (n === 1) {
     return `${O}<circle cx="14" cy="14" r="10.5" fill="${c}"/>${X}`;
   }
 
-  // ── 2: 縦2粒の雫形（ベジェで涙型） ──
-  // 上の粒: 上が丸くて中心で尖る
-  // M=中心から出発, 左曲線→先端→右曲線→中心
   if (n === 2) {
-    // 上粒: tip=y1, 中心=y14 → 上半分
     const top  = `M 14 14 C 9 12 8.5 5 14 1 C 19.5 5 19 12 14 14 Z`;
-    // 下粒: 中心→下方向（上粒の鏡像）
     const bot  = `M 14 14 C 9 16 8.5 23 14 27 C 19.5 23 19 16 14 14 Z`;
     return `${O}<path d="${top}" fill="${c}"/><path d="${bot}" fill="${c}"/>${X}`;
   }
 
-  // ── 3〜6: ベジェ花弁をN枚放射状 ──
-  // 花弁1枚のパス（上向き、中心14,14から先端へ）
-  // 各nで先端の距離と横幅を調整
-  //   tip  = 先端のy座標（小さいほど中心から遠い）
-  //   cpx  = 制御点の横広がり（大きいほど花弁が広い）
-  //   cpy1 = 根元側の制御点y
-  //   cpy2 = 先端側の制御点y
   const pCfg = {
-    //        tip   cpx   cpy1  cpy2
     3: { tip:  1.0, cpx: 5.5, cpy1: 10.5, cpy2:  4.0 },
     4: { tip:  2.0, cpx: 5.0, cpy1: 11.0, cpy2:  5.0 },
     5: { tip:  3.0, cpx: 4.5, cpy1: 11.5, cpy2:  6.0 },
@@ -978,11 +982,6 @@ function makeSym(n) {
   };
   const {tip, cpx, cpy1, cpy2} = pCfg[n];
 
-  // 1枚の花弁パス（ベジェ2本で構成）:
-  //   M 中心
-  //   C 左根元制御, 左先端制御, 先端
-  //   C 右先端制御, 右根元制御, 中心
-  //   Z
   const petalPath =
     `M ${cx} ${cy} ` +
     `C ${cx-cpx} ${cpy1} ${cx-cpx*0.6} ${cpy2} ${cx} ${tip} ` +
@@ -993,7 +992,6 @@ function makeSym(n) {
     `<path d="${petalPath}" fill="${c}" transform="rotate(${step * i},${cx},${cy})"/>`
   ).join('');
 
-  // 中心の小さな白丸（花の中心として引き締まる）
   const dot = `<circle cx="${cx}" cy="${cy}" r="2.2" fill="rgba(255,255,255,0.55)"/>`;
 
   return `${O}${petals}${dot}${X}`;
@@ -1002,15 +1000,11 @@ const SYM_SVG = ['', ...Array.from({length:6}, (_,i) => makeSym(i+1))];
 
 // ============================================================
 //  状態
-//  G.field    = 場の全牌（プレイヤーが選べる）
-//  G.discards = 捨て牌（別表示用、実際はG.fieldの末尾に追加）
-//              → 今回は G.field 1本で管理し、discarded フラグで区別
 // ============================================================
 let G = null;
 
 // ============================================================
 //  山札生成（42枚）
-//  ゾロ目(1-1 〜 6-6): 各2枚 / 非ゾロ目: 各1枚
 // ============================================================
 function makeDeck() {
   const d = [];
@@ -1021,7 +1015,7 @@ function makeDeck() {
       if (t === b) d.push({id: id++, top: t, bot: b, flip: false, discarded: false});
     }
   }
-  return shuffle(d); // 42枚
+  return shuffle(d);
 }
 
 function shuffle(a) {
@@ -1033,16 +1027,11 @@ function shuffle(a) {
   return r;
 }
 
-// 反転後の上／下の数
 function eTop(t) { return t.flip ? t.bot : t.top; }
 function eBot(t) { return t.flip ? t.top : t.bot; }
 
 // ============================================================
-//  役判定（画像ルール準拠）
-//
-//  一色(1点): 下の数が全部同じ（上は何でもOK）
-//  三連(3点): 「下が同じ3枚＋上が連番」のセット×2
-//  六華(6点): 下が全部同じ ＋ 上が1〜6の連番
+//  役判定
 // ============================================================
 function checkWin(hand) {
   if (hand.length !== 6) return null;
@@ -1067,7 +1056,6 @@ function checkWin(hand) {
 }
 
 function isSanren(hand) {
-  // C(6,3)=20通りの分け方を試す
   for (let mask = 0; mask < (1 << 6); mask++) {
     if (popcount(mask) !== 3) continue;
     const g1 = [], g2 = [];
@@ -1077,7 +1065,6 @@ function isSanren(hand) {
   return false;
 }
 
-// 3枚セット: 下が全部同じ AND 上が連続3つ
 function isSet3(g) {
   if (g.length !== 3) return false;
   const bots = g.map(eBot);
@@ -1112,7 +1099,7 @@ function dealRound() {
   const deck = makeDeck();
   let idx = 0;
   G.players.forEach(p => { p.hand = deck.slice(idx, idx+5); idx += 5; });
-  G.field   = deck.slice(idx); // 残り全部が場（全て表向き）
+  G.field   = deck.slice(idx);
   G.turn    = 0;
   G.tphase  = 'pick';
   G.selIdx  = -1;
@@ -1120,7 +1107,7 @@ function dealRound() {
 }
 
 // ============================================================
-//  描画（オンライン/ボット 共通）
+//  描画
 // ============================================================
 function render() {
   renderHeader();
@@ -1133,7 +1120,7 @@ function render() {
 function renderHeader() {
   document.getElementById('scoreboard').innerHTML =
     G.players.map((p,i) => {
-      const act = i === G.turn;
+      const act = Number(i) === Number(G.turn);
       const cls = act ? (p.isBot ? 'active-bot' : 'active-human') : '';
       return `<div class="spill ${cls}">
         <span class="sn">${esc(p.name)}</span>
@@ -1148,7 +1135,7 @@ function renderOpponents() {
   if (!opps.length) { el.innerHTML=''; return; }
   el.innerHTML = opps.map(p => {
     const pi  = G.players.indexOf(p);
-    const act = pi === G.turn;
+    const act = Number(pi) === Number(G.turn);
     const backs = p.hand.map(()=>'<div class="tback"></div>').join('');
     const dots  = act && p.isBot
       ? `<div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>` : '';
@@ -1160,8 +1147,12 @@ function renderOpponents() {
   }).join('');
 }
 
+// ============================================================
+//  ★ 修正2: renderField
+//  ・Number() で型を統一して isMyTurn を正しく判定
+// ============================================================
 function renderField() {
-  const isMyTurn = G.turn === myOnlineIdx;
+  const isMyTurn = Number(G.turn) === Number(myOnlineIdx);
   const canPick  = isMyTurn && G.tphase === 'pick';
 
   const normalTiles  = G.field.filter(t => !t.discarded);
@@ -1199,12 +1190,12 @@ function renderHand() {
   const p = G.players[myOnlineIdx];
   document.getElementById('hand-tiles').innerHTML =
     p.hand.map((t,i) => {
-      if (t.hidden) return ''; // 相手の手牌は非表示
+      if (t.hidden) return '';
       const sel = i === G.selIdx ? ' selected' : '';
       return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}`);
     }).join('');
 
-  const isMyTurn  = G.turn === myOnlineIdx;
+  const isMyTurn  = Number(G.turn) === Number(myOnlineIdx);
   const isDiscard = isMyTurn && G.tphase === 'discard';
   const hasSel    = G.selIdx !== -1;
   const has6      = p.hand.length === 6;
@@ -1232,7 +1223,7 @@ function renderHand() {
 
 function renderStatus() {
   const el = document.getElementById('status');
-  const isMyTurn = G.turn === myOnlineIdx;
+  const isMyTurn = Number(G.turn) === Number(myOnlineIdx);
   if (isMyTurn && (onlineMode || !G.players[myOnlineIdx].isBot)) {
     el.className = 'myturn';
     el.textContent = G.tphase === 'pick'
@@ -1258,22 +1249,30 @@ function tileHTML(t, events='', cls='tile') {
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 
 // ============================================================
-//  プレイヤー操作（オンライン/ボット 共通ルーター）
+//  ★ 修正3: pickField
+//  ・オンラインモードを最初に分岐（ローカルチェックより先）
+//  ・ボット戦のターンチェックも Number() で型統一
 // ============================================================
 function pickField(fi) {
-  // デバッグ表示
-  toast(`turn=${G?.turn} myIdx=${myOnlineIdx} tphase=${G?.tphase} phase=${G?.phase}`);
   if (G.phase !== 'playing') return;
-  if (G.turn !== myOnlineIdx) return;
-  if (G.tphase !== 'pick') return;
-  const p = G.players[myOnlineIdx];
-  if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
+
+  // オンラインは即送信（サーバー側でターン検証）
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: fi });
     return;
   }
-  p.hand.push(G.field.splice(fi,1)[0]);
-  G.tphase = 'discard'; G.selIdx = -1; render();
+
+  // ボット戦用ローカルチェック
+  if (Number(G.turn) !== Number(myOnlineIdx)) return;
+  if (G.tphase !== 'pick') return;
+
+  const p = G.players[myOnlineIdx];
+  if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
+
+  p.hand.push(G.field.splice(fi, 1)[0]);
+  G.tphase = 'discard';
+  G.selIdx = -1;
+  render();
 }
 
 function clickHand(i) {
@@ -1303,7 +1302,7 @@ function flipHand(e, i) {
 }
 
 function doDiscard() {
-  if (G.tphase !== 'discard' || G.turn !== myOnlineIdx) return;
+  if (G.tphase !== 'discard' || Number(G.turn) !== Number(myOnlineIdx)) return;
   const p = G.players[myOnlineIdx];
   if (G.selIdx === -1) { toast('捨てる牌を選んでください'); return; }
   if (p.hand.length <= 5) { toast('これ以上捨てれないよ！'); return; }
@@ -1318,7 +1317,7 @@ function doDiscard() {
 }
 
 function doWin() {
-  if (G.tphase !== 'discard' || G.turn !== myOnlineIdx) return;
+  if (G.tphase !== 'discard' || Number(G.turn) !== Number(myOnlineIdx)) return;
   const p = G.players[myOnlineIdx];
   if (p.hand.length !== 6) { toast('手牌が6枚のときだけ上がれます'); return; }
   const res = checkWin(p.hand);
@@ -1365,7 +1364,6 @@ function runBot() {
     if (bot.diff === 'easy') {
       fi = Math.floor(Math.random() * G.field.length);
     } else {
-      // 全場牌から最善を選ぶ
       let best = -Infinity;
       fi = 0;
       G.field.forEach((t, i) => {
@@ -1391,7 +1389,6 @@ function runBot() {
       }
       const tile = bot.hand.splice(di, 1)[0];
       tile.discarded = true;
-      // ボットの手牌を上の数で昇順ソートして整理
       bot.hand.sort((a,b) => eTop(a) - eTop(b));
       G.field.push(tile);
       render();
@@ -1442,14 +1439,14 @@ function scoreBots(hand) {
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  const bonus = countZorome(G.players[pi].hand); // ゾロ目1枚=+1点
+  const bonus = countZorome(G.players[pi].hand);
   res.bonus = bonus;
   G.players[pi].score += res.pts + bonus;
   showWinModal(G.players[pi], res);
 }
 
 // ============================================================
-//  モーダル（勝利・ゲームオーバー）
+//  モーダル
 // ============================================================
 function showWinModal(p, res) {
   const over   = p.score >= WIN_SCORE;
@@ -1510,7 +1507,6 @@ function goLobby() {
 function openRuleBook()  { document.getElementById('rule-modal').classList.add('open'); }
 function closeRuleBook() { document.getElementById('rule-modal').classList.remove('open'); }
 
-// ルールブックモーダルの外側をクリックで閉じる
 document.getElementById('rule-modal').addEventListener('click', function(e) {
   if (e.target === this) closeRuleBook();
 });
@@ -1540,7 +1536,7 @@ function esc(s) {
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.key === ' ') {
     e.preventDefault();
-    if (G?.phase === 'playing' && G.turn === 0 && G.tphase === 'discard' && G.selIdx !== -1) {
+    if (G?.phase === 'playing' && Number(G.turn) === Number(myOnlineIdx) && G.tphase === 'discard' && G.selIdx !== -1) {
       doDiscard();
     }
   }
@@ -1554,8 +1550,8 @@ document.addEventListener('touchstart', e => {
   _lpt = setTimeout(() => {
     const tiles = [...document.querySelectorAll('#hand-tiles .tile')];
     const i = tiles.indexOf(tile);
-    if (i >= 0 && G?.players[0]) {
-      G.players[0].hand[i].flip = !G.players[0].hand[i].flip;
+    if (i >= 0 && G?.players[myOnlineIdx]) {
+      G.players[myOnlineIdx].hand[i].flip = !G.players[myOnlineIdx].hand[i].flip;
       render();
     }
   }, 600);
