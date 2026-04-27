@@ -1167,8 +1167,9 @@ function renderField() {
     html += normalTiles.map(t => {
       const fi  = G.field.indexOf(t);
       const ev  = canPick ? `onclick="pickField(${fi})"` : '';
-      const cls = canPick ? 'tile pickable' : 'tile nopick';
-      return `<div class="${cls}" ${ev}>${tileHTML(t, '', '')}</div>`;
+      const cur = canPick ? 'cursor:pointer' : 'cursor:default;opacity:.8';
+      const hvr = canPick ? 'fback-pickable' : '';
+      return `<div class="fback ${hvr}" ${ev} style="${cur}"></div>`;
     }).join('');
   }
   if (discardTiles.length > 0) {
