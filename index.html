@@ -1161,7 +1161,9 @@ function renderOpponents() {
 }
 
 function renderField() {
-  const isMyTurn = G.turn === myOnlineIdx;
+  const myIdx    = Number(myOnlineIdx);
+  const turn     = Number(G.turn);
+  const isMyTurn = turn === myIdx;
   const canPick  = isMyTurn && G.tphase === 'pick';
 
   const normalTiles  = G.field.filter(t => !t.discarded);
@@ -1170,29 +1172,52 @@ function renderField() {
   document.getElementById('field-cnt').textContent =
     `場 ${normalTiles.length}枚 ／ 捨て牌 ${discardTiles.length}枚`;
 
-  let html = '';
+  const grid = document.getElementById('field-grid');
+  grid.innerHTML = '';
+
+  // セクションラベル（場の牌）
   if (normalTiles.length > 0) {
-    html += `<div class="fsec">🀄 場の牌（好きな1枚を選ぼう）</div>`;
-    html += normalTiles.map(t => {
+    const label = document.createElement('div');
+    label.className = 'fsec';
+    label.textContent = '🀄 場の牌（好きな1枚を選ぼう）';
+    grid.appendChild(label);
+
+    normalTiles.forEach(t => {
       const fi  = G.field.indexOf(t);
-      const cur = canPick ? 'cursor:pointer' : 'cursor:default;opacity:.8';
-      const hvr = canPick ? 'fback-pickable' : '';
-      const click = canPick ? `onclick="pickField(${fi})"` : '';
-      return `<div class="fback ${hvr}" ${click} style="${cur}"></div>`;
-    }).join('');
+      const div = document.createElement('div');
+      div.className = canPick ? 'fback fback-pickable' : 'fback';
+      div.style.cursor = canPick ? 'pointer' : 'default';
+      if (!canPick) div.style.opacity = '0.8';
+      if (canPick) {
+        div.addEventListener('click', () => pickField(fi));
+      }
+      grid.appendChild(div);
+    });
   }
+
+  // セクションラベル（捨て牌）
   if (discardTiles.length > 0) {
-    html += `<div class="fsec" style="margin-top:${normalTiles.length>0?'8px':'0'}">♻ 捨て牌（引いてもOK）</div>`;
-    html += discardTiles.map(t => {
+    const label2 = document.createElement('div');
+    label2.className = 'fsec';
+    label2.style.marginTop = normalTiles.length > 0 ? '8px' : '0';
+    label2.textContent = '♻ 捨て牌（引いてもOK）';
+    grid.appendChild(label2);
+
+    discardTiles.forEach(t => {
       const fi  = G.field.indexOf(t);
-      const cls = `tile discarded${canPick?' pickable':' nopick'}`;
-      const click = canPick ? `onclick="pickField(${fi})"` : '';
-      return `<div class="${cls}" ${click}>${tileInner(t)}</div>`;
-    }).join('');
+      const div = document.createElement('div');
+      div.className = canPick ? 'tile discarded pickable' : 'tile discarded nopick';
+      div.innerHTML = tileInner(t);
+      if (canPick) {
+        div.addEventListener('click', () => pickField(fi));
+      }
+      grid.appendChild(div);
+    });
   }
-  if (G.field.length === 0)
-    html = `<div style="color:#5a4820;font-size:.95rem;padding:.6rem">場に牌がありません</div>`;
-  document.getElementById('field-grid').innerHTML = html;
+
+  if (G.field.length === 0) {
+    grid.innerHTML = '<div style="color:#5a4820;font-size:.95rem;padding:.6rem">場に牌がありません</div>';
+  }
 }
 
 function renderHand() {
@@ -1264,15 +1289,15 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 // ============================================================
 function pickField(fi) {
   if (!G || G.phase !== 'playing') return;
-  if (G.turn !== myOnlineIdx) return;
+  if (Number(G.turn) !== Number(myOnlineIdx)) return;
   if (G.tphase !== 'pick') return;
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
   if (onlineMode) {
-    socket?.emit('pick', { code: currentCode, fieldIdx: fi });
+    socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
     return;
   }
-  p.hand.push(G.field.splice(fi,1)[0]);
+  p.hand.push(G.field.splice(fi, 1)[0]);
   G.tphase = 'discard'; G.selIdx = -1; render();
 }
 
