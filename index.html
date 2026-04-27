@@ -865,6 +865,7 @@ function joinRoom(){
 }
 
 function applyOnlineState(st){
+  if (st.code) currentCode = st.code;
   myOnlineIdx = st.myIdx;
   // 毎回プレイヤー配列を再構築（ボット戦データが残らないよう）
   if (!G || G.players.length !== st.scores.length) {
