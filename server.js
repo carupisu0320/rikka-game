@@ -171,16 +171,19 @@ io.on('connection', socket => {
   });
 
   // 場から引く
-  socket.on('pick', ({ code, fieldIdx }) => {
-    const room = rooms.get(code);
-    if (!room || room.phase !== 'playing') return;
-    const pi = room.players.findIndex(p => p.id === socket.id);
-    if (pi !== room.turn || room.tphase !== 'pick') return;
-    if (fieldIdx < 0 || fieldIdx >= room.field.length) return;
-    room.players[pi].hand.push(room.field.splice(fieldIdx, 1)[0]);
-    room.tphase = 'discard';
-    sendState(room);
-  });
+socket.on('pick', ({ code, fieldIdx }) => {
+  const room = rooms.get(code);
+  if (!room) { socket.emit('err', `[pick] ルームなし code=${code}`); return; }
+  if (room.phase !== 'playing') { socket.emit('err', `[pick] phase=${room.phase}`); return; }
+  const pi = room.players.findIndex(p => p.id === socket.id);
+  if (pi === -1) { socket.emit('err', `[pick] プレイヤー不明 sid=${socket.id}`); return; }
+  if (pi !== room.turn) { socket.emit('err', `[pick] ターン違い pi=${pi} turn=${room.turn}`); return; }
+  if (room.tphase !== 'pick') { socket.emit('err', `[pick] tphase=${room.tphase}`); return; }
+  if (fieldIdx < 0 || fieldIdx >= room.field.length) { socket.emit('err', `[pick] インデックス範囲外 fi=${fieldIdx} len=${room.field.length}`); return; }
+  room.players[pi].hand.push(room.field.splice(fieldIdx, 1)[0]);
+  room.tphase = 'discard';
+  sendState(room);
+});
 
   // 捨てる
   socket.on('discard', ({ code, tileId }) => {
