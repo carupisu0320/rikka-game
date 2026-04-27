@@ -1175,10 +1175,10 @@ function renderField() {
     html += `<div class="fsec">🀄 場の牌（好きな1枚を選ぼう）</div>`;
     html += normalTiles.map(t => {
       const fi  = G.field.indexOf(t);
+      const ev  = canPick ? `onclick="pickField(${fi})"` : '';
       const cur = canPick ? 'cursor:pointer' : 'cursor:default;opacity:.8';
       const hvr = canPick ? 'fback-pickable' : '';
-      const pick = canPick ? `data-fi="${fi}"` : '';
-      return `<div class="fback ${hvr}" ${pick} style="${cur}"></div>`;
+      return `<div class="fback ${hvr}" ${ev} style="${cur}"></div>`;
     }).join('');
   }
   if (discardTiles.length > 0) {
@@ -1186,8 +1186,8 @@ function renderField() {
     html += discardTiles.map(t => {
       const fi  = G.field.indexOf(t);
       const cls = `tile discarded${canPick?' pickable':' nopick'}`;
-      const pick = canPick ? `data-fi="${fi}"` : '';
-      return `<div class="${cls}" ${pick}>${tileInner(t)}</div>`;
+      const ev  = canPick ? `onclick="pickField(${fi})"` : '';
+      return tileHTML(t, ev, cls);
     }).join('');
   }
   if (G.field.length === 0)
@@ -1250,12 +1250,10 @@ function renderStatus() {
 function tileHTML(t, events='', cls='tile') {
   const tv = eTop(t), bv = eBot(t);
   const star = (t.top === t.bot && !t.hidden) ? `<div class="tile-star">★</div>` : '';
-  return `<div class="${cls}" ${events}>${tileInner(t)}</div>`;
-}
-function tileInner(t) {
-  const tv = eTop(t), bv = eBot(t);
-  const star = (t.top === t.bot && !t.hidden) ? `<div class="tile-star">★</div>` : '';
-  return `<div class="th">${SYM_SVG[tv]}</div>${star}<div class="tb">${SYM_SVG[bv]}</div>`;
+  return `<div class="${cls}" ${events}>
+    <div class="th">${SYM_SVG[tv]}</div>${star}
+    <div class="tb">${SYM_SVG[bv]}</div>
+  </div>`;
 }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 
@@ -1263,18 +1261,16 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 //  プレイヤー操作（オンライン/ボット 共通ルーター）
 // ============================================================
 function pickField(fi) {
-  if (!G || G.phase !== 'playing') { toast(`phase=${G?.phase}`); return; }
-  if (G.turn !== myOnlineIdx)      { toast(`相手の番です (turn=${G.turn} me=${myOnlineIdx})`); return; }
-  if (G.tphase !== 'pick')         { toast(`捨てフェーズです`); return; }
+  // デバッグ表示
+  toast(`turn=${G?.turn} myIdx=${myOnlineIdx} tphase=${G?.tphase} phase=${G?.phase}`);
+  if (G.phase !== 'playing') return;
+  if (G.turn !== myOnlineIdx) return;
+  if (G.tphase !== 'pick') return;
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: fi });
     return;
-  }
-  p.hand.push(G.field.splice(fi,1)[0]);
-  G.tphase = 'discard'; G.selIdx = -1; render();
-}
   }
   p.hand.push(G.field.splice(fi,1)[0]);
   G.tphase = 'discard'; G.selIdx = -1; render();
@@ -1550,15 +1546,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── 場の牌クリック（イベントデリゲーション）──
-document.addEventListener('click', e => {
-  const el = e.target.closest('[data-fi]');
-  if (!el || !el.closest('#field-grid')) return;
-  const fi = parseInt(el.dataset.fi);
-  if (!isNaN(fi)) pickField(fi);
-});
-
-// ── スマホ長押しで反転 ──
+// スマホ長押しで反転
 let _lpt = null;
 document.addEventListener('touchstart', e => {
   const tile = e.target.closest('#hand-tiles .tile');
@@ -1566,10 +1554,9 @@ document.addEventListener('touchstart', e => {
   _lpt = setTimeout(() => {
     const tiles = [...document.querySelectorAll('#hand-tiles .tile')];
     const i = tiles.indexOf(tile);
-    if (i >= 0 && G?.players[myOnlineIdx]) {
-      G.players[myOnlineIdx].hand[i].flip = !G.players[myOnlineIdx].hand[i].flip;
+    if (i >= 0 && G?.players[0]) {
+      G.players[0].hand[i].flip = !G.players[0].hand[i].flip;
       render();
-      if (onlineMode) socket?.emit('flip', { code: currentCode, tileId: G.players[myOnlineIdx].hand[i].id });
     }
   }, 600);
 }, {passive:true});
