@@ -1288,11 +1288,18 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 //  プレイヤー操作（オンライン/ボット 共通ルーター）
 // ============================================================
 function pickField(fi) {
-  if (!G || G.phase !== 'playing') return;
-  if (Number(G.turn) !== Number(myOnlineIdx)) return;
-  if (G.tphase !== 'pick') return;
+  if (!G || G.phase !== 'playing') {
+    toast(`❌ フェーズ: ${G?.phase}`); return;
+  }
+  if (Number(G.turn) !== Number(myOnlineIdx)) {
+    toast(`❌ 相手のターン (turn=${G.turn} / 自分=${myOnlineIdx})`); return;
+  }
+  if (G.tphase !== 'pick') {
+    toast(`❌ tphase=${G.tphase}`); return;
+  }
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
+  toast(`✅ pick送信 fi=${fi} code=${currentCode}`);
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
     return;
