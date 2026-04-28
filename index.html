@@ -932,7 +932,6 @@ function showOnlineWinMsg(wd){
     ? `<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${bonus}=+${bonus}点</div>`
     : '';
   const iAm = Number(winnerIdx) === Number(myOnlineIdx);
-  const scJson = JSON.stringify(scores).replace(/"/g,"'");
 
   document.getElementById('mbox').innerHTML = `
     <div class="mtitle">${iAm ? '🎆 上がり！' : '😔 相手の上がり'}</div>
@@ -941,22 +940,24 @@ function showOnlineWinMsg(wd){
     <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
-    ${isGameOver
-      ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
-      : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
+  ${isGameOver
+    ? `<button class="mbtn" onclick="showOnlineGameOver(${JSON.stringify(scores)})">ゲーム終了を確認 →</button>`
+    : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
   `;
   document.getElementById('modal').classList.add('open');
 }
 function showOnlineGameOver(scoresRaw){
-  const scores=typeof scoresRaw==='string'?JSON.parse(scoresRaw.replace(/'/g,'"')):scoresRaw;
-  const winner=scores.reduce((a,b)=>a.score>b.score?a:b);
-  const rows=scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
-  document.getElementById('mbox').innerHTML=`
+  const scores = typeof scoresRaw === 'string'
+    ? JSON.parse(scoresRaw.replace(/'/g,'"'))
+    : scoresRaw;
+  const winner = scores.reduce((a,b) => a.score > b.score ? a : b);
+  const rows = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
+  document.getElementById('mbox').innerHTML = `
     <div class="mtitle">🏆 ゲーム終了！</div>
     <div style="font-size:1.65rem;color:#f5e0a0;margin:.5rem 0;
       font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
     <table class="mscores">${rows}</table>
-    <button class="mbtn" onclick="location.reload()">最初からやり直す</button>
+    <button class="mbtn" onclick="location.reload()">タイトルへ戻る</button>
   `;
 }
 function doNextOnlineRound(){
