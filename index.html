@@ -876,23 +876,27 @@ function applyOnlineState(st){
 
   const serverHand = st.myHand;
   const localHand  = G.players[st.myIdx].hand;
-
-  // ローカルとサーバーで全タイルIDが一致するか確認
-  const serverIds = new Set(serverHand.map(t => t.id));
-  const localIds  = new Set(localHand.map(t => t.id));
-  const sameSet   = serverHand.length === localHand.length &&
-                    serverHand.every(t => localIds.has(t.id));
+  const serverIds  = new Set(serverHand.map(t => t.id));
+  const localIds   = new Set(localHand.map(t => t.id));
+  const sameSet    = serverHand.length === localHand.length &&
+                     serverHand.every(t => localIds.has(t.id));
 
   if (sameSet) {
-    // 同じ牌 → ローカルの並び順を保持してflipだけ同期
-    localHand.forEach(localTile => {
-      const serverTile = serverHand.find(s => s.id === localTile.id);
-      if (serverTile) localTile.flip = serverTile.flip;
+    // 同じ牌 → ローカル順序を保持してflipだけ同期
+    localHand.forEach(lt => {
+      const st2 = serverHand.find(s => s.id === lt.id);
+      if (st2) lt.flip = st2.flip;
     });
   } else {
-    // 牌が変わった → サーバーの並び順で全更新
-    G.players[st.myIdx].hand = serverHand;
-    G.selIdx = -1;
+    // 牌が増減 → 既存の並び順を保ったまま新しい牌を末尾に追加
+    const kept = localHand.filter(t => serverIds.has(t.id));
+    kept.forEach(lt => {
+      const st2 = serverHand.find(s => s.id === lt.id);
+      if (st2) lt.flip = st2.flip;
+    });
+    const added = serverHand.filter(t => !localIds.has(t.id));
+    G.players[st.myIdx].hand = [...kept, ...added];
+    if (serverHand.length < localHand.length) G.selIdx = -1;
   }
 
   G.field  = st.field;
@@ -912,6 +916,7 @@ function applyOnlineState(st){
   });
   showScreen('game');
   render();
+  // ★ モーダルを自動で閉じる行を削除（リザルト画面が消える原因だったため）
 }
 
 function showOnlineWinMsg(wd){
@@ -921,25 +926,18 @@ function showOnlineWinMsg(wd){
   const b=bonus||0;
   const bLine=b>0?`<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${b}=+${b}点 <span style="color:#a89878">(計+${pts+b}点)</span></div>`:'';
   const scJson=JSON.stringify(scores).replace(/"/g,"'");
-  const isWinner = Number(winnerIdx) === Number(myOnlineIdx);
-  let btnHtml;
-  if(isGameOver){
-    btnHtml = isWinner
-      ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
-      : `<button class="mbtn" onclick="document.getElementById('modal').classList.remove('open')">確認して閉じる</button>`;
-  } else {
-    btnHtml = isWinner
-      ? `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`
-      : `<button class="mbtn" onclick="document.getElementById('modal').classList.remove('open')">確認して閉じる</button>`;
-  }
+  const iAm = Number(winnerIdx) === Number(myOnlineIdx);
+
   document.getElementById('mbox').innerHTML=`
-    <div class="mtitle">🎆 上がり！</div>
+    <div class="mtitle">${iAm ? '🎆 上がり！' : '😔 相手の上がり'}</div>
     <p style="color:#8a7860;font-size:.93rem">${esc(winnerName)} が役を完成</p>
     <div class="mrole">${role}</div>
     <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
-    ${btnHtml}
+    ${isGameOver
+      ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
+      : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
   `;
   document.getElementById('modal').classList.add('open');
 }
