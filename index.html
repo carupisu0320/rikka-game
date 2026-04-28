@@ -865,21 +865,38 @@ function joinRoom(){
 }
 
 function applyOnlineState(st){
-  if (st.code) currentCode = st.code;
   myOnlineIdx = st.myIdx;
-  // 毎回プレイヤー配列を再構築（ボット戦データが残らないよう）
+  // 初回 or プレイヤー数が変わったときだけ再構築
   if (!G || G.players.length !== st.scores.length) {
     G = {
       players: st.scores.map(s => ({name:s.name, hand:[], score:s.score, isBot:false})),
       field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'
     };
   }
-  G.players[st.myIdx].hand = st.myHand;
+
+  // 手牌の更新:
+  //   - 枚数が変わった（引く・捨てる・ラウンド開始）→ サーバーの順番で全更新
+  //   - 枚数が同じ（反転のみ）→ ローカルの並び順を保持してflipだけ同期
+  const serverHand = st.myHand;
+  const localHand  = G.players[st.myIdx].hand;
+  if (localHand.length !== serverHand.length) {
+    // 枚数変化 → 全更新（並び順はサーバー準拠）
+    G.players[st.myIdx].hand = serverHand;
+  } else {
+    // 枚数同じ → ローカルの並び順を保ちつつ flip だけ同期
+    localHand.forEach(localTile => {
+      const serverTile = serverHand.find(s => s.id === localTile.id);
+      if (serverTile) localTile.flip = serverTile.flip;
+    });
+  }
+
   G.field   = st.field;
   G.turn    = st.turn;
   G.tphase  = st.tphase;
   G.phase   = st.phase;
-  G.selIdx  = -1;
+  // selIdxは枚数変化時のみリセット
+  if (localHand.length !== serverHand.length) G.selIdx = -1;
+
   st.scores.forEach((s,i) => {
     G.players[i].score = s.score;
     G.players[i].name  = s.name;
@@ -1269,6 +1286,7 @@ function renderStatus() {
     el.textContent = `${name} が考え中...`;
   }
 }
+
 // ============================================================
 //  牌HTML
 // ============================================================
@@ -1299,7 +1317,7 @@ function pickField(fi) {
   }
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
-  toast(`✅ pick送信 fi=${fi} code=${currentCode}`);
+
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
     return;
