@@ -916,12 +916,23 @@ function applyOnlineState(st){
 }
 
 function showOnlineWinMsg(wd){
-  const{winnerName,hand,role,pts,bonus,scores,isGameOver}=wd;
+  const{winnerIdx,winnerName,hand,role,pts,bonus,scores,isGameOver}=wd;
   const rows=scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
   const tiles=(hand||[]).map(t=>tileHTML(t,'','tile htile')).join('');
   const b=bonus||0;
   const bLine=b>0?`<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${b}=+${b}点 <span style="color:#a89878">(計+${pts+b}点)</span></div>`:'';
   const scJson=JSON.stringify(scores).replace(/"/g,"'");
+
+  // 自分が勝者かどうかで表示を変える
+  const isWinner = winnerIdx === myOnlineIdx;
+  const btnHtml = isGameOver
+    ? (isWinner
+        ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
+        : `<div style="color:#6a5830;margin-top:.8rem;font-size:.9rem">相手の操作をお待ちください...</div>`)
+    : (isWinner
+        ? `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`
+        : `<div style="color:#6a5830;margin-top:.8rem;font-size:.9rem">相手の操作をお待ちください...</div>`);
+
   document.getElementById('mbox').innerHTML=`
     <div class="mtitle">🎆 上がり！</div>
     <p style="color:#8a7860;font-size:.93rem">${esc(winnerName)} が役を完成</p>
@@ -929,9 +940,7 @@ function showOnlineWinMsg(wd){
     <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
-    ${isGameOver
-      ? `<button class="mbtn" onclick="showOnlineGameOver('${scJson}')">ゲーム終了を確認 →</button>`
-      : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
+    ${btnHtml}
   `;
   document.getElementById('modal').classList.add('open');
 }
