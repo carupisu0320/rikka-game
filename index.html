@@ -1259,11 +1259,16 @@ function renderHand() {
 function renderStatus() {
   const el = document.getElementById('status');
   const isMyTurn = G.turn === myOnlineIdx;
-  // デバッグ情報を常時表示
-  el.textContent = `turn=${G.turn} myIdx=${myOnlineIdx} tphase=${G.tphase} phase=${G.phase}`;
   el.className = isMyTurn ? 'myturn' : 'boturn';
+  if (isMyTurn) {
+    el.textContent = G.tphase === 'pick'
+      ? '📥 場から好きな牌を1枚選んでください'
+      : '📤 捨てる牌を選んで「捨てる」 ／ 役が揃ったら「上がる！」';
+  } else {
+    const name = G.players[G.turn]?.name ?? '...';
+    el.textContent = `${name} が考え中...`;
+  }
 }
-
 // ============================================================
 //  牌HTML
 // ============================================================
