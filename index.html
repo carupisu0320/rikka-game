@@ -866,7 +866,6 @@ function joinRoom(){
 
 function applyOnlineState(st){
   myOnlineIdx = st.myIdx;
-  // 初回 or プレイヤー数が変わったときだけ再構築
   if (!G || G.players.length !== st.scores.length) {
     G = {
       players: st.scores.map(s => ({name:s.name, hand:[], score:s.score, isBot:false})),
@@ -874,28 +873,31 @@ function applyOnlineState(st){
     };
   }
 
-  // 手牌の更新:
-  //   - 枚数が変わった（引く・捨てる・ラウンド開始）→ サーバーの順番で全更新
-  //   - 枚数が同じ（反転のみ）→ ローカルの並び順を保持してflipだけ同期
   const serverHand = st.myHand;
   const localHand  = G.players[st.myIdx].hand;
-  if (localHand.length !== serverHand.length) {
-    // 枚数変化 → 全更新（並び順はサーバー準拠）
-    G.players[st.myIdx].hand = serverHand;
-  } else {
-    // 枚数同じ → ローカルの並び順を保ちつつ flip だけ同期
+
+  // ローカルとサーバーで全タイルIDが一致するか確認
+  const serverIds = new Set(serverHand.map(t => t.id));
+  const localIds  = new Set(localHand.map(t => t.id));
+  const sameSet   = serverHand.length === localHand.length &&
+                    serverHand.every(t => localIds.has(t.id));
+
+  if (sameSet) {
+    // 同じ牌 → ローカルの並び順を保持してflipだけ同期
     localHand.forEach(localTile => {
       const serverTile = serverHand.find(s => s.id === localTile.id);
       if (serverTile) localTile.flip = serverTile.flip;
     });
+  } else {
+    // 牌が変わった → サーバーの並び順で全更新
+    G.players[st.myIdx].hand = serverHand;
+    G.selIdx = -1;
   }
 
-  G.field   = st.field;
-  G.turn    = st.turn;
-  G.tphase  = st.tphase;
-  G.phase   = st.phase;
-  // selIdxは枚数変化時のみリセット
-  if (localHand.length !== serverHand.length) G.selIdx = -1;
+  G.field  = st.field;
+  G.turn   = st.turn;
+  G.tphase = st.tphase;
+  G.phase  = st.phase;
 
   st.scores.forEach((s,i) => {
     G.players[i].score = s.score;
@@ -1283,9 +1285,9 @@ function renderStatus() {
       : '📤 捨てる牌を選んで「捨てる」 ／ 役が揃ったら「上がる！」';
   } else {
     const name = G.players[G.turn]?.name ?? '...';
-    el.textContent = ${name} が考え中...;
+    el.textContent = `${name} が考え中...`;
   }
-} 
+}
 
 // ============================================================
 //  牌HTML
