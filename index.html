@@ -917,18 +917,27 @@ function applyOnlineState(st){
 }
 
 function showOnlineWinMsg(wd){
-  const{winnerIdx,winnerName,hand,role,pts,bonus,scores,isGameOver}=wd;
-  const rows=scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
-  const tiles=(hand||[]).map(t=>tileHTML(t,'','tile htile')).join('');
-  const b=bonus||0;
-  const bLine=b>0?`<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${b}=+${b}点 <span style="color:#a89878">(計+${pts+b}点)</span></div>`:'';
-  const scJson=JSON.stringify(scores).replace(/"/g,"'");
-  const iAm = Number(winnerIdx) === Number(myOnlineIdx);
+  const winnerIdx  = wd.winnerIdx;
+  const winnerName = wd.winnerName;
+  const hand       = wd.hand || [];
+  const role       = wd.role;
+  const pts        = wd.pts;
+  const bonus      = wd.bonus || 0;
+  const scores     = wd.scores || [];
+  const isGameOver = wd.isGameOver;
 
-  document.getElementById('mbox').innerHTML=`
+  const rows  = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
+  const tiles = hand.map(t=>tileHTML(t,'','tile htile')).join('');
+  const bLine = bonus > 0
+    ? `<div style="font-size:.88rem;color:#f5d040;margin-bottom:.7rem">★ 輝きボーナス×${bonus}=+${bonus}点</div>`
+    : '';
+  const iAm = Number(winnerIdx) === Number(myOnlineIdx);
+  const scJson = JSON.stringify(scores).replace(/"/g,"'");
+
+  document.getElementById('mbox').innerHTML = `
     <div class="mtitle">${iAm ? '🎆 上がり！' : '😔 相手の上がり'}</div>
     <p style="color:#8a7860;font-size:.93rem">${esc(winnerName)} が役を完成</p>
-    <div class="mrole">${role}</div>
+    <div class="mrole">${esc(role)}</div>
     <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
