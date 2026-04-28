@@ -817,13 +817,10 @@ function initSocket() {
   });
   socket.on('game_start',()=>{ onlineMode=true; showScreen('game'); });
   socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
-  socket.on('round_win',wd=>showOnlineWinMsg(wd));
-  socket.on('err',msg=>{ toast(msg); const js=document.getElementById('join-status'); if(js) js.textContent=msg; });
-  socket.on('player_left',({name})=>{
-    showModal(`<div class="mtitle">⚠ 退出</div>
-      <p style="color:#a89868;margin:.8rem 0">${esc(name)} が退出しました</p>
-      <button class="mbtn" onclick="location.reload()">最初からやり直す</button>`);
-  });
+socket.on('round_win', wd => {
+  toast('🎆 round_win受信: ' + wd.winnerName);
+  showOnlineWinMsg(wd);
+});
   socket.on('disconnect',()=>{
     if(onlineMode) showModal(`<div class="mtitle">⚠ 切断</div>
       <p style="color:#a89868;margin:.8rem 0">サーバーとの接続が切れました</p>
