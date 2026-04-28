@@ -865,6 +865,7 @@ function joinRoom(){
 }
 
 function applyOnlineState(st){
+  if (st.code) currentCode = st.code;
   myOnlineIdx = st.myIdx;
   if (!G || G.players.length !== st.scores.length) {
     G = {
