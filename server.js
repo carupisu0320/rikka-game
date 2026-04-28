@@ -78,7 +78,9 @@ function dealRound(room) {
   const deck = makeDeck(); let idx = 0;
   room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
   room.field = deck.slice(idx);
-  room.turn = 0; room.tphase = 'pick'; room.phase = 'playing';
+  room.turn = Math.floor(Math.random() * room.players.length); // ← ランダムに変更
+  room.tphase = 'pick';
+  room.phase = 'playing';
 }
 function sendState(room) {
   room.players.forEach((player, myIdx) => {
