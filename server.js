@@ -110,24 +110,24 @@ io.on('connection', socket => {
     queue.push({ id: socket.id, name });
     socket.emit('queued', { pos: queue.length });
 
-    if (queue.length >= 2) {
-      const [p1, p2] = [queue.shift(), queue.shift()];
-      const code = genCode();
-      const room = {
-        code, host: p1.id,
-        players: [
-          { id: p1.id, name: p1.name, hand: [], score: 0 },
-          { id: p2.id, name: p2.name, hand: [], score: 0 },
-        ],
-        field: [], turn: 0, tphase: 'pick', phase: 'playing',
-      };
-      rooms.set(code, room);
-      socket.join(code);
-      io.sockets.sockets.get(p2.id)?.join(code);
-      dealRound(room);
-      io.to(code).emit('matched', { code, names: room.players.map(p => p.name) });
-      sendState(room);
-    }
+if (queue.length >= 2) {
+  const [p1, p2] = [queue.shift(), queue.shift()];
+  const code = genCode();
+  const room = {
+    code, host: p1.id,
+    players: [
+      { id: p1.id, name: p1.name, hand: [], score: 0 },
+      { id: p2.id, name: p2.name, hand: [], score: 0 },
+    ],
+    field: [], turn: 0, tphase: 'pick', phase: 'playing',
+  };
+  rooms.set(code, room);
+  io.sockets.sockets.get(p1.id)?.join(code);  // ← p1を追加（これが抜けていた）
+  socket.join(code);                           // ← p2（現在のsocket）
+  dealRound(room);
+  io.to(code).emit('matched', { code, names: room.players.map(p => p.name) });
+  sendState(room);
+}
   });
 
   socket.on('cancel_queue', () => {
