@@ -1121,7 +1121,9 @@ function startGame() {
   for (let i = 0; i < bcnt; i++)
     players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
   G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'};
-  myOnlineIdx = 0; onlineMode = false;
+  myOnlineIdx = 0;
+  onlineMode  = false;
+  currentCode = '';
   dealRound();
   showScreen('game');
   render();
@@ -1308,18 +1310,11 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 //  プレイヤー操作（オンライン/ボット 共通ルーター）
 // ============================================================
 function pickField(fi) {
-  if (!G || G.phase !== 'playing') {
-    toast(`❌ フェーズ: ${G?.phase}`); return;
-  }
-  if (Number(G.turn) !== Number(myOnlineIdx)) {
-    toast(`❌ 相手のターン (turn=${G.turn} / 自分=${myOnlineIdx})`); return;
-  }
-  if (G.tphase !== 'pick') {
-    toast(`❌ tphase=${G.tphase}`); return;
-  }
+  if (!G || G.phase !== 'playing') return;
+  if (Number(G.turn) !== Number(myOnlineIdx)) return;
+  if (G.tphase !== 'pick') return;
   const p = G.players[myOnlineIdx];
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
-
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
     return;
