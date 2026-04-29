@@ -447,8 +447,7 @@ body{
 </div>
   <div class="fgroup">
     <label class="flabel">あなたの名前</label>
-    <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10">
-      oninput="saveCustomName()">
+    <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10" oninput="saveCustomName()">  
   </div>
 
   <!-- モード選択タブ -->
@@ -803,7 +802,8 @@ function switchTab(tab) {
 let gUser = {name:'', avatar:'', email:''};
 
 function onGoogleLogin(response) {
-  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
   gUser = {
     id: payload.sub,  // GoogleユーザーID
     name: payload.name || payload.given_name || 'プレイヤー',
