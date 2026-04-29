@@ -1,10 +1,20 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>六華（リッカ）</title>
 <style>
+.google-login-area{background:#1a1410;border:1px solid #3e2e1e;border-radius:10px;padding:1rem;margin-bottom:1rem;text-align:center;}
+.google-user-info{display:flex;align-items:center;gap:.75rem;background:#1a1410;border:1px solid #3e2e1e;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;}
+.google-avatar{width:42px;height:42px;border-radius:50%;border:2px solid #c9a84c;object-fit:cover;flex-shrink:0;}
+.google-user-name{font-size:1rem;color:#e8c97a;font-weight:700;}
+.google-user-email{font-size:.75rem;color:#6a5830;}
+.google-login-label{font-size:.82rem;color:#6a5830;margin-bottom:.65rem;}
+.google-logout-btn{background:transparent;border:1px solid #3e2e1e;color:#6a5830;padding:.3rem .8rem;border-radius:6px;font-size:.78rem;cursor:pointer;font-family:inherit;}
+.google-logout-btn:hover{border-color:#c9a84c;color:#c9a84c;}
+.spill-avatar{width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #4a9e8a;flex-shrink:0;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{
@@ -417,6 +427,24 @@ body{
     <div class="sp"></div><div class="sp"></div><div class="sp"></div>
     <div class="sp"></div><div class="sp"></div><div class="sp"></div>
   </div>
+  <!-- Google ログインエリア -->
+<div id="google-login-area" class="google-login-area">
+  <div class="google-login-label">Googleアカウントでログインするとアイコンが表示されます</div>
+  <div id="g_id_onload"
+    data-client_id="484492727545-9ithk5m2mglmu3erf76b3uuprmqnv30e.apps.googleusercontent.com"
+    data-callback="onGoogleLogin"
+    data-auto_select="false">
+  </div>
+  <div class="g_id_signin" data-type="standard" data-theme="filled_black" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left" data-width="300"></div>
+</div>
+<div id="google-user-info" class="google-user-info" style="display:none">
+  <img id="google-avatar" class="google-avatar" src="" alt="">
+  <div>
+    <div id="google-display-name" class="google-user-name"></div>
+    <div id="google-display-email" class="google-user-email"></div>
+  </div>
+  <button class="google-logout-btn" onclick="googleLogout()">ログアウト</button>
+</div>
   <div class="fgroup">
     <label class="flabel">あなたの名前</label>
     <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10">
@@ -771,7 +799,25 @@ function switchTab(tab) {
     initSocket();
   }
 }
+let gUser = {name:'', avatar:'', email:''};
 
+function onGoogleLogin(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  gUser = {name: payload.name||payload.given_name||'プレイヤー', avatar: payload.picture||'', email: payload.email||''};
+  document.getElementById('pname').value = gUser.name;
+  document.getElementById('google-login-area').style.display = 'none';
+  document.getElementById('google-user-info').style.display = 'flex';
+  document.getElementById('google-avatar').src = gUser.avatar;
+  document.getElementById('google-display-name').textContent = gUser.name;
+  document.getElementById('google-display-email').textContent = gUser.email;
+}
+function googleLogout() {
+  gUser = {name:'', avatar:'', email:''};
+  document.getElementById('google-login-area').style.display = '';
+  document.getElementById('google-user-info').style.display = 'none';
+  document.getElementById('pname').value = 'プレイヤー';
+  google.accounts.id.disableAutoSelect();
+}
 function initSocket() {
   if(socket&&socket.connected) return;
   if(socket){socket.disconnect();socket=null;}
@@ -1171,10 +1217,13 @@ function renderHeader() {
     G.players.map((p,i) => {
       const act = i === G.turn;
       const cls = act ? (p.isBot ? 'active-bot' : 'active-human') : '';
-      return `<div class="spill ${cls}">
-        <span class="sn">${esc(p.name)}</span>
-        <span class="sv">${p.score}</span>
-      </div>`;
+const av = (i===myOnlineIdx && gUser.avatar) ? gUser.avatar : '';
+const avatarHtml = av ? `<img class="spill-avatar" src="${av}" alt="">` : '';
+return `<div class="spill ${cls}">
+  ${avatarHtml}
+  <span class="sn">${esc(p.name)}</span>
+  <span class="sv">${p.score}</span>
+</div>`;
     }).join('');
 }
 
