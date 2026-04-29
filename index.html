@@ -448,6 +448,7 @@ body{
   <div class="fgroup">
     <label class="flabel">あなたの名前</label>
     <input id="pname" class="finput" type="text" value="プレイヤー" maxlength="10">
+      oninput="saveCustomName()">
   </div>
 
   <!-- モード選択タブ -->
@@ -803,12 +804,22 @@ let gUser = {name:'', avatar:'', email:''};
 
 function onGoogleLogin(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  gUser = {name: payload.name||payload.given_name||'プレイヤー', avatar: payload.picture||'', email: payload.email||''};
-  document.getElementById('pname').value = gUser.name;
+  gUser = {
+    id: payload.sub,  // GoogleユーザーID
+    name: payload.name || payload.given_name || 'プレイヤー',
+    avatar: payload.picture || '',
+    email: payload.email || ''
+  };
+
+  // 以前に保存したカスタム名があればそれを使う、なければGoogle名
+  const savedName = localStorage.getItem('rikka_name_' + gUser.id);
+  const displayName = savedName || gUser.name;
+
+  document.getElementById('pname').value = displayName;
   document.getElementById('google-login-area').style.display = 'none';
   document.getElementById('google-user-info').style.display = 'flex';
   document.getElementById('google-avatar').src = gUser.avatar;
-  document.getElementById('google-display-name').textContent = gUser.name;
+  document.getElementById('google-display-name').textContent = displayName;
   document.getElementById('google-display-email').textContent = gUser.email;
 }
 function googleLogout() {
@@ -817,6 +828,14 @@ function googleLogout() {
   document.getElementById('google-user-info').style.display = 'none';
   document.getElementById('pname').value = 'プレイヤー';
   google.accounts.id.disableAutoSelect();
+}
+function saveCustomName() {
+  if (!gUser.id) return;
+  const name = document.getElementById('pname').value.trim();
+  if (name) {
+    localStorage.setItem('rikka_name_' + gUser.id, name);
+    document.getElementById('google-display-name').textContent = name;
+  }
 }
 function initSocket() {
   if(socket&&socket.connected) return;
