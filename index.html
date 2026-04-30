@@ -812,6 +812,8 @@ function onGoogleLogin(response) {
     avatar: payload.picture || '',
     email: payload.email || ''
   };
+const savedAv = localStorage.getItem('rikka_avatar_' + gUser.id);
+if(savedAv){ gUser.avatar = savedAv; myAvatar = savedAv; }
 
   // 以前に保存したカスタム名があればそれを使う、なければGoogle名
   const savedName = localStorage.getItem('rikka_name_' + gUser.id);
@@ -992,7 +994,7 @@ function showOnlineWinMsg(wd){
   const bonus      = wd.bonus || 0;
   const scores     = wd.scores || [];
   const isGameOver = wd.isGameOver;
-
+  saveHistory(makeHistoryEntry(Number(winnerIdx)===Number(myOnlineIdx), role, pts+bonus, true));
   const rows  = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
   const tiles = hand.map(t=>tileHTML(t,'','tile htile')).join('');
   const bLine = bonus > 0
@@ -1571,6 +1573,7 @@ function scoreBots(hand) {
 // ============================================================
 //  勝利処理
 // ============================================================
+saveHistory(makeHistoryEntry(pi===myOnlineIdx, res.role, res.pts+bonus, onlineMode));
 function processWin(pi, res) {
   G.phase = 'roundEnd';
   const bonus = countZorome(G.players[pi].hand); // ゾロ目1枚=+1点
@@ -1694,6 +1697,114 @@ document.addEventListener('touchstart', e => {
 }, {passive:true});
 document.addEventListener('touchend',  () => clearTimeout(_lpt), {passive:true});
 document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true});
+// ── サイドバー ──
+function openSidebar(){
+  document.getElementById('sidebar').style.display='';
+  document.getElementById('sidebar-overlay').style.display='';
+  renderSidebarProfile();
+  renderHistory();
+}
+function closeSidebar(){
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('sidebar-overlay').style.display='none';
+}
+function renderSidebarProfile(){
+  const key = gUser.id ? 'rikka_avatar_'+gUser.id : 'rikka_avatar_guest';
+  const av = gUser.avatar || localStorage.getItem(key) || '';
+  const img = document.getElementById('sidebar-avatar-img');
+  const ph  = document.getElementById('sidebar-avatar-placeholder');
+  if(av){ img.src=av; img.style.display=''; ph.style.display='none'; }
+  else  { img.style.display='none'; ph.style.display=''; }
+}
+
+// アイコン貼り付け
+document.getElementById('icon-paste-area').addEventListener('paste', e=>{
+  const items = e.clipboardData?.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      const reader = new FileReader();
+      reader.onload = ev=>{
+        const dataUrl = ev.target.result;
+        gUser.avatar = dataUrl;
+        myAvatar = dataUrl;
+        const key = gUser.id ? 'rikka_avatar_'+gUser.id : 'rikka_avatar_guest';
+        localStorage.setItem(key, dataUrl);
+        renderSidebarProfile();
+        toast('アイコンを設定しました！');
+      };
+      reader.readAsDataURL(item.getAsFile());
+      break;
+    }
+  }
+});
+
+// ── 対戦履歴 ──
+function saveHistory(entry){
+  const h = JSON.parse(localStorage.getItem('rikka_history')||'[]');
+  h.unshift(entry);
+  if(h.length>10) h.length=10;
+  localStorage.setItem('rikka_history', JSON.stringify(h));
+}
+function renderHistory(){
+  const h = JSON.parse(localStorage.getItem('rikka_history')||'[]');
+  const el = document.getElementById('history-list');
+  if(!h.length){ el.innerHTML='<div style="color:#5a4820;font-size:.85rem;text-align:center;padding:.5rem">まだ対戦履歴がありません</div>'; return; }
+  el.innerHTML = h.map(r=>{
+    const c = r.won?'#60c870':'#e05050';
+    const mode = r.online?'🌐':'🤖';
+    const roleStr = r.won&&r.role ? `<div style="color:#e8c97a;font-size:.78rem">${r.role} +${r.pts}点</div>` : '';
+    return `<div style="padding:.5rem 0;border-bottom:1px solid #2a1e10">
+      <div style="display:flex;justify-content:space-between">
+        <span style="color:#8a7048;font-size:.78rem">${mode} ${r.date}</span>
+        <span style="color:${c};font-weight:700;font-size:.82rem">${r.won?'勝利':'敗北'}</span>
+      </div>
+      ${roleStr}
+      <div style="color:#6a5830;font-size:.75rem">${r.players.join(' vs ')}</div>
+    </div>`;
+  }).join('');
+}
+function makeHistoryEntry(won, role, pts, online){
+  return {
+    date: new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    won, role: won?role:null, pts: won?pts:null, online,
+    players: G.players.map(p=>p.name)
+  };
+}
 </script>
+<!-- ☰ ボタン -->
+<button id="menu-btn" onclick="openSidebar()" style="position:fixed;top:.7rem;left:.9rem;z-index:400;background:rgba(20,16,8,.85);border:1px solid #3e2e1e;border-radius:7px;color:#c9a84c;font-size:1.3rem;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;">☰</button>
+
+<!-- オーバーレイ -->
+<div id="sidebar-overlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:450;"></div>
+
+<!-- サイドパネル -->
+<div id="sidebar" style="display:none;position:fixed;top:0;left:0;width:290px;height:100vh;background:#1a1410;border-right:1px solid #3e2e1e;z-index:500;overflow-y:auto;padding:1.2rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+    <div style="font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.2rem;color:#e8c97a;letter-spacing:.1em">メニュー</div>
+    <button onclick="closeSidebar()" style="background:transparent;border:none;color:#8a7048;font-size:1.4rem;cursor:pointer">✕</button>
+  </div>
+  <!-- プロフィール -->
+  <div style="background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:1rem;margin-bottom:1rem">
+    <div style="font-size:.78rem;color:#8a7048;letter-spacing:.1em;margin-bottom:.7rem">― プロフィール ―</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">
+      <div style="position:relative;width:72px;height:72px;">
+        <div id="sidebar-avatar-placeholder" style="width:72px;height:72px;border-radius:50%;background:#2a1e12;border:2px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>
+        <img id="sidebar-avatar-img" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c9a84c;" src="" alt="">
+      </div>
+      <div style="font-size:.75rem;color:#6a5830;text-align:center">下のエリアをクリックして<br>Ctrl+V（スマホは長押し貼り付け）</div>
+      <div id="icon-paste-area" tabindex="0"
+        style="width:100%;padding:.6rem;background:#0d0a06;border:1px dashed #3e2e1e;border-radius:6px;font-size:.75rem;color:#5a4820;text-align:center;outline:none;cursor:pointer"
+        onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#3e2e1e'">
+        📋 ここをクリック → Ctrl+V で画像貼り付け
+      </div>
+    </div>
+  </div>
+  <!-- 対戦履歴 -->
+  <div style="background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:1rem">
+    <div style="font-size:.78rem;color:#8a7048;letter-spacing:.1em;margin-bottom:.7rem">― 対戦履歴（直近10件）―</div>
+    <div id="history-list"></div>
+  </div>
+</div>
 </body>
 </html>
