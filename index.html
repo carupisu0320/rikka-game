@@ -1718,20 +1718,24 @@ function renderSidebarProfile(){
 }
 
 // アイコン貼り付け
-document.getElementById('icon-paste-area').addEventListener('paste', e=>{
+document.addEventListener('paste', e => {
+  // サイドバーが開いているときだけ処理
+  if(document.getElementById('sidebar').style.display === 'none') return;
   const items = e.clipboardData?.items;
   if(!items) return;
   for(const item of items){
     if(item.type.startsWith('image/')){
       const reader = new FileReader();
-      reader.onload = ev=>{
+      reader.onload = ev => {
         const dataUrl = ev.target.result;
         gUser.avatar = dataUrl;
         myAvatar = dataUrl;
         const key = gUser.id ? 'rikka_avatar_'+gUser.id : 'rikka_avatar_guest';
         localStorage.setItem(key, dataUrl);
         renderSidebarProfile();
+        if(G) render();
         toast('アイコンを設定しました！');
+        document.getElementById('icon-paste-area').textContent='✅ 設定完了！';
       };
       reader.readAsDataURL(item.getAsFile());
       break;
@@ -1794,9 +1798,9 @@ function makeHistoryEntry(won, role, pts, online){
       </div>
       <div style="font-size:.75rem;color:#6a5830;text-align:center">下のエリアをクリックして<br>Ctrl+V（スマホは長押し貼り付け）</div>
       <div id="icon-paste-area" tabindex="0"
-        style="width:100%;padding:.6rem;background:#0d0a06;border:1px dashed #3e2e1e;border-radius:6px;font-size:.75rem;color:#5a4820;text-align:center;outline:none;cursor:pointer"
-        onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#3e2e1e'">
-        📋 ここをクリック → Ctrl+V で画像貼り付け
+        style="width:100%;padding:.7rem;background:#0d0a06;border:1px dashed #3e2e1e;border-radius:6px;font-size:.82rem;color:#c9a84c;text-align:center;cursor:pointer;outline:none"
+        onclick="this.focus();this.style.borderColor='#c9a84c';this.textContent='✅ フォーカス中 → Ctrl+V で貼り付け'">
+        📋 ここをクリック → Ctrl+V で貼り付け
       </div>
     </div>
   </div>
