@@ -1791,18 +1791,18 @@ function makeHistoryEntry(won, role, pts, online){
   <!-- プロフィール -->
   <div style="background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:1rem;margin-bottom:1rem">
     <div style="font-size:.78rem;color:#8a7048;letter-spacing:.1em;margin-bottom:.7rem">― プロフィール ―</div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">
-      <div style="position:relative;width:72px;height:72px;">
-        <div id="sidebar-avatar-placeholder" style="width:72px;height:72px;border-radius:50%;background:#2a1e12;border:2px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>
-        <img id="sidebar-avatar-img" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c9a84c;" src="" alt="">
-      </div>
-      <div style="font-size:.75rem;color:#6a5830;text-align:center">下のエリアをクリックして<br>Ctrl+V（スマホは長押し貼り付け）</div>
-      <div id="icon-paste-area" tabindex="0"
-        style="width:100%;padding:.7rem;background:#0d0a06;border:1px dashed #3e2e1e;border-radius:6px;font-size:.82rem;color:#c9a84c;text-align:center;cursor:pointer;outline:none"
-        onclick="this.focus();this.style.borderColor='#c9a84c';this.textContent='✅ フォーカス中 → Ctrl+V で貼り付け'">
-        📋 ここをクリック → Ctrl+V で貼り付け
-      </div>
-    </div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">
+  <div style="position:relative;width:72px;height:72px;" onclick="document.getElementById('icon-file-input').click()" style="cursor:pointer">
+    <div id="sidebar-avatar-placeholder" style="width:72px;height:72px;border-radius:50%;background:#2a1e12;border:2px dashed #c9a84c;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer">👤</div>
+    <img id="sidebar-avatar-img" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c9a84c;cursor:pointer;" src="" alt="">
+  </div>
+  <input id="icon-file-input" type="file" accept="image/*" style="display:none" onchange="onIconFileSelected(event)">
+  <button onclick="document.getElementById('icon-file-input').click()"
+    style="background:#2a1e12;border:1px solid #c9a84c;color:#c9a84c;padding:.5rem 1.2rem;border-radius:7px;font-family:inherit;font-size:.88rem;cursor:pointer">
+    📷 画像を選択
+  </button>
+  <div style="font-size:.72rem;color:#5a4820;text-align:center">アイコン画像をここから選べます</div>
+</div>
   </div>
   <!-- 対戦履歴 -->
   <div style="background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:1rem">
