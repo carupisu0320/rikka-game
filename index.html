@@ -27,11 +27,11 @@ body{
 
 /* ── LOBBY ── */
 #lobby{
-  align-items:center;overflow-y:auto;
+  align-items:center;justify-content:center;overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.09) 0%,transparent 60%);
 }
-.lobby-inner{width:100%;max-width:480px;padding:2rem 1.5rem 2rem;margin:auto;}
+.lobby-inner{width:100%;max-width:480px;padding:15rem 1.5rem 2rem;}
 .logo{text-align:center;margin-bottom:0.7rem}
 .logo-kanji{
   font-size:clamp(4rem,14vw,7rem);font-weight:700;color:#e8c97a;
@@ -435,7 +435,7 @@ body{
   <div id="g_id_onload"
     data-client_id="484492727545-9ithk5m2mglmu3erf76b3uuprmqnv30e.apps.googleusercontent.com"
     data-callback="onGoogleLogin"
-    data-auto_select="false"
+    data-auto_select="false">
   </div>
   <div class="g_id_signin" data-type="standard" data-theme="filled_black" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left" data-width="300"></div>
 </div>
@@ -806,23 +806,26 @@ let gUser = {name:'', avatar:'', email:''};
 function onGoogleLogin(response) {
   const base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
   const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-  gUser = {id:payload.sub, name:payload.name||payload.given_name||'プレイヤー', avatar:payload.picture||'', email:payload.email||''};
-  localStorage.setItem('rikka_guser', JSON.stringify({id:gUser.id, name:gUser.name, avatar:gUser.avatar, email:gUser.email}));
-  applyGoogleUser();
-}
-function applyGoogleUser() {
-  const savedName = localStorage.getItem('rikka_name_' + gUser.id) || gUser.name;
-  document.getElementById('pname').value = savedName;
+  gUser = {
+    id: payload.sub,  // GoogleユーザーID
+    name: payload.name || payload.given_name || 'プレイヤー',
+    avatar: payload.picture || '',
+    email: payload.email || ''
+  };
+
+  // 以前に保存したカスタム名があればそれを使う、なければGoogle名
+  const savedName = localStorage.getItem('rikka_name_' + gUser.id);
+  const displayName = savedName || gUser.name;
+
+  document.getElementById('pname').value = displayName;
   document.getElementById('google-login-area').style.display = 'none';
   document.getElementById('google-user-info').style.display = 'flex';
   document.getElementById('google-avatar').src = gUser.avatar;
-  document.getElementById('google-display-name').textContent = savedName;
+  document.getElementById('google-display-name').textContent = displayName;
   document.getElementById('google-display-email').textContent = gUser.email;
-  document.getElementById('lobby').scrollTop = 0;
 }
 function googleLogout() {
-  localStorage.removeItem('rikka_guser');
-  gUser = {id:'', name:'', avatar:'', email:''};
+  gUser = {name:'', avatar:'', email:''};
   document.getElementById('google-login-area').style.display = '';
   document.getElementById('google-user-info').style.display = 'none';
   document.getElementById('pname').value = 'プレイヤー';
@@ -845,6 +848,7 @@ function initSocket() {
 
   socket.on('connect',()=>{ setOnlineStatus('',''); });
   socket.on('connect_error',()=>{ setOnlineStatus('サーバーに接続できません。URLを確認してください。','#f07050'); });
+
   socket.on('queued',({pos})=>{
     setOnlineStatus(`⟳ マッチング中... (待機${pos}人)`,'#6fc4ae');
     document.getElementById('btn-cancel-quick').style.display='';
@@ -880,9 +884,10 @@ function initSocket() {
   });
   socket.on('game_start',()=>{ onlineMode=true; showScreen('game'); });
   socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
-  socket.on('round_win',wd=>showOnlineWinMsg(wd));
-  socket.on('err',msg=>toast(msg));
-  socket.on('player_left',({name})=>showModal(`<div class="mtitle">⚠ 退出</div><p style="color:#a89868;margin:.8rem 0">${esc(name)} が退出しました</p><button class="mbtn" onclick="location.reload()">最初からやり直す</button>`));
+socket.on('round_win', wd => {
+  toast('🎆 round_win受信: ' + wd.winnerName);
+  showOnlineWinMsg(wd);
+});
   socket.on('disconnect',()=>{
     if(onlineMode) showModal(`<div class="mtitle">⚠ 切断</div>
       <p style="color:#a89868;margin:.8rem 0">サーバーとの接続が切れました</p>
@@ -1644,7 +1649,6 @@ document.getElementById('rule-modal').addEventListener('click', function(e) {
 // ============================================================
 //  ユーティリティ
 // ============================================================
-function showModal(html){document.getElementById('mbox').innerHTML=html;document.getElementById('modal').classList.add('open');}
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1690,16 +1694,6 @@ document.addEventListener('touchstart', e => {
 }, {passive:true});
 document.addEventListener('touchend',  () => clearTimeout(_lpt), {passive:true});
 document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true});
-  // ページ読み込み時に前回のログイン状態を復元
-(function(){
-  const stored = localStorage.getItem('rikka_guser');
-  if (!stored) return;
-  try {
-    const u = JSON.parse(stored);
-    gUser = {id:u.id||'', name:u.name||'', avatar:u.avatar||'', email:u.email||''};
-    applyGoogleUser();
-  } catch(e) { localStorage.removeItem('rikka_guser'); }
-})();
 </script>
 </body>
 </html>
