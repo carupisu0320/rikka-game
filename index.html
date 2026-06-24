@@ -414,6 +414,21 @@ body{
   .tile{width:40px;height:66px}
   .tile .th,.tile .tb{font-size:1.05rem}
 }
+/* ── SIDEBAR ── */
+#menu-btn{position:fixed;top:.6rem;left:.75rem;z-index:400;
+  background:rgba(20,16,8,.92);border:1px solid #3e2e1e;border-radius:7px;
+  color:#c9a84c;font-size:1.2rem;width:36px;height:36px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:450}
+#sidebar{display:none;position:fixed;top:0;left:0;width:min(290px,85vw);height:100vh;
+  background:#1a1410;border-right:1px solid #3e2e1e;z-index:500;
+  overflow-y:auto;padding:1rem}
+.sb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.sb-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.1rem;color:#e8c97a;letter-spacing:.1em}
+.sb-close{background:transparent;border:none;color:#8a7048;font-size:1.4rem;cursor:pointer;padding:.2rem}
+.sb-section{background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:.9rem;margin-bottom:.8rem}
+.sb-section-title{font-size:.74rem;color:#8a7048;letter-spacing:.12em;margin-bottom:.65rem;
+  border-bottom:1px solid #2a1e10;padding-bottom:.3rem}
 </style>
 </head>
 <body>
@@ -634,6 +649,39 @@ body{
 </div>
 
 <!-- ── 勝利/ゲームオーバーモーダル ── -->
+  <!-- ☰ メニューボタン -->
+<button id="menu-btn" onclick="openSidebar()">☰</button>
+
+<!-- サイドバー -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div id="sidebar">
+  <div class="sb-header">
+    <div class="sb-title">メニュー</div>
+    <button class="sb-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-title">― 開発者コード ―</div>
+    <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
+      <input id="dev-code-input" class="finput" type="password"
+        placeholder="コードを入力" maxlength="10"
+        style="font-size:.9rem;padding:.6rem .8rem"
+        onkeydown="if(event.key==='Enter')checkDevCode()">
+      <button onclick="checkDevCode()"
+        style="padding:.6rem .9rem;border:none;border-radius:8px;
+               background:#2a2010;border:1px solid #4a3820;color:#c9a84c;
+               font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap">
+        確認
+      </button>
+    </div>
+    <div id="dev-tools" style="display:none">
+      <button onclick="applyDevRikka()" class="lbtn"
+        style="background:linear-gradient(135deg,#6a4aad,#3a1a7d);color:#e8d8ff;font-size:.9rem;padding:.7rem">
+        ✨ 六華を強制セット
+      </button>
+    </div>
+    <div id="dev-msg" style="font-size:.78rem;text-align:center;margin-top:.4rem;min-height:1.1em"></div>
+  </div>
+</div>
 <div id="toast"></div>
 <div id="modal"><div class="mbox" id="mbox"></div></div>
 
@@ -1699,6 +1747,50 @@ document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true})
     applyGoogleUser();
   } catch(e) { localStorage.removeItem('rikka_guser'); }
 })();
+// ============================================================
+//  サイドバー・開発者ツール
+// ============================================================
+function openSidebar(){
+  document.getElementById('sidebar').style.display='';
+  document.getElementById('sidebar-overlay').style.display='';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('sidebar-overlay').style.display='none';
+}
+
+let devUnlocked=false;
+function checkDevCode(){
+  const code=document.getElementById('dev-code-input').value;
+  const msg=document.getElementById('dev-msg');
+  if(code==='4591'){
+    devUnlocked=true;
+    document.getElementById('dev-tools').style.display='';
+    document.getElementById('dev-code-input').value='';
+    msg.style.color='#60c870';msg.textContent='✓ 開発者モード解放';
+  } else {
+    msg.style.color='#e05050';msg.textContent='✗ コードが違います';
+    setTimeout(()=>msg.textContent='',2000);
+  }
+}
+function applyDevRikka(){
+  if(!G||G.phase!=='playing'){toast('ゲーム中のみ使用可能');return;}
+  if(onlineMode){
+    socket?.emit('dev_rikka',{code:currentCode});
+    closeSidebar();
+    toast('✨ 六華を強制セット！');
+    return;
+  }
+  G.players[myOnlineIdx].hand=Array.from({length:6},(_,i)=>({
+    id:9000+i, top:i+1, bot:3, flip:false, discarded:false
+  }));
+  G.turn=myOnlineIdx;
+  G.tphase='discard';
+  G.selIdx=-1;
+  render();
+  closeSidebar();
+  toast('✨ 六華を強制セット！');
+}
 </script>
 </body>
 </html>
