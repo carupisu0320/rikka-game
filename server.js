@@ -213,7 +213,24 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const t = room.players[pi].hand.find(t => t.id === tileId);
     if (t) { t.flip = !t.flip; sendState(room); }
   });
-
+  function applyDevRikka(){
+  if(!G||G.phase!=='playing'){toast('ゲーム中のみ使用可能');return;}
+  if(onlineMode){
+    socket?.emit('dev_rikka',{code:currentCode});
+    closeSidebar();
+    toast('✨ 六華を強制セット！');
+    return;
+  }
+  G.players[myOnlineIdx].hand=Array.from({length:6},(_,i)=>({
+    id:9000+i, top:i+1, bot:3, flip:false, discarded:false
+  }));
+  G.turn=myOnlineIdx;
+  G.tphase='discard';
+  G.selIdx=-1;
+  render();
+  closeSidebar();
+  toast('✨ 六華を強制セット！');
+}
   // 上がり
   socket.on('win', ({ code }) => {
     const room = rooms.get(code);
