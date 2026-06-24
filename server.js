@@ -213,24 +213,19 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const t = room.players[pi].hand.find(t => t.id === tileId);
     if (t) { t.flip = !t.flip; sendState(room); }
   });
-  function applyDevRikka(){
-  if(!G||G.phase!=='playing'){toast('ゲーム中のみ使用可能');return;}
-  if(onlineMode){
-    socket?.emit('dev_rikka',{code:currentCode});
-    closeSidebar();
-    toast('✨ 六華を強制セット！');
-    return;
-  }
-  G.players[myOnlineIdx].hand=Array.from({length:6},(_,i)=>({
-    id:9000+i, top:i+1, bot:3, flip:false, discarded:false
-  }));
-  G.turn=myOnlineIdx;
-  G.tphase='discard';
-  G.selIdx=-1;
-  render();
-  closeSidebar();
-  toast('✨ 六華を強制セット！');
-}
+// 開発者ツール: 六華強制セット
+  socket.on('dev_rikka', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi === -1) return;
+    room.players[pi].hand = Array.from({length:6}, (_, i) => ({
+      id: 9000 + i, top: i + 1, bot: 3, flip: false, discarded: false
+    }));
+    room.turn = pi;
+    room.tphase = 'discard';
+    sendState(room);
+  });
   // 上がり
   socket.on('win', ({ code }) => {
     const room = rooms.get(code);
