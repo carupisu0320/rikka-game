@@ -781,6 +781,7 @@ let socket      = null;
 let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
+let _pendingScores = null;
 
 function myName() { return document.getElementById('pname').value.trim() || 'プレイヤー'; }
 
@@ -1002,16 +1003,14 @@ function showOnlineWinMsg(wd){
     <div class="mpts">役: +${pts}点</div>${bLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
-  ${isGameOver
-    ? `<button class="mbtn" onclick="showOnlineGameOver(${JSON.stringify(scores)})">ゲーム終了を確認 →</button>`
+${(_pendingScores = scores, isGameOver)
+    ? `<button class="mbtn" onclick="showOnlineGameOver()">ゲーム終了を確認 →</button>`
     : `<button class="mbtn" onclick="doNextOnlineRound()">次のラウンドへ →</button>`}
   `;
   document.getElementById('modal').classList.add('open');
 }
-function showOnlineGameOver(scoresRaw){
-  const scores = typeof scoresRaw === 'string'
-    ? JSON.parse(scoresRaw.replace(/'/g,'"'))
-    : scoresRaw;
+function showOnlineGameOver(){
+  const scores = _pendingScores || [];
   const winner = scores.reduce((a,b) => a.score > b.score ? a : b);
   const rows = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
   document.getElementById('mbox').innerHTML = `
