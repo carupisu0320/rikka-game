@@ -429,6 +429,12 @@ body{
 .sb-section{background:#141008;border:1px solid #3e2e1e;border-radius:10px;padding:.9rem;margin-bottom:.8rem}
 .sb-section-title{font-size:.74rem;color:#8a7048;letter-spacing:.12em;margin-bottom:.65rem;
   border-bottom:1px solid #2a1e10;padding-bottom:.3rem}
+/* ── アイコン編集モーダル ── */
+#icon-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
+  align-items:center;justify-content:center;z-index:600;backdrop-filter:blur(4px)}
+#icon-modal.open{display:flex}
+.icon-mbox{background:#1a1410;border:1.5px solid #4a3018;border-radius:16px;
+  padding:1.8rem;max-width:360px;width:92%;text-align:center;animation:mboxin .25s ease-out}
 </style>
 </head>
 <body>
@@ -667,6 +673,24 @@ body{
     </button>
   </div>
   <div class="sb-section">
+    <div class="sb-section-title">― プロフィール ―</div>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div id="sb-avatar-wrap" onclick="openIconModal()"
+        style="width:52px;height:52px;border-radius:50%;background:#2a1e12;border:2px solid #c9a84c;
+               display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+               flex-shrink:0;cursor:pointer;overflow:hidden">👤</div>
+      <div>
+        <div id="sb-name" style="font-size:1rem;color:#e8c97a;font-weight:700">プレイヤー</div>
+        <div id="sb-email" style="font-size:.7rem;color:#6a5830"></div>
+        <button onclick="openIconModal()"
+          style="margin-top:.3rem;background:transparent;border:1px solid #3e2e1e;color:#8a7048;
+                 border-radius:5px;padding:.18rem .6rem;font-size:.72rem;cursor:pointer;font-family:inherit">
+          アイコン変更
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="sb-section">
     <div class="sb-section-title">― 開発者コード ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
       <input id="dev-code-input" class="finput" type="password"
@@ -690,6 +714,30 @@ body{
   </div>
 </div>
 <div id="toast"></div>
+  <!-- アイコン編集モーダル -->
+<div id="icon-modal">
+  <div class="icon-mbox">
+    <div style="font-size:1rem;color:#c9a84c;font-weight:700;letter-spacing:.1em;margin-bottom:1rem">ICON EDIT</div>
+    <div id="icon-preview-wrap" style="width:80px;height:80px;border-radius:50%;background:#2a1e12;
+      border:2px solid #c9a84c;display:flex;align-items:center;justify-content:center;
+      font-size:2rem;margin:0 auto .9rem;overflow:hidden">👤</div>
+    <div style="font-size:.78rem;color:#8a7048;margin-bottom:.4rem;text-align:left">画像URLを入力</div>
+    <input id="icon-url-input" class="finput" type="text"
+      placeholder="https://example.com/avatar.png"
+      style="margin-bottom:.45rem" oninput="previewIcon()">
+    <div style="font-size:.72rem;color:#5a4820;margin-bottom:.9rem">URLを入力するとプレビューが表示されます</div>
+    <div style="display:flex;gap:.5rem">
+      <button onclick="saveIcon()" class="mbtn" style="margin-top:0;flex:1">保存</button>
+      <button onclick="resetIcon()"
+        style="flex:.5;padding:.82rem;border:1.5px solid #e02020;border-radius:9px;
+               background:transparent;color:#e02020;font-family:inherit;font-size:.95rem;
+               font-weight:700;cursor:pointer">リセット</button>
+    </div>
+    <button onclick="closeIconModal()"
+      style="display:block;width:100%;margin-top:.5rem;background:transparent;border:none;
+             color:#5a4820;font-family:inherit;font-size:.85rem;cursor:pointer">キャンセル</button>
+  </div>
+</div>
 <div id="modal"><div class="mbox" id="mbox"></div></div>
 
 <!-- ── ルールブックモーダル ── -->
@@ -1287,7 +1335,7 @@ function renderHeader() {
     G.players.map((p,i) => {
       const act = i === G.turn;
       const cls = act ? (p.isBot ? 'active-bot' : 'active-human') : '';
-const av = (i===myOnlineIdx && gUser.avatar) ? gUser.avatar : '';
+const av = i===myOnlineIdx ? (customAvatarUrl || gUser.avatar || '') : '';
 const avatarHtml = av ? `<img class="spill-avatar" src="${av}" alt="">` : '';
 return `<div class="spill ${cls}">
   ${avatarHtml}
@@ -1757,9 +1805,48 @@ document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true})
 // ============================================================
 //  サイドバー・開発者ツール
 // ============================================================
+let customAvatarUrl = localStorage.getItem('rikka_avatar') || '';
+
 function openSidebar(){
   document.getElementById('sidebar').style.display='block';
   document.getElementById('sidebar-overlay').style.display='block';
+  const name = document.getElementById('pname').value || 'プレイヤー';
+  document.getElementById('sb-name').textContent = name;
+  document.getElementById('sb-email').textContent = gUser.email || '';
+  updateAvatarDisplay();
+}
+function updateAvatarDisplay(){
+  const wrap = document.getElementById('sb-avatar-wrap');
+  const av = customAvatarUrl || gUser.avatar || '';
+  if(av) wrap.innerHTML = `<img src="${av}" style="width:52px;height:52px;border-radius:50%;object-fit:cover" alt="">`;
+  else { const name=document.getElementById('pname').value||'プレイヤー'; wrap.innerHTML=name[0]||'👤'; }
+}
+function openIconModal(){
+  document.getElementById('icon-modal').classList.add('open');
+  document.getElementById('icon-url-input').value = customAvatarUrl;
+  previewIcon();
+}
+function closeIconModal(){ document.getElementById('icon-modal').classList.remove('open'); }
+function previewIcon(){
+  const url = document.getElementById('icon-url-input').value.trim();
+  const wrap = document.getElementById('icon-preview-wrap');
+  if(url) wrap.innerHTML=`<img src="${url}" style="width:80px;height:80px;object-fit:cover" alt="" onerror="this.parentNode.innerHTML='👤'">`;
+  else wrap.innerHTML='👤';
+}
+function saveIcon(){
+  customAvatarUrl = document.getElementById('icon-url-input').value.trim();
+  if(customAvatarUrl) localStorage.setItem('rikka_avatar', customAvatarUrl);
+  else localStorage.removeItem('rikka_avatar');
+  updateAvatarDisplay();
+  closeIconModal();
+  toast('アイコンを更新しました！');
+}
+function resetIcon(){
+  customAvatarUrl='';
+  localStorage.removeItem('rikka_avatar');
+  document.getElementById('icon-url-input').value='';
+  previewIcon();
+  updateAvatarDisplay();
 }
 function closeSidebar(){
   document.getElementById('sidebar').style.display='none';
