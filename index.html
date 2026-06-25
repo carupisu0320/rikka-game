@@ -696,8 +696,7 @@ body{
       </div>
     </div>
   </div>
-  <div class="sb-section">
-    <div class="sb-section">
+<div class="sb-section">
     <div class="sb-section-title">― 戦績 ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.6rem">
       <button id="stats-tab-bot" onclick="switchStatsTab('bot')"
@@ -911,6 +910,7 @@ let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
 let _pendingScores = null;
+let customAvatarUrl = '';
 
 function myName() { return document.getElementById('pname').value.trim() || 'プレイヤー'; }
 
@@ -1838,8 +1838,6 @@ document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true})
 // ============================================================
 //  サイドバー・開発者ツール
 // ============================================================
-let customAvatarUrl = localStorage.getItem('rikka_avatar') || '';
-
 let currentStatsTab = 'bot';
 
 function makeHistoryEntry(won, role, pts, online, players) {
