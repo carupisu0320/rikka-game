@@ -945,10 +945,14 @@ function applyGoogleUser() {
   document.getElementById('pname').value = savedName;
   document.getElementById('google-login-area').style.display = 'none';
   document.getElementById('google-user-info').style.display = 'flex';
-  document.getElementById('google-avatar').src = gUser.avatar;
   document.getElementById('google-display-name').textContent = savedName;
   document.getElementById('google-display-email').textContent = gUser.email;
   document.getElementById('lobby').scrollTop = 0;
+  updateLobbyAvatar();
+}
+function updateLobbyAvatar() {
+  const av = customAvatarUrl || gUser.avatar || '';
+  document.getElementById('google-avatar').src = av;
 }
 function googleLogout() {
   localStorage.removeItem('rikka_guser');
@@ -1822,6 +1826,7 @@ document.addEventListener('touchend',  () => clearTimeout(_lpt), {passive:true})
 document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true});
   // ページ読み込み時に前回のログイン状態を復元
 (function(){
+  customAvatarUrl = localStorage.getItem('rikka_avatar') || '';
   const stored = localStorage.getItem('rikka_guser');
   if (!stored) return;
   try {
@@ -1923,6 +1928,7 @@ function saveIcon(){
   if(customAvatarUrl) localStorage.setItem('rikka_avatar', customAvatarUrl);
   else localStorage.removeItem('rikka_avatar');
   updateAvatarDisplay();
+  updateLobbyAvatar();
   closeIconModal();
   toast('アイコンを更新しました！');
 }
@@ -1932,6 +1938,7 @@ function resetIcon(){
   document.getElementById('icon-url-input').value='';
   previewIcon();
   updateAvatarDisplay();
+  updateLobbyAvatar();
 }
 function closeSidebar(){
   document.getElementById('sidebar').style.display='none';
