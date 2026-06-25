@@ -402,6 +402,12 @@ body{
 }
 .rbook-close:hover{background:#3a3018;border-color:#c9a84c}
 
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-bottom:.6rem}
+.stat-card{background:#0d0a06;border:1px solid #3e2e1e;border-radius:8px;padding:.55rem .6rem;text-align:center}
+.stat-card-title{font-size:.68rem;color:#6a5830;letter-spacing:.06em;margin-bottom:.3rem}
+.stat-card-val{font-size:1.25rem;color:#e8c97a;font-weight:700}
+.history-item{padding:.4rem 0;border-bottom:1px solid #1e1208;font-size:.78rem}
+.history-item:last-child{border-bottom:none}
 /* scrollbar */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -691,6 +697,26 @@ body{
     </div>
   </div>
   <div class="sb-section">
+    <div class="sb-section">
+    <div class="sb-section-title">― 戦績 ―</div>
+    <div style="display:flex;gap:.4rem;margin-bottom:.6rem">
+      <button id="stats-tab-bot" onclick="switchStatsTab('bot')"
+        style="flex:1;padding:.38rem;border:none;border-radius:6px;font-family:inherit;
+               font-size:.78rem;font-weight:700;cursor:pointer;
+               background:linear-gradient(135deg,#c9a84c,#a07020);color:#160e00">
+        🤖 ボット
+      </button>
+      <button id="stats-tab-online" onclick="switchStatsTab('online')"
+        style="flex:1;padding:.38rem;border:none;border-radius:6px;font-family:inherit;
+               font-size:.78rem;font-weight:700;cursor:pointer;
+               background:#1a1410;color:#6a5830">
+        🌐 オンライン
+      </button>
+    </div>
+    <div id="stats-content"></div>
+    <div class="sb-section-title" style="margin-top:.6rem;border-top:1px solid #2a1e10;padding-top:.5rem">― 最近の対戦 ―</div>
+    <div id="history-list-sb"></div>
+  </div>
     <div class="sb-section-title">― 開発者コード ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
       <input id="dev-code-input" class="finput" type="password"
@@ -1083,6 +1109,7 @@ function applyOnlineState(st){
 }
 
 function showOnlineWinMsg(wd){
+  saveHistory(makeHistoryEntry(Number(wd.winnerIdx)===Number(myOnlineIdx), wd.role, (wd.pts||0)+(wd.bonus||0), true, (wd.scores||[]).map(s=>s.name)));
   const winnerIdx  = wd.winnerIdx;
   const winnerName = wd.winnerName;
   const hand       = wd.hand || [];
@@ -1670,9 +1697,10 @@ function scoreBots(hand) {
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  const bonus = countZorome(G.players[pi].hand); // ゾロ目1枚=+1点
+  const bonus = countZorome(G.players[pi].hand);
   res.bonus = bonus;
   G.players[pi].score += res.pts + bonus;
+  saveHistory(makeHistoryEntry(pi===myOnlineIdx, res.role, res.pts+bonus, false, G.players.map(p=>p.name)));
   showWinModal(G.players[pi], res);
 }
 
@@ -1807,13 +1835,70 @@ document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true})
 // ============================================================
 let customAvatarUrl = localStorage.getItem('rikka_avatar') || '';
 
+let currentStatsTab = 'bot';
+
+function makeHistoryEntry(won, role, pts, online, players) {
+  return {
+    date: new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    won, role: won ? role : null, pts: won ? pts : null, online, players
+  };
+}
+function saveHistory(entry) {
+  const h = JSON.parse(localStorage.getItem('rikka_history') || '[]');
+  h.unshift(entry);
+  if (h.length > 30) h.length = 30;
+  localStorage.setItem('rikka_history', JSON.stringify(h));
+}
+function switchStatsTab(tab) {
+  currentStatsTab = tab;
+  const GOLD='linear-gradient(135deg,#c9a84c,#a07020)',TEAL='linear-gradient(135deg,#2a9e8e,#1a6e60)',BASE='#1a1410';
+  document.getElementById('stats-tab-bot').style.background = tab==='bot' ? GOLD : BASE;
+  document.getElementById('stats-tab-bot').style.color = tab==='bot' ? '#160e00' : '#6a5830';
+  document.getElementById('stats-tab-online').style.background = tab==='online' ? TEAL : BASE;
+  document.getElementById('stats-tab-online').style.color = tab==='online' ? '#e0fff8' : '#6a5830';
+  renderSidebarStats();
+}
+function renderSidebarStats() {
+  const h = JSON.parse(localStorage.getItem('rikka_history') || '[]');
+  const isOnline = currentStatsTab === 'online';
+  const filtered = h.filter(r => r.online === isOnline);
+  const wins = filtered.filter(r => r.won).length;
+  const total = filtered.length;
+  const rate = total > 0 ? Math.round(wins / total * 100) : 0;
+  const roles = {'六華':0,'三連':0,'一色':0};
+  filtered.filter(r => r.won && r.role).forEach(r => { if(roles[r.role]!==undefined) roles[r.role]++; });
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-title">対戦数</div><div class="stat-card-val">${total}</div></div>
+      <div class="stat-card"><div class="stat-card-title">勝利数</div><div class="stat-card-val">${wins}</div></div>
+      <div class="stat-card"><div class="stat-card-title">勝率</div><div class="stat-card-val">${rate}%</div></div>
+      <div class="stat-card"><div class="stat-card-title">役内訳(勝)</div>
+        <div style="font-size:.68rem;color:#8a7048;margin-top:.2rem">
+          六華 ${roles['六華']} / 三連 ${roles['三連']} / 一色 ${roles['一色']}
+        </div>
+      </div>
+    </div>`;
+  const el = document.getElementById('history-list-sb');
+  const recent = filtered.slice(0, 10);
+  if (!recent.length) { el.innerHTML='<div style="color:#5a4820;font-size:.76rem;text-align:center;padding:.4rem">まだ対戦履歴がありません</div>'; return; }
+  el.innerHTML = recent.map(r => `
+    <div class="history-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#8a7048;font-size:.7rem">${r.date}</span>
+        <span style="color:${r.won?'#60c870':'#e05050'};font-weight:700;font-size:.78rem">${r.won?'勝利':'敗北'}</span>
+      </div>
+      ${r.won&&r.role?`<div style="color:#e8c97a;font-size:.72rem">${r.role} +${r.pts}点</div>`:''}
+      <div style="color:#6a5830;font-size:.7rem">${(r.players||[]).map(esc).join(' vs ')}</div>
+    </div>`).join('');
+}
 function openSidebar(){
   document.getElementById('sidebar').style.display='block';
   document.getElementById('sidebar-overlay').style.display='block';
-  const name = document.getElementById('pname').value || 'プレイヤー';
-  document.getElementById('sb-name').textContent = name;
-  document.getElementById('sb-email').textContent = gUser.email || '';
+  const name=document.getElementById('pname').value||'プレイヤー';
+  document.getElementById('sb-name').textContent=name;
+  document.getElementById('sb-email').textContent=gUser.email||'';
   updateAvatarDisplay();
+  renderSidebarStats();
 }
 function updateAvatarDisplay(){
   const wrap = document.getElementById('sb-avatar-wrap');
