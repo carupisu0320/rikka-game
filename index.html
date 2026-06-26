@@ -408,7 +408,20 @@ body{
 .stat-card-val{font-size:1.25rem;color:#e8c97a;font-weight:700}
 .history-item{padding:.4rem 0;border-bottom:1px solid #1e1208;font-size:.78rem}
 .history-item:last-child{border-bottom:none}
-/* scrollbar */
+/* ── 牌裏テーマ ── */
+body.back-blue .fback{background:linear-gradient(165deg,#0a1830 0%,#040c1e 100%);border-color:#2a4a7a}
+body.back-blue .fback::before{background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(80,160,255,.07) 4px,rgba(80,160,255,.07) 5px)}
+body.back-blue .fback::after{color:rgba(80,160,255,.25)}
+body.back-red .fback{background:linear-gradient(165deg,#2e0a0a 0%,#160404 100%);border-color:#7a2a2a}
+body.back-red .fback::before{background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,80,80,.07) 4px,rgba(255,80,80,.07) 5px)}
+body.back-red .fback::after{color:rgba(255,80,80,.25)}
+body.back-green .fback{background:linear-gradient(165deg,#0a2010 0%,#041006 100%);border-color:#2a6a3a}
+body.back-green .fback::before{background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(80,200,100,.07) 4px,rgba(80,200,100,.07) 5px)}
+body.back-green .fback::after{color:rgba(80,200,100,.25)}
+body.back-purple .fback{background:linear-gradient(165deg,#1a0a2e 0%,#0a0416 100%);border-color:#5a2a8a}
+body.back-purple .fback::before{background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(160,80,255,.07) 4px,rgba(160,80,255,.07) 5px)}
+body.back-purple .fback::after{color:rgba(160,80,255,.25)}
+  /* scrollbar */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#3a2a1a;border-radius:2px}
@@ -688,11 +701,14 @@ body{
       <div>
         <div id="sb-name" style="font-size:1rem;color:#e8c97a;font-weight:700">プレイヤー</div>
         <div id="sb-email" style="font-size:.7rem;color:#6a5830"></div>
-        <button onclick="openIconModal()"
-          style="margin-top:.3rem;background:transparent;border:1px solid #3e2e1e;color:#8a7048;
-                 border-radius:5px;padding:.18rem .6rem;font-size:.72rem;cursor:pointer;font-family:inherit">
-          アイコン変更
-        </button>
+<div style="margin-top:.5rem;font-size:.7rem;color:#6a5830;margin-bottom:.3rem">牌の裏デザイン</div>
+        <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+          <button onclick="setBackTheme('')"     style="padding:.2rem .45rem;border-radius:5px;border:1px solid #5a4028;background:#2e2018;color:#c9a84c;font-size:.7rem;cursor:pointer">金茶</button>
+          <button onclick="setBackTheme('blue')"   style="padding:.2rem .45rem;border-radius:5px;border:1px solid #2a4a7a;background:#0a1830;color:#50a0ff;font-size:.7rem;cursor:pointer">瑠璃</button>
+          <button onclick="setBackTheme('red')"    style="padding:.2rem .45rem;border-radius:5px;border:1px solid #7a2a2a;background:#2e0a0a;color:#ff5050;font-size:.7rem;cursor:pointer">紅</button>
+          <button onclick="setBackTheme('green')"  style="padding:.2rem .45rem;border-radius:5px;border:1px solid #2a6a3a;background:#0a2010;color:#50c864;font-size:.7rem;cursor:pointer">翠</button>
+          <button onclick="setBackTheme('purple')" style="padding:.2rem .45rem;border-radius:5px;border:1px solid #5a2a8a;background:#1a0a2e;color:#a050ff;font-size:.7rem;cursor:pointer">紫</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1827,6 +1843,8 @@ document.addEventListener('touchmove', () => clearTimeout(_lpt), {passive:true})
   // ページ読み込み時に前回のログイン状態を復元
 (function(){
   customAvatarUrl = localStorage.getItem('rikka_avatar') || '';
+  const bt = localStorage.getItem('rikka_back_theme');
+  if(bt) document.body.classList.add('back-'+bt);
   const stored = localStorage.getItem('rikka_guser');
   if (!stored) return;
   try {
@@ -1893,6 +1911,12 @@ function renderSidebarStats() {
       ${r.won&&r.role?`<div style="color:#e8c97a;font-size:.72rem">${r.role} +${r.pts}点</div>`:''}
       <div style="color:#6a5830;font-size:.7rem">${(r.players||[]).map(esc).join(' vs ')}</div>
     </div>`).join('');
+}
+  function setBackTheme(theme){
+  document.body.className=document.body.className
+    .replace(/\bback-\w+/g,'').trim();
+  if(theme) document.body.classList.add('back-'+theme);
+  localStorage.setItem('rikka_back_theme', theme);
 }
 function openSidebar(){
   document.getElementById('sidebar').style.display='block';
