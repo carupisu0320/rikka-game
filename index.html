@@ -920,7 +920,8 @@ const WIN_SCORE = 10;
 
 // ★ Render.comにデプロイ後、このURLを自分のサーバーURLに変更してください ★
 const SERVER_URL = 'https://rikka-game.onrender.com';
-// ページ読み込み時にサーバーをウォームアップ
+fetch(SERVER_URL).catch(()=>{});
+  // ページ読み込み時にサーバーをウォームアップ
 fetch(SERVER_URL).catch(()=>{});
 
 let socket      = null;
