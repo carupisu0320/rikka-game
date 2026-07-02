@@ -152,12 +152,14 @@ if (queue.length >= 2) {
   });
 
   // ルーム参加
-  socket.on('join_room', ({ name, code }) => {
+socket.on('join_room', ({ name, code }) => {
     const c = (code || '').toUpperCase().trim();
     const room = rooms.get(c);
     if (!room)                    { socket.emit('err', '部屋が見つかりません'); return; }
     if (room.phase !== 'waiting') { socket.emit('err', 'ゲームはすでに始まっています'); return; }
     if (room.players.length >= 4) { socket.emit('err', '部屋が満員です'); return; }
+    if (room.players.some(p => p.id === socket.id)) { socket.emit('err', 'すでに参加しています'); return; }
+    if (room.players.some(p => p.name === name)) { socket.emit('err', 'この名前はすでに使われています'); return; }
     room.players.push({ id: socket.id, name, hand: [], score: 0 });
     socket.join(c);
     io.to(c).emit('room_update', { players: room.players.map(p => p.name), code: c });
