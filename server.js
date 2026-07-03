@@ -37,16 +37,17 @@ function shuffle(a) {
 const eTop = t => t.flip ? t.bot : t.top;
 const eBot = t => t.flip ? t.top : t.bot;
 
-function checkWin(hand) {
-  if (hand.length !== 6) return null;
-  const tops = hand.map(eTop), bots = hand.map(eBot);
-  const allBot = bots.every(v => v === bots[0]);
-  if (allBot) {
-    const st = [...tops].sort((a, b) => a - b);
-    if (st.join(',') === '1,2,3,4,5,6') return { role: '六華', pts: 6 };
-  }
-  if (isSanren(hand)) return { role: '三連', pts: 3 };
-  if (allBot) return { role: '一色', pts: 1 };
+function checkWin(hand){
+  if(hand.length!==6)return null;
+  const tops=hand.map(eTop),bots=hand.map(eBot);
+  const allBot=bots.every(v=>v===bots[0]);
+  if(isMusou(hand))return{role:'無双',pts:3};
+  if(allBot){const st=[...tops].sort((a,b)=>a-b);if(st.join(',')==='1,2,3,4,5,6')return{role:'六華',pts:6};}
+  if(isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
+  if(isSanren(hand))return{role:'三連',pts:3};
+  if(isSanshiki(hand))return{role:'三色',pts:3};
+  if(isSantui(hand))return{role:'三対',pts:2};
+  if(allBot)return{role:'一色',pts:1};
   return null;
 }
 function isSanren(hand) {
@@ -67,7 +68,21 @@ function isSet3(g) {
 }
 function popcount(n) { let c = 0; while (n) { c += n & 1; n >>= 1; } return c; }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
-
+function isMusou(hand){
+  if(!hand.every(t=>t.top===t.bot))return false;
+  return new Set(hand.map(t=>t.top)).size===6;
+}
+function isKikou(hand){return hand.every(t=>t.top===t.bot);}
+function isSanshiki(hand){
+  const v=new Set();
+  hand.forEach(t=>{v.add(eTop(t));v.add(eBot(t));});
+  return v.size===3;
+}
+function isSantui(hand){
+  const f={};
+  hand.forEach(t=>{const k=`${eTop(t)},${eBot(t)}`;f[k]=(f[k]||0)+1;});
+  return Object.values(f).every(v=>v%2===0);
+}
 // ── ルームユーティリティ ──
 function genCode() {
   let c;
@@ -236,10 +251,10 @@ socket.on('pick', ({ code, fieldIdx }) => {
     if (pi !== room.turn || room.tphase !== 'discard') return;
     const player = room.players[pi];
     if (player.hand.length !== 6) return;
-    const res = checkWin(player.hand);
-    if (!res) { socket.emit('err', '役が揃っていません'); return; }
-    const bonus = countZorome(player.hand);
-    player.score += res.pts + bonus;
+const res = checkWin(player.hand);
+if (!res) { socket.emit('err', '役が揃っていません'); return; }
+const bonus = res.noBonus ? 0 : countZorome(player.hand);
+player.score += res.pts + bonus;
     room.phase = 'roundEnd';
     io.to(code).emit('round_win', {
       winnerIdx:  pi,
