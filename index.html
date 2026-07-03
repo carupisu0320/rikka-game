@@ -607,6 +607,26 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 
   <div class="rules-card" style="margin-top:1rem">
     <div class="rules-title">— 役の種類（10点先取で勝利）—</div>
+   <div class="rrow">
+  <span class="rname">三対</span>
+  <span class="rdesc">6枚を<b style="color:#f0a050">同じ牌のペア×3組</b>にする</span>
+  <span class="rpts">2点</span>
+</div>
+<div class="rrow">
+  <span class="rname">三色</span>
+  <span class="rdesc">全牌の上下の数を<b style="color:#f0a050">3種類のみ</b>にする</span>
+  <span class="rpts">3点</span>
+</div>
+<div class="rrow">
+  <span class="rname">輝光</span>
+  <span class="rdesc">6枚すべてを<b style="color:#f5d040">★ゾロ目牌</b>にする（ボーナスなし）</span>
+  <span class="rpts">5点</span>
+</div>
+<div class="rrow">
+  <span class="rname">無双</span>
+  <span class="rdesc"><b style="color:#f5d040">★ゾロ目牌</b>を<b style="color:#f0a050">6種類すべて</b>集める</span>
+  <span class="rpts">3+★点</span>
+</div>
     <div class="rrow">
       <span class="rname">一色</span>
       <span class="rdesc">6枚の<b style="color:#f0a050">下の数</b>をすべて同じに（上は何でもOK）</span>
@@ -1295,25 +1315,17 @@ function eBot(t) { return t.flip ? t.top : t.bot; }
 //  三連(3点): 「下が同じ3枚＋上が連番」のセット×2
 //  六華(6点): 下が全部同じ ＋ 上が1〜6の連番
 // ============================================================
-function checkWin(hand) {
-  if (hand.length !== 6) return null;
-
-  const tops = hand.map(eTop);
-  const bots = hand.map(eBot);
-  const allBotSame = bots.every(v => v === bots[0]);
-
-  // 六華
-  if (allBotSame) {
-    const st = [...tops].sort((a,b)=>a-b);
-    if (st.join(',') === '1,2,3,4,5,6') return {role:'六華', pts:6};
-  }
-
-  // 三連
-  if (isSanren(hand)) return {role:'三連', pts:3};
-
-  // 一色
-  if (allBotSame) return {role:'一色', pts:1};
-
+function checkWin(hand){
+  if(hand.length!==6)return null;
+  const tops=hand.map(eTop),bots=hand.map(eBot);
+  const allBotSame=bots.every(v=>v===bots[0]);
+  if(isMusou(hand))return{role:'無双',pts:3};
+  if(allBotSame){const st=[...tops].sort((a,b)=>a-b);if(st.join(',')==='1,2,3,4,5,6')return{role:'六華',pts:6};}
+  if(isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
+  if(isSanren(hand))return{role:'三連',pts:3};
+  if(isSanshiki(hand))return{role:'三色',pts:3};
+  if(isSantui(hand))return{role:'三対',pts:2};
+  if(allBotSame)return{role:'一色',pts:1};
   return null;
 }
 
@@ -1497,8 +1509,8 @@ function renderHand() {
   document.getElementById('btn-win').disabled = !winRes;
 
   const hh = document.getElementById('hand-hint');
-  if (winRes) {
-    const bonus = countZorome(p.hand);
+if (winRes) {
+    const bonus = winRes.noBonus ? 0 : countZorome(p.hand);
     const bonusTxt = bonus > 0 ? ` ＋★×${bonus}` : '';
     hh.textContent = `★ ${winRes.role}（${winRes.pts}点${bonusTxt}）上がれます！`;
     hh.className = 'can-win';
@@ -1539,6 +1551,21 @@ function tileInner(t) {
   return `<div class="th">${SYM_SVG[tv]}</div>${star}<div class="tb">${SYM_SVG[bv]}</div>`;
 }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
+function isMusou(hand){
+  if(!hand.every(t=>t.top===t.bot))return false;
+  return new Set(hand.map(t=>t.top)).size===6;
+}
+function isKikou(hand){return hand.every(t=>t.top===t.bot);}
+function isSanshiki(hand){
+  const v=new Set();
+  hand.forEach(t=>{v.add(eTop(t));v.add(eBot(t));});
+  return v.size===3;
+}
+function isSantui(hand){
+  const f={};
+  hand.forEach(t=>{const k=`${eTop(t)},${eBot(t)}`;f[k]=(f[k]||0)+1;});
+  return Object.values(f).every(v=>v%2===0);
+}
 
 // ============================================================
 //  プレイヤー操作（オンライン/ボット 共通ルーター）
@@ -1723,7 +1750,7 @@ function scoreBots(hand) {
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  const bonus = countZorome(G.players[pi].hand);
+  const bonus = res.noBonus ? 0 : countZorome(G.players[pi].hand);
   res.bonus = bonus;
   G.players[pi].score += res.pts + bonus;
   saveHistory(makeHistoryEntry(pi===myOnlineIdx, res.role, res.pts+bonus, false, G.players.map(p=>p.name)));
