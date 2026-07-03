@@ -37,16 +37,16 @@ function shuffle(a) {
 const eTop = t => t.flip ? t.bot : t.top;
 const eBot = t => t.flip ? t.top : t.bot;
 
-function checkWin(hand){
+function checkWin(hand, optRoles){
   if(hand.length!==6)return null;
-  const tops=hand.map(eTop),bots=hand.map(eBot);
-  const allBot=bots.every(v=>v===bots[0]);
-  if(isMusou(hand))return{role:'無双',pts:3};
-  if(allBot){const st=[...tops].sort((a,b)=>a-b);if(st.join(',')==='1,2,3,4,5,6')return{role:'六華',pts:6};}
-  if(isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
+  const tops=hand.map(eTop),bots=hand.map(eBot),allBot=bots.every(v=>v===bots[0]);
+  const use=r=>optRoles===null||optRoles.includes(r);
+  if(use('無双')&&isMusou(hand))return{role:'無双',pts:3};
+  if(allBot){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
+  if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(isSanshiki(hand))return{role:'三色',pts:3};
-  if(isSantui(hand))return{role:'三対',pts:2};
+  if(use('三色')&&isSanshiki(hand))return{role:'三色',pts:3};
+  if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
   if(allBot)return{role:'一色',pts:1};
   return null;
 }
@@ -108,7 +108,8 @@ function sendState(room) {
       phase:     room.phase,
       scores:    room.players.map(p => ({ name: p.name, score: p.score })),
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
-      code:      room.code, 
+      code:      room.code,
+      optRoles:  room.roles !== undefined ? room.roles : null, 
     });
   });
 }
@@ -132,6 +133,7 @@ if (queue.length >= 2) {
   const code = genCode();
   const room = {
     code, host: p1.id,
+    roles: [], // クイックマッチ: 基本役のみ
     players: [
       { id: p1.id, name: p1.name, hand: [], score: 0 },
       { id: p2.id, name: p2.name, hand: [], score: 0 },
@@ -154,17 +156,14 @@ if (queue.length >= 2) {
   });
 
   // ルーム作成
-  socket.on('create_room', ({ name }) => {
+socket.on('create_room', ({ name, roles }) => {
     const code = genCode();
     rooms.set(code, {
       code, host: socket.id,
+      roles: roles || [], // ホストが選択した追加役
       players: [{ id: socket.id, name, hand: [], score: 0 }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
-    socket.join(code);
-    socket.emit('room_created', { code });
-    socket.emit('room_update', { players: [name], code });
-  });
 
   // ルーム参加
 socket.on('join_room', ({ name, code }) => {
@@ -251,8 +250,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     if (pi !== room.turn || room.tphase !== 'discard') return;
     const player = room.players[pi];
     if (player.hand.length !== 6) return;
-const res = checkWin(player.hand);
-if (!res) { socket.emit('err', '役が揃っていません'); return; }
+const res = checkWin(player.hand, room.roles !== undefined ? room.roles : null);if (!res) { socket.emit('err', '役が揃っていません'); return; }
 const bonus = res.noBonus ? 0 : countZorome(player.hand);
 player.score += res.pts + bonus;
     room.phase = 'roundEnd';
