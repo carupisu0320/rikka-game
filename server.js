@@ -164,9 +164,13 @@ socket.on('create_room', ({ name, roles }) => {
       players: [{ id: socket.id, name, hand: [], score: 0 }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
+    socket.join(code);
+    socket.emit('room_created', { code });
+    socket.emit('room_update', { players: [name], code });
+  });
 
   // ルーム参加
-socket.on('join_room', ({ name, code }) => {
+  socket.on('join_room', ({ name, code }) => {
     const c = (code || '').toUpperCase().trim();
     const room = rooms.get(c);
     if (!room)                    { socket.emit('err', '部屋が見つかりません'); return; }
