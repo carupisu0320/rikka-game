@@ -524,6 +524,23 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
         </select>
       </div>
     </div>
+    <div style="background:#141008;border:1px solid #3e2e1e;border-radius:8px;padding:.7rem .9rem;margin-bottom:.75rem">
+  <div style="font-size:.82rem;color:#8a7048;margin-bottom:.5rem;letter-spacing:.06em">追加役（オプション）</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem">
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="bot-opt-三対" checked style="accent-color:#c9a84c"> 三対（2点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="bot-opt-三色" checked style="accent-color:#c9a84c"> 三色（3点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="bot-opt-輝光" checked style="accent-color:#c9a84c"> 輝光（5点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="bot-opt-無双" checked style="accent-color:#c9a84c"> 無双（3+★点）
+    </label>
+  </div>
+</div>
     <button class="lbtn lbtn-gold" onclick="startGame()">ゲームスタート</button>
   </div>
 
@@ -552,7 +569,24 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
     <div style="display:flex;align-items:center;gap:.6rem;margin:.2rem 0 .75rem;color:#3e2e1e;font-size:.82rem">
       <div style="flex:1;height:1px;background:#3e2e1e"></div>または<div style="flex:1;height:1px;background:#3e2e1e"></div>
     </div>
-
+    <div style="background:#141008;border:1px solid #3e2e1e;border-radius:8px;padding:.65rem .85rem;margin-bottom:.65rem">
+  <div style="font-size:.78rem;color:#8a7048;margin-bottom:.45rem">追加役（ホストが選択）</div>
+  <div style="font-size:.72rem;color:#5a4820;margin-bottom:.4rem">※クイックマッチは一色・三連・六華のみ</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="room-opt-三対" checked style="accent-color:#c9a84c"> 三対（2点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="room-opt-三色" checked style="accent-color:#c9a84c"> 三色（3点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="room-opt-輝光" checked style="accent-color:#c9a84c"> 輝光（5点）
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="room-opt-無双" checked style="accent-color:#c9a84c"> 無双（3+★点）
+    </label>
+  </div>
+</div>
     <!-- ルーム作成 -->
     <button id="btn-create-room" class="lbtn"
       style="background:#2a1e14;border:1px solid #5a4020;color:#c9a84c;margin-bottom:.7rem"
@@ -1078,7 +1112,7 @@ function cancelQueue(){
 function createRoom(){
   if(!socket||!socket.connected){initSocket();setTimeout(createRoom,1000);return;}
   document.getElementById('btn-create-room').disabled=true;
-  socket.emit('create_room',{name:myName()});
+  socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-')});
 }
 function copyRoomCode(){
   const code=document.getElementById('room-code-display').textContent;
@@ -1136,6 +1170,7 @@ function applyOnlineState(st){
   G.turn   = st.turn;
   G.tphase = st.tphase;
   G.phase  = st.phase;
+  G.optRoles = st.optRoles !== undefined ? st.optRoles : null;
 
   st.scores.forEach((s,i) => {
     G.players[i].score = s.score;
@@ -1313,16 +1348,17 @@ function eBot(t) { return t.flip ? t.top : t.bot; }
 //  三連(3点): 「下が同じ3枚＋上が連番」のセット×2
 //  六華(6点): 下が全部同じ ＋ 上が1〜6の連番
 // ============================================================
-function checkWin(hand){
+function checkWin(hand, optRoles){
+  // optRoles: null=全役有効 / []=基本役のみ / ['三対',...]= 選択役のみ
   if(hand.length!==6)return null;
-  const tops=hand.map(eTop),bots=hand.map(eBot);
-  const allBotSame=bots.every(v=>v===bots[0]);
-  if(isMusou(hand))return{role:'無双',pts:3};
-  if(allBotSame){const st=[...tops].sort((a,b)=>a-b);if(st.join(',')==='1,2,3,4,5,6')return{role:'六華',pts:6};}
-  if(isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
+  const tops=hand.map(eTop),bots=hand.map(eBot),allBotSame=bots.every(v=>v===bots[0]);
+  const use=r=>optRoles===null||optRoles.includes(r);
+  if(use('無双')&&isMusou(hand))return{role:'無双',pts:3};
+  if(allBotSame){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
+  if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(isSanshiki(hand))return{role:'三色',pts:3};
-  if(isSantui(hand))return{role:'三対',pts:2};
+  if(use('三色')&&isSanshiki(hand))return{role:'三色',pts:3};
+  if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
   if(allBotSame)return{role:'一色',pts:1};
   return null;
 }
@@ -1361,8 +1397,7 @@ function startGame() {
   const players = [{name, hand:[], score:0, isBot:false}];
   for (let i = 0; i < bcnt; i++)
     players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
-  G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing'};
-  myOnlineIdx = 0;
+  G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing', optRoles: getOptRoles('bot-opt-')};  myOnlineIdx = 0;
   onlineMode  = false;
   currentCode = '';
   dealRound();
@@ -1499,8 +1534,8 @@ function renderHand() {
   const isDiscard = isMyTurn && G.tphase === 'discard';
   const hasSel    = G.selIdx !== -1;
   const has6      = p.hand.length === 6;
-  const winRes    = (isDiscard && has6) ? checkWin(p.hand) : null;
-
+  const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
+  const winRes = (isDiscard && has6) ? checkWin(p.hand, optR) : null;
   const db = document.getElementById('btn-discard');
   db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
   db.disabled = false;
@@ -1552,6 +1587,12 @@ function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 function isMusou(hand){
   if(!hand.every(t=>t.top===t.bot))return false;
   return new Set(hand.map(t=>t.top)).size===6;
+}
+function getOptRoles(prefix){
+  return['三対','三色','輝光','無双'].filter(r=>{
+    const el=document.getElementById(prefix+r);
+    return !el||el.checked;
+  });
 }
 function isKikou(hand){return hand.every(t=>t.top===t.bot);}
 function isSanshiki(hand){
@@ -1627,7 +1668,8 @@ function doWin() {
   if (G.tphase !== 'discard' || G.turn !== myOnlineIdx) return;
   const p = G.players[myOnlineIdx];
   if (p.hand.length !== 6) { toast('手牌が6枚のときだけ上がれます'); return; }
-  const res = checkWin(p.hand);
+  const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
+  const res = checkWin(p.hand, optR);
   if (!res) { toast('まだ役が揃っていません'); return; }
   if (onlineMode) {
     socket?.emit('win', { code: currentCode });
@@ -1675,7 +1717,7 @@ function runBot() {
       let best = -Infinity;
       fi = 0;
       G.field.forEach((t, i) => {
-        const s = evalHand([...bot.hand, t]);
+        const s = evalHand([...bot.hand, t], G?.optRoles ?? null);
         if (s > best) { best = s; fi = i; }
       });
     }
@@ -1684,8 +1726,9 @@ function runBot() {
     G.tphase = 'discard';
     render();
 
-    const wr = checkWin(bot.hand);
-    if (wr) { setTimeout(() => processWin(G.turn, wr), d); return; }
+  const optR = G?.optRoles ?? null;
+  const wr = checkWin(bot.hand, optR);
+  if (wr) { setTimeout(() => processWin(G.turn, wr), d); return; }
 
     setTimeout(() => {
       if (G.phase!=='playing') return;
@@ -1709,15 +1752,15 @@ function runBot() {
 function botBestDiscard(hand) {
   let best = -Infinity, bi = 0;
   hand.forEach((_, i) => {
-    const s = evalHand(hand.filter((_,j)=>j!==i));
+    const s = evalHand(hand.filter((_,j)=>j!==i), G?.optRoles ?? null);
     if (s > best) { best = s; bi = i; }
   });
   return bi;
 }
 
-function evalHand(hand) {
+function evalHand(hand, optR) {
   if (hand.length === 6) {
-    const w = checkWin(hand); if (w) return w.pts * 100;
+    const w = checkWin(hand, optR); if (w) return w.pts * 100;
   }
   let best = 0;
   const n = hand.length;
