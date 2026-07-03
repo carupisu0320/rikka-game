@@ -878,6 +878,8 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
           <div class="rb-role-ex">例）上1,2,3,4,5,6 ／ 下が全部✿（2）</div>
         </div>
       </div>
+      <!-- 選択された追加役 -->
+      <div id="rb-optional-roles"></div>
       <!-- 輝きボーナス -->
       <div class="rb-role" style="background:rgba(245,208,64,.05);border-radius:6px;padding:.6rem .4rem;margin-top:.4rem">
         <div>
@@ -1857,8 +1859,38 @@ function goLobby() {
 // ============================================================
 //  ルールブック
 // ============================================================
-function openRuleBook()  { document.getElementById('rule-modal').classList.add('open'); }
-function closeRuleBook() { document.getElementById('rule-modal').classList.remove('open'); }
+function openRuleBook() {
+  document.getElementById('rule-modal').classList.add('open');
+  renderOptionalRoles();
+}
+function renderOptionalRoles() {
+  const activeRoles = G?.optRoles ?? null;
+  const use = r => activeRoles === null || (Array.isArray(activeRoles) && activeRoles.includes(r));
+  const roleData = [
+    { role:'三対', yomi:'サンツイ', pts:'2点',
+      desc:'6枚を<b style="color:#f0a050">同じ牌のペア×3組</b>にする。',
+      ex:'例）上1-下2 を2枚、上3-下4 を2枚、上5-下6 を2枚' },
+    { role:'三色', yomi:'サンシキ', pts:'3点',
+      desc:'手牌6枚の上下すべての数が<b style="color:#f0a050">合わせて3種類のみ</b>になる。',
+      ex:'例）上下に出てくる数が 1・3・5 の3種類のみ' },
+    { role:'輝光', yomi:'キコウ', pts:'5点（ボーナスなし）',
+      desc:'6枚すべてを<b style="color:#f5d040">★ゾロ目牌</b>にする。輝きボーナスはなし。',
+      ex:'例）1-1、2-2、3-3、4-4、5-5、6-6 を各1枚' },
+    { role:'無双', yomi:'ムソウ', pts:'3点＋★ボーナス',
+      desc:'<b style="color:#f5d040">★ゾロ目牌</b>を<b style="color:#f0a050">6種類すべて（1-1〜6-6）</b>集める。輝きボーナスあり（+6点）。',
+      ex:'例）1-1、2-2、3-3、4-4、5-5、6-6 各1枚（計6枚）' },
+  ];
+  const html = roleData.filter(r => use(r.role)).map(r => `
+    <div class="rb-role">
+      <div>
+        <div class="rb-role-name">${r.role}<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">${r.yomi}</span></div>
+        <div style="font-size:.75rem;color:#6a5830">${r.pts}</div>
+      </div>
+      <div class="rb-role-desc">${r.desc}<div class="rb-role-ex">${r.ex}</div></div>
+    </div>`).join('');
+  const el = document.getElementById('rb-optional-roles');
+  if(el) el.innerHTML = html;
+}function closeRuleBook() { document.getElementById('rule-modal').classList.remove('open'); }
 
 // ルールブックモーダルの外側をクリックで閉じる
 document.getElementById('rule-modal').addEventListener('click', function(e) {
