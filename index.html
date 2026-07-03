@@ -941,8 +941,6 @@ const WIN_SCORE = 10;
 // ★ Render.comにデプロイ後、このURLを自分のサーバーURLに変更してください ★
 const SERVER_URL = 'https://rikka-game.onrender.com';
 fetch(SERVER_URL).catch(()=>{});
-  // ページ読み込み時にサーバーをウォームアップ
-fetch(SERVER_URL).catch(()=>{});
 
 let socket      = null;
 let onlineMode  = false;
@@ -1919,7 +1917,7 @@ function renderSidebarStats() {
   const wins = filtered.filter(r => r.won).length;
   const total = filtered.length;
   const rate = total > 0 ? Math.round(wins / total * 100) : 0;
-  const roles = {'六華':0,'三連':0,'一色':0};
+  const roles = {'無双':0,'六華':0,'輝光':0,'三連':0,'三色':0,'三対':0,'一色':0};
   filtered.filter(r => r.won && r.role).forEach(r => { if(roles[r.role]!==undefined) roles[r.role]++; });
   document.getElementById('stats-content').innerHTML = `
     <div class="stats-grid">
@@ -1928,7 +1926,7 @@ function renderSidebarStats() {
       <div class="stat-card"><div class="stat-card-title">勝率</div><div class="stat-card-val">${rate}%</div></div>
       <div class="stat-card"><div class="stat-card-title">役内訳(勝)</div>
         <div style="font-size:.68rem;color:#8a7048;margin-top:.2rem">
-          六華 ${roles['六華']} / 三連 ${roles['三連']} / 一色 ${roles['一色']}
+          無双${roles['無双']} / 六華${roles['六華']} / 輝光${roles['輝光']} / 三連${roles['三連']} / 三色${roles['三色']} / 三対${roles['三対']} / 一色${roles['一色']}
         </div>
       </div>
     </div>`;
