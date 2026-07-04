@@ -861,11 +861,10 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
           <div style="font-size:.75rem;color:#6a5830">1点</div>
         </div>
         <div class="rb-role-desc">
-          手牌6枚の<b style="color:#f0a050">下の数</b>を1種類にそろえる。<br>
-          上の数は何でもOK。
-          <div class="rb-role-ex">例）下が全部❋（6）→ 上はバラバラでOK</div>
+          手牌6枚の<b style="color:#f0a050">下の数</b>を1種類にそろえる。上の数は何でもOK。
         </div>
       </div>
+      <div id="rb-ex-isshiki"></div>
       <div class="rb-role">
         <div>
           <div class="rb-role-name">三連<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">サンレン</span></div>
@@ -876,9 +875,9 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
           3枚セット＝<b style="color:#f0a050">下の数が同じ3枚</b>で<b style="color:#f06868">上の数が連番</b>の形。<br>
           ※ 6と1はつながらない（循環なし）<br>
           ※ 2組の下の数は同じでも違ってもOK
-          <div class="rb-role-ex">例）上2,3,4／下✦✦✦　＋　上2,3,4／下❋❋❋</div>
         </div>
       </div>
+      <div id="rb-ex-sanren"></div>
       <div class="rb-role">
         <div>
           <div class="rb-role-name">六華<span style="font-size:.7rem;color:#8a7048;margin-left:.3rem">リッカ</span></div>
@@ -887,9 +886,9 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
         <div class="rb-role-desc">
           手牌6枚の<b style="color:#f0a050">下の数</b>を1種類にそろえ、<br>
           かつ<b style="color:#f06868">上の数を1〜6の連番</b>にする（順不同OK）。
-          <div class="rb-role-ex">例）上1,2,3,4,5,6 ／ 下が全部✿（2）</div>
         </div>
       </div>
+      <div id="rb-ex-rikka"></div>
       <!-- 選択された追加役 -->
       <div id="rb-optional-roles"></div>
       <!-- 輝きボーナス -->
@@ -902,9 +901,10 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
           上がったとき、手牌に<b style="color:#f5d040">★マーク付きの牌（ゾロ目牌）</b>があると、<br>
           その枚数分だけ追加で<b style="color:#f5d040">+1点ずつ</b>ボーナスを獲得！<br>
           ゾロ目牌とは上と下の数が同じ牌（例: 上3・下3）。
-          <div class="rb-role-ex">例）手牌に★が2枚 → 役の点数に+2点ボーナス</div>
+          手牌に★が2枚 → 役の点数に+2点ボーナス
         </div>
       </div>
+      <div id="rb-ex-star"></div>
     </div>
 
     <!-- 牌について -->
@@ -1873,7 +1873,29 @@ function goLobby() {
 // ============================================================
 function openRuleBook() {
   document.getElementById('rule-modal').classList.add('open');
+  renderRulebookExamples();
   renderOptionalRoles();
+}
+function renderRulebookExamples() {
+  function rbTile(top, bot) {
+    const star = (top === bot) ? '<div class="rbtile-star">★</div>' : '';
+    return `<div class="rbtile"><div class="th">${SYM_SVG[top]}</div>${star}<div class="tb">${SYM_SVG[bot]}</div></div>`;
+  }
+  const isshiki = [[1,3],[4,3],[2,3],[6,3],[3,3],[5,3]];
+  document.getElementById('rb-ex-isshiki').innerHTML =
+    `<div class="rb-ex">${isshiki.map(([t,b])=>rbTile(t,b)).join('')}</div>`;
+  const san1 = [[2,1],[3,1],[4,1]], san2 = [[3,5],[4,5],[5,5]];
+  document.getElementById('rb-ex-sanren').innerHTML =
+    `<div class="rb-ex">${san1.map(([t,b])=>rbTile(t,b)).join('')}
+     <div style="display:flex;align-items:center;color:#8a7048;font-size:.85rem;font-weight:700;padding:0 2px;align-self:center">＋</div>
+     ${san2.map(([t,b])=>rbTile(t,b)).join('')}</div>`;
+  const rikka = [[1,4],[2,4],[3,4],[4,4],[5,4],[6,4]];
+  document.getElementById('rb-ex-rikka').innerHTML =
+    `<div class="rb-ex">${rikka.map(([t,b])=>rbTile(t,b)).join('')}</div>`;
+  const stars = [[2,2],[5,5]];
+  document.getElementById('rb-ex-star').innerHTML =
+    `<div class="rb-ex">${stars.map(([t,b])=>rbTile(t,b)).join('')}
+     <span style="font-size:.78rem;color:#9a8838;align-self:center;margin-left:.4rem">← ★ゾロ目牌 ＝ +2点ボーナス</span></div>`;
 }
 function renderOptionalRoles() {
   const activeRoles = G?.optRoles ?? null;
