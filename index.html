@@ -795,8 +795,11 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
       </button>
     </div>
     <div id="stats-content"></div>
-    <div class="sb-section-title" style="margin-top:.6rem;border-top:1px solid #2a1e10;padding-top:.5rem">― 最近の対戦 ―</div>
-    <div id="history-list-sb"></div>
+    <div class="sb-section-title" style="margin-top:.6rem;border-top:1px solid #2a1e10;padding-top:.5rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleHistory()">
+  <span>― 最近の対戦 ―</span>
+  <span id="history-toggle-icon" style="font-size:.9rem;color:#6a5830">▼</span>
+</div>
+<div id="history-list-sb"></div>
   </div>
     <div class="sb-section-title">― 開発者コード ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
@@ -2026,6 +2029,14 @@ function switchStatsTab(tab) {
   document.getElementById('stats-tab-online').style.background = tab==='online' ? TEAL : BASE;
   document.getElementById('stats-tab-online').style.color = tab==='online' ? '#e0fff8' : '#6a5830';
   renderSidebarStats();
+}
+let historyOpen = true;
+function toggleHistory(){
+  historyOpen = !historyOpen;
+  const el = document.getElementById('history-list-sb');
+  const icon = document.getElementById('history-toggle-icon');
+  el.style.display = historyOpen ? '' : 'none';
+  icon.textContent = historyOpen ? '▼' : '▶';
 }
 function renderSidebarStats() {
   const h = JSON.parse(localStorage.getItem('rikka_history') || '[]');
