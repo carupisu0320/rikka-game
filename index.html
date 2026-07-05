@@ -1688,6 +1688,8 @@ function doWin() {
   const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
   const res = checkWin(p.hand, optR);
   if (!res) { toast('まだ役が揃っていません'); return; }
+if(onlineMode){socket?.emit('win',{code:currentCode});return;}
+processWin(myOnlineIdx,res);}
   if (onlineMode) {
     socket?.emit('win', { code: currentCode });
     return;
