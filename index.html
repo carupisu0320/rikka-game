@@ -2030,8 +2030,8 @@ function switchStatsTab(tab) {
   document.getElementById('stats-tab-online').style.color = tab==='online' ? '#e0fff8' : '#6a5830';
   renderSidebarStats();
 }
-let historyOpen = true;
-function toggleHistory(){
+let historyOpen = false;
+  function toggleHistory(){
   historyOpen = !historyOpen;
   const el = document.getElementById('history-list-sb');
   const icon = document.getElementById('history-toggle-icon');
@@ -2061,6 +2061,8 @@ function renderSidebarStats() {
   const el = document.getElementById('history-list-sb');
   const recent = filtered.slice(0, 10);
   if (!recent.length) { el.innerHTML='<div style="color:#5a4820;font-size:.76rem;text-align:center;padding:.4rem">まだ対戦履歴がありません</div>'; return; }
+  el.style.display = historyOpen ? '' : 'none';
+  document.getElementById('history-toggle-icon').textContent = historyOpen ? '▼' : '▶';
   el.innerHTML = recent.map(r => `
     <div class="history-item">
       <div style="display:flex;justify-content:space-between;align-items:center">
