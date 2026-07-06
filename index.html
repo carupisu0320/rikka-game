@@ -1577,9 +1577,10 @@ function renderHand() {
   const p = G.players[myOnlineIdx];
   document.getElementById('hand-tiles').innerHTML =
     p.hand.map((t,i) => {
-      if (t.hidden) return ''; // 相手の手牌は非表示
+      if (t.hidden) return '';
       const sel = i === G.selIdx ? ' selected' : '';
-      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}`);
+      const assistCls = (assistMode && isDiscard && i === assistDiscardIdx) ? ' assist-discard' : '';
+      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}${assistCls}`);
     }).join('');
 
   const isMyTurn  = G.turn === myOnlineIdx;
