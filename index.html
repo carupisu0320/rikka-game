@@ -433,6 +433,14 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 .rbtile .rbtile-star{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-size:.55rem;color:#A07800;pointer-events:none;z-index:3;line-height:1}
 .rb-ex{display:flex;gap:4px;margin-top:.55rem;align-items:flex-end;flex-wrap:wrap}
+/* ── アシスト ── */
+.fback.assist-best{border-color:#30e890!important;
+  box-shadow:0 0 18px rgba(48,232,144,.8),0 0 6px rgba(48,232,144,.4)!important;
+  animation:assistPulse 1.2s infinite}
+.htile.assist-discard{border-color:#e03030!important;
+  box-shadow:0 0 18px rgba(224,48,48,.8),0 0 6px rgba(224,48,48,.4)!important;
+  animation:assistPulse 1.2s infinite}
+@keyframes assistPulse{0%,100%{opacity:1}50%{opacity:.65}}
   /* scrollbar */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -778,7 +786,22 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
       </div>
     </div>
   </div>
-<div class="sb-section">
+  <div class="sb-section">
+    <div class="sb-section-title">― アシスト ―</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
+      <span style="font-size:.82rem;color:#c8b898">アシスト機能</span>
+      <button id="assist-toggle-btn" onclick="toggleAssist()"
+        style="padding:.28rem .75rem;border-radius:6px;border:1px solid #3e2e1e;
+               background:#2a1e14;color:#8a7048;font-family:inherit;font-size:.82rem;cursor:pointer">
+        OFF
+      </button>
+    </div>
+    <div style="font-size:.7rem;color:#5a4820;line-height:1.55">
+      🟢 取るべき牌を緑で光らせます<br>
+      🔴 捨てるべき牌を赤で光らせます
+    </div>
+  </div>
+  <div class="sb-section">
     <div class="sb-section-title">― 戦績 ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.6rem">
       <button id="stats-tab-bot" onclick="switchStatsTab('bot')"
@@ -1500,17 +1523,29 @@ function renderField() {
     label.textContent = '🀄 場の牌（好きな1枚を選ぼう）';
     grid.appendChild(label);
 
+    // アシスト: 最善の場の牌を計算
+  let bestFieldTile = null;
+  if(assistMode && canPick){
+    const p = G.players[myOnlineIdx];
+    const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
+    let bestScore = -Infinity;
     normalTiles.forEach(t => {
-      const fi  = G.field.indexOf(t);
-      const div = document.createElement('div');
-      div.className = canPick ? 'fback fback-pickable' : 'fback';
-      div.style.cursor = canPick ? 'pointer' : 'default';
-      if (!canPick) div.style.opacity = '0.8';
-      if (canPick) {
-        div.addEventListener('click', () => pickField(fi));
-      }
-      grid.appendChild(div);
+      const score = evalHand([...p.hand, t], optR);
+      if(score > bestScore){ bestScore = score; bestFieldTile = t; }
     });
+  }
+  normalTiles.forEach(t => {
+    const fi  = G.field.indexOf(t);
+    const div = document.createElement('div');
+    div.className = canPick ? 'fback fback-pickable' : 'fback';
+    div.style.cursor = canPick ? 'pointer' : 'default';
+    if (!canPick) div.style.opacity = '0.8';
+    if (assistMode && canPick && t === bestFieldTile) div.classList.add('assist-best');
+    if (canPick) {
+      div.addEventListener('click', () => pickField(fi));
+    }
+    grid.appendChild(div);
+  });
   }
 
   // セクションラベル（捨て牌）
@@ -1553,6 +1588,15 @@ function renderHand() {
   const has6      = p.hand.length === 6;
   const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
   const winRes = (isDiscard && has6) ? checkWin(p.hand, optR) : null;
+  // アシスト: 捨てるべき牌を計算
+  let assistDiscardIdx = -1;
+  if(assistMode && isDiscard && has6 && !winRes){
+    let bestScore = -Infinity;
+    p.hand.forEach((_,i) => {
+      const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
+      if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
+    });
+  }
   const db = document.getElementById('btn-discard');
   db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
   db.disabled = false;
@@ -2075,6 +2119,20 @@ function renderSidebarStats() {
     .replace(/\bback-\w+/g,'').trim();
   if(theme) document.body.classList.add('back-'+theme);
   localStorage.setItem('rikka_back_theme', theme);
+}
+let assistMode = false;
+function toggleAssist(){
+  assistMode = !assistMode;
+  const btn = document.getElementById('assist-toggle-btn');
+  if(btn){
+    btn.textContent = assistMode ? 'ON' : 'OFF';
+    btn.style.background = assistMode ? 'linear-gradient(135deg,#2a9e6e,#1a6e40)' : '#2a1e14';
+    btn.style.color = assistMode ? '#e0fff8' : '#8a7048';
+    btn.style.borderColor = assistMode ? '#2a9e6e' : '#3e2e1e';
+  }
+  if(G && G.phase==='playing') render();
+  closeSidebar();
+  toast(assistMode ? '✅ アシストON' : 'アシストOFF');
 }
 function openSidebar(){
   document.getElementById('sidebar').style.display='block';
