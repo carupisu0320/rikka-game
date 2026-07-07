@@ -1541,11 +1541,9 @@ function dealRound() {
   const deck = makeDeck();
   let idx = 0;
   G.players.forEach(p => { p.hand = deck.slice(idx, idx+5); idx += 5; });
-  G.field   = deck.slice(idx); // 残り全部が場（全て表向き）
-  G.turn    = 0;
-  G.tphase  = 'pick';
-  G.selIdx  = -1;
-  G.phase   = 'playing';
+  G.field = deck.slice(idx);
+  G.turn = 0; G.tphase = 'pick'; G.selIdx = -1; G.phase = 'playing';
+  setTimeout(animateFieldTiles, 50);
 }
 
 // ============================================================
@@ -1558,7 +1556,6 @@ function render() {
   renderHand();
   renderStatus();
   updateTurnGlow();
-  animateFieldTiles();
 }
 
 function renderHeader() {
