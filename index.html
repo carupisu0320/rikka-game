@@ -1522,24 +1522,12 @@ function renderField() {
     label.textContent = '🀄 場の牌（好きな1枚を選ぼう）';
     grid.appendChild(label);
 
-    // アシスト: 最善の場の牌を計算
-  let bestFieldTile = null;
-  if(assistMode && canPick){
-    const p = G.players[myOnlineIdx];
-    const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
-    let bestScore = -Infinity;
-    normalTiles.forEach(t => {
-      const score = evalHand([...p.hand, t], optR);
-      if(score > bestScore){ bestScore = score; bestFieldTile = t; }
-    });
-  }
-  normalTiles.forEach(t => {
+normalTiles.forEach(t => {
     const fi  = G.field.indexOf(t);
     const div = document.createElement('div');
     div.className = canPick ? 'fback fback-pickable' : 'fback';
     div.style.cursor = canPick ? 'pointer' : 'default';
     if (!canPick) div.style.opacity = '0.8';
-    if (assistMode && canPick && t === bestFieldTile) div.classList.add('assist-best');
     if (canPick) {
       div.addEventListener('click', () => pickField(fi));
     }
@@ -1555,16 +1543,30 @@ function renderField() {
     label2.textContent = '♻ 捨て牌（引いてもOK）';
     grid.appendChild(label2);
 
-    discardTiles.forEach(t => {
-      const fi  = G.field.indexOf(t);
-      const div = document.createElement('div');
-      div.className = canPick ? 'tile discarded pickable' : 'tile discarded nopick';
-      div.innerHTML = tileInner(t);
-      if (canPick) {
-        div.addEventListener('click', () => pickField(fi));
-      }
-      grid.appendChild(div);
-    });
+// アシスト: 拾うべき捨て牌を計算
+  let bestDiscardTile = null;
+  if(assistMode && canPick && discardTiles.length > 0){
+    try{
+      const p = G.players[myOnlineIdx];
+      const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
+      let bestScore = -Infinity;
+      discardTiles.forEach(t => {
+        const score = evalHand([...p.hand, t], optR);
+        if(score > bestScore){ bestScore = score; bestDiscardTile = t; }
+      });
+    }catch(e){ bestDiscardTile = null; }
+  }
+  discardTiles.forEach(t => {
+    const fi  = G.field.indexOf(t);
+    const div = document.createElement('div');
+    div.className = canPick ? 'tile discarded pickable' : 'tile discarded nopick';
+    div.innerHTML = tileInner(t);
+    if(assistMode && canPick && t === bestDiscardTile) div.classList.add('assist-best');
+    if (canPick) {
+      div.addEventListener('click', () => pickField(fi));
+    }
+    grid.appendChild(div);
+  });
   }
 
   if (G.field.length === 0) {
