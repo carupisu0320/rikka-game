@@ -1993,6 +1993,7 @@ function doNextRound() {
 }
 
 function goLobby(){
+  document.getElementById('modal').classList.remove('open');
   document.getElementById('chat-toggle').style.display='none';
   document.getElementById('chat-wrap').style.display='none';
   chatOpen=false;
