@@ -234,14 +234,14 @@ socket.on('pick', ({ code, fieldIdx }) => {
     if (t) { t.flip = !t.flip; sendState(room); }
   });
 // 開発者ツール: 六華強制セット
-  socket.on('dev_rikka', ({ code }) => {
+  socket.on('dev_rikka', ({ code, hand }) => {
     const room = rooms.get(code);
     if (!room || room.phase !== 'playing') return;
     const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi === -1) return;
-    room.players[pi].hand = Array.from({length:6}, (_, i) => ({
-      id: 9000 + i, top: i + 1, bot: 3, flip: false, discarded: false
-    }));
+    room.players[pi].hand = hand && hand.length === 6
+      ? hand.map((t,i) => ({id:9000+i, top:t.top, bot:t.bot, flip:false, discarded:false}))
+      : Array.from({length:6}, (_, i) => ({id:9000+i, top:i+1, bot:3, flip:false, discarded:false}));
     room.turn = pi;
     room.tphase = 'discard';
     sendState(room);
