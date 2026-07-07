@@ -246,6 +246,28 @@ socket.on('pick', ({ code, fieldIdx }) => {
     room.tphase = 'discard';
     sendState(room);
   });
+  socket.on('rematch_request', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room) return;
+    if (!room.rematchVotes) room.rematchVotes = new Set();
+    room.rematchVotes.add(socket.id);
+    const total = room.players.length;
+    const waiting = room.rematchVotes.size;
+    io.to(code).emit('rematch_waiting', { waiting, total });
+    if (waiting >= total) {
+      room.rematchVotes = new Set();
+      room.players.forEach(p => { p.hand = []; p.score = 0; });
+      const deck = makeDeck();
+      let idx = 0;
+      room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
+      room.field = deck.slice(idx);
+      room.turn = 0;
+      room.tphase = 'pick';
+      room.phase = 'playing';
+      io.to(code).emit('rematch_start');
+      sendState(room);
+    }
+  });
   socket.on('chat', ({ code, msg }) => {
     const room = rooms.get(code);
     if (!room || room.phase !== 'playing') return;
