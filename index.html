@@ -738,9 +738,14 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
         </div>
         <!-- ボタン群 -->
         <div id="hand-btns">
-          <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
-          <button id="btn-win"     class="abtn" onclick="doWin()">上がる！</button>
-        </div>
+  <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
+  <button id="btn-win" class="abtn" onclick="doWin()">上がる</button>
+  
+  <label style="display:flex; align-items:center; justify-content:center; gap:.35rem; font-size:.8rem; color:#8a7048; cursor:pointer; margin-top:.5rem; user-select:none;">
+    <input type="checkbox" id="assist-toggle" onchange="toggleAssistMode(this.checked)" style="accent-color:#c9a84c">
+    アシスト
+  </label>
+</div>
       </div>
     </div>
   </div>
@@ -1016,6 +1021,7 @@ const SERVER_URL = 'https://rikka-game.onrender.com';
 fetch(SERVER_URL).catch(()=>{});
 
 let socket      = null;
+let assistMode = false;
 let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
@@ -1709,7 +1715,10 @@ function flipHand(e, i) {
   }
   return false;
 }
-
+function toggleAssistMode(checked) {
+  assistMode = checked;
+  render(); // 画面を再描画してアシスト表示を切り替える
+}
 function doDiscard() {
   if (G.tphase !== 'discard' || G.turn !== myOnlineIdx) return;
   const p = G.players[myOnlineIdx];
