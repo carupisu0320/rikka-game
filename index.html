@@ -1022,6 +1022,7 @@ fetch(SERVER_URL).catch(()=>{});
 
 let socket      = null;
 let assistMode = false;
+let assistDiscardIdx = -1;
 let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
@@ -1594,15 +1595,29 @@ function renderHand() {
   const has6      = p.hand.length === 6;
   const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
   const winRes = (isDiscard && has6) ? checkWin(p.hand, optR) : null;
+
   // アシスト: 捨てるべき牌を計算
-  let assistDiscardIdx = -1;
-  if(assistMode && isDiscard && has6 && !winRes){
-    let bestScore = -Infinity;
-    p.hand.forEach((_,i) => {
-      const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
-      if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
-    });
-  }
+    assistDiscardIdx = -1; // 宣言の「let」を消して、外の変数を使うようにします
+    if (assistMode && isDiscard && has6 && !winRes) {
+      let bestScore = -Infinity;
+      p.hand.forEach((_, i) => {
+        const score = evalHand(p.hand.filter((_, j) => j !== i), optR);
+        if (score > bestScore) {
+          bestScore = score;
+          assistDiscardIdx = i;
+        }
+      });
+    }
+
+    // 手牌のHTMLを生成する部分（すでに書いてある元の処理です）
+    const tilesHTML = p.hand.map((t, i) => {
+      const sel = (G.selIdx === i) ? ' selected' : '';
+      const assistCls = (assistMode && isDiscard && i === assistDiscardIdx) ? ' assist-discard' : '';
+      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}${assistCls}`);
+    }).join('');
+    
+    // ※注意：もし上の map 処理が `p.hand.map` ではなく別の場所にある場合は、
+    // `assistDiscardIdx = -1;` から `}` までの計算ブロックだけを綺麗に上書きしてください。
   const db = document.getElementById('btn-discard');
   db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
   db.disabled = false;
