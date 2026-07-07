@@ -1347,16 +1347,6 @@ function showOnlineGameOver(){
   `;
   document.getElementById('modal').classList.add('open');
 }
-  const winner = scores.reduce((a,b) => a.score > b.score ? a : b);
-  const rows = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
-  document.getElementById('mbox').innerHTML = `
-    <div class="mtitle">🏆 ゲーム終了！</div>
-    <div style="font-size:1.65rem;color:#f5e0a0;margin:.5rem 0;
-      font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
-    <table class="mscores">${rows}</table>
-    <button class="mbtn" onclick="location.reload()">タイトルへ戻る</button>
-  `;
-}
 function doNextOnlineRound(){
   document.getElementById('modal').classList.remove('open');
   socket?.emit('next_round',{code:currentCode});
