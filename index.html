@@ -1789,10 +1789,14 @@ function runBot() {
     let fi;
     if (bot.diff === 'easy') {
       fi = Math.floor(Math.random() * G.field.length);
+    } else if (bot.diff === 'normal') {
+      let best = -Infinity; fi = 0;
+      G.field.forEach((t, i) => {
+        const s = evalHandNormal([...bot.hand, t]);
+        if (s > best) { best = s; fi = i; }
+      });
     } else {
-      // 全場牌から最善を選ぶ
-      let best = -Infinity;
-      fi = 0;
+      let best = -Infinity; fi = 0;
       G.field.forEach((t, i) => {
         const s = evalHand([...bot.hand, t], G?.optRoles ?? null);
         if (s > best) { best = s; fi = i; }
@@ -1812,6 +1816,8 @@ function runBot() {
       let di;
       if (bot.diff === 'easy') {
         di = Math.floor(Math.random() * bot.hand.length);
+      } else if (bot.diff === 'normal') {
+        di = botNormalDiscard(bot.hand);
       } else {
         di = botBestDiscard(bot.hand);
       }
@@ -1834,7 +1840,20 @@ function botBestDiscard(hand) {
   });
   return bi;
 }
-
+function evalHandNormal(hand){
+  // 一色に向かう評価（下の数が最も多い値に揃える）
+  const freq={};
+  hand.forEach(t=>{const b=eBot(t);freq[b]=(freq[b]||0)+1;});
+  return Math.max(...Object.values(freq));
+}
+function botNormalDiscard(hand){
+  let best=-Infinity,bi=0;
+  hand.forEach((_,i)=>{
+    const s=evalHandNormal(hand.filter((_,j)=>j!==i));
+    if(s>best){best=s;bi=i;}
+  });
+  return bi;
+}
 function evalHand(hand, optR) {
   if (hand.length === 6) {
     const w = checkWin(hand, optR); if (w) return w.pts * 100;
