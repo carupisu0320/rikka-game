@@ -1180,7 +1180,8 @@ socket.on('game_start',()=>{
   chatUnread=0;
   chatOpen=false;
   document.getElementById('chat-wrap').style.display='none';
-});  socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
+  });
+  socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
   socket.on('round_win',wd=>showOnlineWinMsg(wd));
   socket.on('chat',({name, msg})=>{
   const isMine = name === (document.getElementById('pname').value.trim() || 'プレイヤー');
