@@ -246,6 +246,15 @@ socket.on('pick', ({ code, fieldIdx }) => {
     room.tphase = 'discard';
     sendState(room);
   });
+  socket.on('chat', ({ code, msg }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'playing') return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+    if (typeof msg !== 'string' || msg.trim().length === 0) return;
+    const safeMsg = msg.trim().slice(0, 100);
+    io.to(code).emit('chat', { name: player.name, msg: safeMsg });
+  });
   // 上がり
   socket.on('win', ({ code }) => {
     const room = rooms.get(code);
