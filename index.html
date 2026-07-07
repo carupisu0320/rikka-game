@@ -2244,16 +2244,6 @@ function applyDevRikka(){
   closeSidebar();
   toast(`✨ ${role}を強制セット！`);
 }
-  G.players[myOnlineIdx].hand=Array.from({length:6},(_,i)=>({
-    id:9000+i, top:i+1, bot:3, flip:false, discarded:false
-  }));
-  G.turn=myOnlineIdx;
-  G.tphase='discard';
-  G.selIdx=-1;
-  render();
-  closeSidebar();
-  toast('✨ 六華を強制セット！');
-}
 </script>
 </body>
 </html>
