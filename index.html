@@ -1578,8 +1578,7 @@ function renderHand() {
     p.hand.map((t,i) => {
       if (t.hidden) return '';
       const sel = i === G.selIdx ? ' selected' : '';
-      const assistCls = (assistMode && isDiscard && i === assistDiscardIdx) ? ' assist-discard' : '';
-      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}${assistCls}`);
+      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}`);
     }).join('');
 
   const isMyTurn  = G.turn === myOnlineIdx;
@@ -1589,13 +1588,19 @@ function renderHand() {
   const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
   const winRes = (isDiscard && has6) ? checkWin(p.hand, optR) : null;
   // アシスト: 捨てるべき牌を計算
-  let assistDiscardIdx = -1;
+let assistDiscardIdx = -1;
   if(assistMode && isDiscard && has6 && !winRes){
-    let bestScore = -Infinity;
-    p.hand.forEach((_,i) => {
-      const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
-      if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
-    });
+    try{
+      let bestScore = -Infinity;
+      p.hand.forEach((_,i) => {
+        const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
+        if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
+      });
+      if(assistDiscardIdx !== -1){
+        const tiles = document.getElementById('hand-tiles').querySelectorAll('.htile');
+        if(tiles[assistDiscardIdx]) tiles[assistDiscardIdx].classList.add('assist-discard');
+      }
+    }catch(e){}
   }
   const db = document.getElementById('btn-discard');
   db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
