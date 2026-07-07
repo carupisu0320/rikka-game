@@ -1183,6 +1183,16 @@ socket.on('game_start',()=>{
   });
   socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
   socket.on('round_win',wd=>showOnlineWinMsg(wd));
+  socket.on('rematch_waiting',({waiting, total})=>{
+  const st = document.getElementById('rematch-status');
+  if(st) st.textContent = `⏳ リマッチ待機中... (${waiting}/${total}人が同意)`;
+});
+socket.on('rematch_start',()=>{
+  document.getElementById('modal').classList.remove('open');
+  _pendingScores = null;
+  document.getElementById('chat-log').innerHTML = '';
+  toast('🔄 リマッチ開始！');
+});
   socket.on('chat',({name, msg})=>{
   const isMine = name === (document.getElementById('pname').value.trim() || 'プレイヤー');
   receiveChat(name, msg, isMine);
@@ -1318,6 +1328,25 @@ ${(_pendingScores = scores, isGameOver)
 }
 function showOnlineGameOver(){
   const scores = _pendingScores || [];
+  const sorted = [...scores].sort((a,b) => b.score - a.score);
+  const winner = sorted[0];
+  const rows = sorted.map(p =>
+    `<tr><td>${esc(p.name)}</td><td>${p.score}点</td></tr>`).join('');
+  document.getElementById('mbox').innerHTML = `
+    <div class="mtitle">🏆 ゲーム終了！</div>
+    <div style="font-size:1.5rem;color:#f5e0a0;margin:.5rem 0;
+      font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner?.name||'')} の勝利！</div>
+    <table class="mscores">${rows}</table>
+    <button class="mbtn" id="btn-rematch-online"
+      onclick="requestRematch()"
+      style="background:linear-gradient(135deg,#2a9e8e,#1a6e60);color:#e0fff8;margin-bottom:.5rem">
+      🔄 リマッチ申請
+    </button>
+    <div id="rematch-status" style="font-size:.78rem;color:#8a7048;text-align:center;margin-bottom:.5rem;min-height:1em"></div>
+    <button class="mbtn" onclick="goLobby()" style="background:#2a1e14;color:#c9a84c;border:1px solid #5a4020">🏠 タイトルへ戻る</button>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
   const winner = scores.reduce((a,b) => a.score > b.score ? a : b);
   const rows = scores.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.score}点</td></tr>`).join('');
   document.getElementById('mbox').innerHTML = `
@@ -1981,7 +2010,8 @@ function showGameOver() {
     <div style="font-size:1.7rem;color:#f5e0a0;margin:.5rem 0;
       font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner.name)} の勝利！</div>
     <table class="mscores">${rows}</table>
-    <button class="mbtn" onclick="goLobby()">タイトルへ戻る</button>
+    <button class="mbtn" onclick="doRematchBot()" style="background:linear-gradient(135deg,#2a9e8e,#1a6e60);color:#e0fff8;margin-bottom:.5rem">🔄 リマッチ</button>
+    <button class="mbtn" onclick="goLobby()" style="background:#2a1e14;color:#c9a84c;border:1px solid #5a4020">🏠 タイトルへ戻る</button>
   `;
 }
 
@@ -1991,7 +2021,20 @@ function doNextRound() {
   render();
   if (G.players[G.turn].isBot) scheduleBot();
 }
-
+function doRematchBot(){
+  document.getElementById('modal').classList.remove('open');
+  G.players.forEach(p => p.score = 0);
+  dealRound();
+  render();
+  if(G.players[G.turn].isBot) scheduleBot();
+}
+function requestRematch(){
+  const btn = document.getElementById('btn-rematch-online');
+  const st = document.getElementById('rematch-status');
+  if(btn) btn.disabled = true;
+  if(st) st.textContent = '⏳ 相手の返答を待っています...';
+  socket?.emit('rematch_request', {code: currentCode});
+}
 function goLobby(){
   document.getElementById('modal').classList.remove('open');
   document.getElementById('chat-toggle').style.display='none';
