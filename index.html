@@ -738,14 +738,9 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
         </div>
         <!-- ボタン群 -->
         <div id="hand-btns">
-  <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
-  <button id="btn-win" class="abtn" onclick="doWin()">上がる</button>
-  
-  <label style="display:flex; align-items:center; justify-content:center; gap:.35rem; font-size:.8rem; color:#8a7048; cursor:pointer; margin-top:.5rem; user-select:none;">
-    <input type="checkbox" id="assist-toggle" onchange="toggleAssistMode(this.checked)" style="accent-color:#c9a84c">
-    アシスト
-  </label>
-</div>
+          <button id="btn-discard" class="abtn" onclick="doDiscard()">捨てる</button>
+          <button id="btn-win"     class="abtn" onclick="doWin()">上がる！</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1021,8 +1016,6 @@ const SERVER_URL = 'https://rikka-game.onrender.com';
 fetch(SERVER_URL).catch(()=>{});
 
 let socket      = null;
-let assistMode = false;
-let assistDiscardIdx = -1;
 let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
@@ -1595,29 +1588,15 @@ function renderHand() {
   const has6      = p.hand.length === 6;
   const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
   const winRes = (isDiscard && has6) ? checkWin(p.hand, optR) : null;
-
   // アシスト: 捨てるべき牌を計算
-    assistDiscardIdx = -1; // 宣言の「let」を消して、外の変数を使うようにします
-    if (assistMode && isDiscard && has6 && !winRes) {
-      let bestScore = -Infinity;
-      p.hand.forEach((_, i) => {
-        const score = evalHand(p.hand.filter((_, j) => j !== i), optR);
-        if (score > bestScore) {
-          bestScore = score;
-          assistDiscardIdx = i;
-        }
-      });
-    }
-
-    // 手牌のHTMLを生成する部分（すでに書いてある元の処理です）
-    const tilesHTML = p.hand.map((t, i) => {
-      const sel = (G.selIdx === i) ? ' selected' : '';
-      const assistCls = (assistMode && isDiscard && i === assistDiscardIdx) ? ' assist-discard' : '';
-      return tileHTML(t, `onclick="clickHand(${i})" oncontextmenu="flipHand(event,${i})"`, `tile htile${sel}${assistCls}`);
-    }).join('');
-    
-    // ※注意：もし上の map 処理が `p.hand.map` ではなく別の場所にある場合は、
-    // `assistDiscardIdx = -1;` から `}` までの計算ブロックだけを綺麗に上書きしてください。
+  let assistDiscardIdx = -1;
+  if(assistMode && isDiscard && has6 && !winRes){
+    let bestScore = -Infinity;
+    p.hand.forEach((_,i) => {
+      const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
+      if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
+    });
+  }
   const db = document.getElementById('btn-discard');
   db.style.display = (isDiscard && hasSel) ? 'block' : 'none';
   db.disabled = false;
@@ -1730,10 +1709,7 @@ function flipHand(e, i) {
   }
   return false;
 }
-function toggleAssistMode(checked) {
-  assistMode = checked;
-  render(); // 画面を再描画してアシスト表示を切り替える
-}
+
 function doDiscard() {
   if (G.tphase !== 'discard' || G.turn !== myOnlineIdx) return;
   const p = G.players[myOnlineIdx];
