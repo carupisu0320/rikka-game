@@ -837,9 +837,21 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
       </button>
     </div>
     <div id="dev-tools" style="display:none">
+      <div style="font-size:.74rem;color:#8a7048;margin-bottom:.4rem">強制セットする役</div>
+      <select id="dev-role-select" style="width:100%;padding:.5rem .6rem;background:#0d0a06;
+        border:1px solid #4a3820;border-radius:7px;color:#c9a84c;font-family:inherit;
+        font-size:.85rem;margin-bottom:.5rem">
+        <option value="六華">六華（6点）</option>
+        <option value="無双">無双（3+★点）</option>
+        <option value="輝光">輝光（5点）</option>
+        <option value="三連">三連（3点）</option>
+        <option value="三色">三色（3点）</option>
+        <option value="三対">三対（2点）</option>
+        <option value="一色">一色（1点）</option>
+      </select>
       <button onclick="applyDevRikka()" class="lbtn"
         style="background:linear-gradient(135deg,#6a4aad,#3a1a7d);color:#e8d8ff;font-size:.9rem;padding:.7rem">
-        ✨ 六華を強制セット
+        ✨ 強制セット
       </button>
     </div>
     <div id="dev-msg" style="font-size:.78rem;text-align:center;margin-top:.4rem;min-height:1.1em"></div>
@@ -2204,14 +2216,34 @@ function checkDevCode(){
     setTimeout(()=>msg.textContent='',2000);
   }
 }
+const DEV_HANDS = {
+  '六華': [{top:1,bot:3},{top:2,bot:3},{top:3,bot:3},{top:4,bot:3},{top:5,bot:3},{top:6,bot:3}],
+  '無双': [{top:1,bot:1},{top:2,bot:2},{top:3,bot:3},{top:4,bot:4},{top:5,bot:5},{top:6,bot:6}],
+  '輝光': [{top:1,bot:1},{top:2,bot:2},{top:3,bot:3},{top:4,bot:4},{top:5,bot:5},{top:1,bot:1}],
+  '三連': [{top:1,bot:2},{top:2,bot:2},{top:3,bot:2},{top:4,bot:5},{top:5,bot:5},{top:6,bot:5}],
+  '三色': [{top:1,bot:3},{top:3,bot:5},{top:5,bot:1},{top:1,bot:5},{top:3,bot:1},{top:5,bot:3}],
+  '三対': [{top:1,bot:2},{top:1,bot:2},{top:3,bot:4},{top:3,bot:4},{top:5,bot:6},{top:5,bot:6}],
+  '一色': [{top:1,bot:4},{top:1,bot:4},{top:2,bot:4},{top:3,bot:4},{top:5,bot:4},{top:6,bot:4}],
+};
 function applyDevRikka(){
   if(!G||G.phase!=='playing'){toast('ゲーム中のみ使用可能');return;}
+  const role = document.getElementById('dev-role-select')?.value || '六華';
+  const base = DEV_HANDS[role] || DEV_HANDS['六華'];
+  const hand = base.map((t,i)=>({id:9000+i,top:t.top,bot:t.bot,flip:false,discarded:false}));
   if(onlineMode){
-    socket?.emit('dev_rikka',{code:currentCode});
+    socket?.emit('dev_rikka',{code:currentCode, hand});
     closeSidebar();
-    toast('✨ 六華を強制セット！');
+    toast(`✨ ${role}を強制セット！`);
     return;
   }
+  G.players[myOnlineIdx].hand = hand;
+  G.turn = myOnlineIdx;
+  G.tphase = 'discard';
+  G.selIdx = -1;
+  render();
+  closeSidebar();
+  toast(`✨ ${role}を強制セット！`);
+}
   G.players[myOnlineIdx].hand=Array.from({length:6},(_,i)=>({
     id:9000+i, top:i+1, bot:3, flip:false, discarded:false
   }));
