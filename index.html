@@ -1646,16 +1646,10 @@ function tileInner(t) {
 }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
 function isMusou(hand){
-  if(!hand.every(t=>t.top===t.bot))return false;
-  return new Set(hand.map(t=>t.top)).size===6;
+  if(!hand.every(t=>eTop(t)===eBot(t)))return false;
+  return new Set(hand.map(t=>eTop(t))).size===6;
 }
-function getOptRoles(prefix){
-  return['三対','三色','輝光','無双'].filter(r=>{
-    const el=document.getElementById(prefix+r);
-    return !el||el.checked;
-  });
-}
-function isKikou(hand){return hand.every(t=>t.top===t.bot);}
+function isKikou(hand){return hand.every(t=>eTop(t)===eBot(t));}
 function isSanshiki(hand){
   const v=new Set();
   hand.forEach(t=>{v.add(eTop(t));v.add(eBot(t));});
