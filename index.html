@@ -1645,6 +1645,12 @@ function tileInner(t) {
   return `<div class="th">${SYM_SVG[tv]}</div>${star}<div class="tb">${SYM_SVG[bv]}</div>`;
 }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
+function getOptRoles(prefix){
+  return['三対','三色','輝光','無双'].filter(r=>{
+    const el=document.getElementById(prefix+r);
+    return !el||el.checked;
+  });
+}
 function isMusou(hand){
   if(!hand.every(t=>eTop(t)===eBot(t)))return false;
   return new Set(hand.map(t=>eTop(t))).size===6;
