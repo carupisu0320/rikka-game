@@ -627,6 +627,24 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
     <div style="background:#141008;border:1px solid #3e2e1e;border-radius:8px;padding:.65rem .85rem;margin-bottom:.65rem">
   <div style="font-size:.78rem;color:#8a7048;margin-bottom:.45rem">追加役（ホストが選択）</div>
   <div style="font-size:.72rem;color:#5a4820;margin-bottom:.4rem">※クイックマッチは一色・三連・六華のみ</div>
+      <div style="font-size:.78rem;color:#8a7048;margin-bottom:.3rem;margin-top:.5rem">目標点数</div>
+  <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem">
+    <label style="display:flex;align-items:center;gap:.25rem;font-size:.82rem;color:#c8b898;cursor:pointer">
+      <input type="radio" name="room-goal" value="5" style="accent-color:#c9a84c"> 5点
+    </label>
+    <label style="display:flex;align-items:center;gap:.25rem;font-size:.82rem;color:#c8b898;cursor:pointer">
+      <input type="radio" name="room-goal" value="10" checked style="accent-color:#c9a84c"> 10点
+    </label>
+    <label style="display:flex;align-items:center;gap:.25rem;font-size:.82rem;color:#c8b898;cursor:pointer">
+      <input type="radio" name="room-goal" value="15" style="accent-color:#c9a84c"> 15点
+    </label>
+    <label style="display:flex;align-items:center;gap:.25rem;font-size:.82rem;color:#c8b898;cursor:pointer">
+      <input type="radio" name="room-goal" value="20" style="accent-color:#c9a84c"> 20点
+    </label>
+    <label style="display:flex;align-items:center;gap:.25rem;font-size:.82rem;color:#c8b898;cursor:pointer">
+      <input type="radio" name="room-goal" value="30" style="accent-color:#c9a84c"> 30点
+    </label>
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
       <input type="checkbox" id="room-opt-三対" checked style="accent-color:#c9a84c"> 三対（2点）
@@ -745,7 +763,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   <div id="hdr">
     <div class="hdr-logo">六華</div>
     <div id="scoreboard"></div>
-    <div style="font-size:.85rem;color:#5a4820;flex-shrink:0">10点先取</div>
+    <div id="goal-label" style="font-size:.85rem;color:#5a4820;flex-shrink:0">10点先取</div>
   </div>
 
   <div id="opp-area"></div>
@@ -1234,8 +1252,9 @@ function cancelQueue(){
 function createRoom(){
   if(!socket||!socket.connected){initSocket();setTimeout(createRoom,1000);return;}
   document.getElementById('btn-create-room').disabled=true;
-  socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-')});
-}
+const goalEl = document.querySelector('input[name="room-goal"]:checked');
+  const goal = goalEl ? parseInt(goalEl.value) : 10;
+  socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-'), goal});}
 function copyRoomCode(){
   const code=document.getElementById('room-code-display').textContent;
   navigator.clipboard?.writeText(code).then(()=>toast('コードをコピーしました！'));
@@ -1293,6 +1312,7 @@ function applyOnlineState(st){
   G.tphase = st.tphase;
   G.phase  = st.phase;
   G.optRoles = st.optRoles !== undefined ? st.optRoles : null;
+  G.goal = st.goal || 10;
 
   st.scores.forEach((s,i) => {
     G.players[i].score = s.score;
@@ -1559,7 +1579,8 @@ function render() {
 }
 
 function renderHeader() {
-  document.getElementById('scoreboard').innerHTML =
+  const gl = document.getElementById('goal-label');
+  if(gl) gl.textContent = `${G?.goal||WIN_SCORE}点先取`;  document.getElementById('scoreboard').innerHTML =
     G.players.map((p,i) => {
       const act = i === G.turn;
       const cls = act ? (p.isBot ? 'active-bot' : 'active-human') : '';
