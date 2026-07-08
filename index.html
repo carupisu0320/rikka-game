@@ -2003,8 +2003,7 @@ function processWin(pi, res) {
 //  モーダル（勝利・ゲームオーバー）
 // ============================================================
 function showWinModal(p, res) {
-  if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= WIN_SCORE;
-  const rows   = G.players.map(pl =>
+if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G?.goal || WIN_SCORE);  const rows   = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
   const tiles  = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
   const bonus  = res.bonus || 0;
