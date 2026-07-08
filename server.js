@@ -109,7 +109,8 @@ function sendState(room) {
       scores:    room.players.map(p => ({ name: p.name, score: p.score })),
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
       code:      room.code,
-      optRoles:  room.roles !== undefined ? room.roles : null, 
+      optRoles:  room.roles !== undefined ? room.roles : null,
+      goal:      room.goal || 10, 
     });
   });
 }
@@ -156,11 +157,12 @@ if (queue.length >= 2) {
   });
 
   // ルーム作成
-socket.on('create_room', ({ name, roles }) => {
+socket.on('create_room', ({ name, roles, goal }) => {
     const code = genCode();
     rooms.set(code, {
       code, host: socket.id,
-      roles: roles || [], // ホストが選択した追加役
+      roles: roles || [],
+      goal: [5,10,15,20,30].includes(goal) ? goal : 10,
       players: [{ id: socket.id, name, hand: [], score: 0 }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
@@ -297,7 +299,7 @@ player.score += res.pts + bonus;
       pts:        res.pts,
       bonus,
       scores:     room.players.map(p => ({ name: p.name, score: p.score })),
-      isGameOver: player.score >= 10,
+      isGameOver: player.score >= (room.goal || 10),
     });
   });
 
