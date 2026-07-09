@@ -1666,8 +1666,6 @@ function renderField() {
       div.className = canPick ? 'fback fback-pickable' : 'fback';
       div.style.cursor = canPick ? 'pointer' : 'default';
       if (!canPick) div.style.opacity = '0.8';
-      if(assistMode && canPick && normalIsBetter && t === bestNormalTile)
-        div.classList.add('assist-best');
       if (canPick) div.addEventListener('click', () => pickField(fi));
       normalWrap.appendChild(div);
     });
