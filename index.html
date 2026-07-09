@@ -434,6 +434,8 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 .rb-ex{display:flex;gap:4px;margin-top:.55rem;align-items:flex-end;flex-wrap:wrap}
 /* ── アシスト ── */
 .fback.assist-best,.tile.assist-best{border-color:#30e890!important;
+.normal-area-best{outline:2px solid #30e890;outline-offset:3px;border-radius:6px;
+  box-shadow:0 0 14px rgba(48,232,144,.5);animation:assistPulse 1.2s infinite}
   box-shadow:0 0 18px rgba(48,232,144,.8),0 0 6px rgba(48,232,144,.4)!important;
   animation:assistPulse 1.2s infinite}
 .htile.assist-discard{border-color:#e03030!important;
@@ -1627,27 +1629,51 @@ function renderField() {
   const grid = document.getElementById('field-grid');
   grid.innerHTML = '';
 
-  // セクションラベル（場の牌）
+  // アシスト計算
+  let bestNormalTile = null, bestNormalScore = -Infinity;
+  let bestDiscardTile = null, bestDiscardScore = -Infinity;
+  if(assistMode && canPick){
+    try{
+      const p = G.players[myOnlineIdx];
+      const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
+      normalTiles.forEach(t => {
+        const score = evalHand([...p.hand, t], optR);
+        if(score > bestNormalScore){ bestNormalScore = score; bestNormalTile = t; }
+      });
+      discardTiles.forEach(t => {
+        const score = evalHand([...p.hand, t], optR);
+        if(score > bestDiscardScore){ bestDiscardScore = score; bestDiscardTile = t; }
+      });
+    }catch(e){ bestNormalTile = null; bestDiscardTile = null; }
+  }
+  const normalIsBetter = bestNormalScore >= bestDiscardScore;
+
+  // 場の牌セクション
   if (normalTiles.length > 0) {
     const label = document.createElement('div');
     label.className = 'fsec';
     label.textContent = '🀄 場の牌（好きな1枚を選ぼう）';
     grid.appendChild(label);
 
-normalTiles.forEach(t => {
-    const fi  = G.field.indexOf(t);
-    const div = document.createElement('div');
-    div.className = canPick ? 'fback fback-pickable' : 'fback';
-    div.style.cursor = canPick ? 'pointer' : 'default';
-    if (!canPick) div.style.opacity = '0.8';
-    if (canPick) {
-      div.addEventListener('click', () => pickField(fi));
-    }
-    grid.appendChild(div);
-  });
+    const normalWrap = document.createElement('div');
+    normalWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:4px';
+    if(assistMode && canPick && normalIsBetter) normalWrap.classList.add('normal-area-best');
+    grid.appendChild(normalWrap);
+
+    normalTiles.forEach(t => {
+      const fi  = G.field.indexOf(t);
+      const div = document.createElement('div');
+      div.className = canPick ? 'fback fback-pickable' : 'fback';
+      div.style.cursor = canPick ? 'pointer' : 'default';
+      if (!canPick) div.style.opacity = '0.8';
+      if(assistMode && canPick && normalIsBetter && t === bestNormalTile)
+        div.classList.add('assist-best');
+      if (canPick) div.addEventListener('click', () => pickField(fi));
+      normalWrap.appendChild(div);
+    });
   }
 
-  // セクションラベル（捨て牌）
+  // 捨て牌セクション
   if (discardTiles.length > 0) {
     const label2 = document.createElement('div');
     label2.className = 'fsec';
@@ -1655,30 +1681,16 @@ normalTiles.forEach(t => {
     label2.textContent = '♻ 捨て牌（引いてもOK）';
     grid.appendChild(label2);
 
-// アシスト: 拾うべき捨て牌を計算
-  let bestDiscardTile = null;
-  if(assistMode && canPick && discardTiles.length > 0){
-    try{
-      const p = G.players[myOnlineIdx];
-      const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
-      let bestScore = -Infinity;
-      discardTiles.forEach(t => {
-        const score = evalHand([...p.hand, t], optR);
-        if(score > bestScore){ bestScore = score; bestDiscardTile = t; }
-      });
-    }catch(e){ bestDiscardTile = null; }
-  }
-  discardTiles.forEach(t => {
-    const fi  = G.field.indexOf(t);
-    const div = document.createElement('div');
-    div.className = canPick ? 'tile discarded pickable' : 'tile discarded nopick';
-    div.innerHTML = tileInner(t);
-    if(assistMode && canPick && t === bestDiscardTile) div.classList.add('assist-best');
-    if (canPick) {
-      div.addEventListener('click', () => pickField(fi));
-    }
-    grid.appendChild(div);
-  });
+    discardTiles.forEach(t => {
+      const fi  = G.field.indexOf(t);
+      const div = document.createElement('div');
+      div.className = canPick ? 'tile discarded pickable' : 'tile discarded nopick';
+      div.innerHTML = tileInner(t);
+      if(assistMode && canPick && !normalIsBetter && t === bestDiscardTile)
+        div.classList.add('assist-best');
+      if (canPick) div.addEventListener('click', () => pickField(fi));
+      grid.appendChild(div);
+    });
   }
 
   if (G.field.length === 0) {
