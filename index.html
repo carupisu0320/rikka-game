@@ -2017,7 +2017,6 @@ function botHardDiscardRikka(hand){
   });
   return worstIdx;
 }
-}
 function evalHand(hand, optR) {
   if (hand.length === 6) {
     const w = checkWin(hand, optR); if (w) return w.pts * 100;
