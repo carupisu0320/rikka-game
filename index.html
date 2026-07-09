@@ -1900,8 +1900,9 @@ function runBot() {
       fi = botHardPickRikka(bot.hand, G.field);
     }
 
-    bot.hand.push(G.field.splice(fi, 1)[0]);
-    G.tphase = 'discard';
+    bot.hand.push(G.field.splice(fi,1)[0]);
+    G.tphase='discard';
+    if(bot.diff==='hard') botHardFlipOptimize(bot.hand);
     render();
 
   const optR = G?.optRoles ?? null;
@@ -1952,51 +1953,70 @@ function botNormalDiscard(hand){
   return bi;
 }
 // 強いボット: 六華特化AI（全牌の値が見える）
-function botHardTargetBot(hand){
-  // 各底値で達成できるユニークな上値の数を計算（反転考慮）
-  let bestBot=1, bestCount=0;
+function botHardFlipOptimize(hand){
+  // 最も六華に近い底値を選ぶ
+  let bestTarget=1, bestScore=-1;
   for(let b=1;b<=6;b++){
     const tops=new Set();
     hand.forEach(t=>{
       if(t.bot===b)tops.add(t.top);
-      if(t.top===b)tops.add(t.bot);
+      else if(t.top===b)tops.add(t.bot);
     });
-    if(tops.size>bestCount){bestCount=tops.size;bestBot=b;}
+    if(tops.size>bestScore){bestScore=tops.size;bestTarget=b;}
   }
-  return bestBot;
+  // 実際にフリップして底値を揃える
+  hand.forEach(t=>{
+    if(t.bot===bestTarget) t.flip=false;
+    else if(t.top===bestTarget) t.flip=true;
+    else t.flip=false;
+  });
+  return bestTarget;
 }
 function botHardPickRikka(hand, field){
-  const tb=botHardTargetBot(hand);
+  // 現在のフリップ状態で目標底値を決定
+  let bestTarget=1, bestScore=-1;
+  for(let b=1;b<=6;b++){
+    const tops=new Set();
+    hand.forEach(t=>{
+      if(t.bot===b)tops.add(t.top);
+      else if(t.top===b)tops.add(t.bot);
+    });
+    if(tops.size>bestScore){bestScore=tops.size;bestTarget=b;}
+  }
   const existing=new Set();
   hand.forEach(t=>{
-    if(t.bot===tb)existing.add(t.top);
-    if(t.top===tb)existing.add(t.bot);
+    if(t.bot===bestTarget)existing.add(t.top);
+    else if(t.top===bestTarget)existing.add(t.bot);
   });
-  let bestFi=0, bestScore=-Infinity;
+  let bestFi=0, best=-Infinity;
   field.forEach((t,i)=>{
-    let eTop=null;
-    if(t.bot===tb)eTop=t.top;
-    else if(t.top===tb)eTop=t.bot;
-    const score = eTop!==null && !existing.has(eTop) ? 20
-                : eTop!==null ? 5 : 0;
-    if(score>bestScore){bestScore=score;bestFi=i;}
+    let topVal=null;
+    if(t.bot===bestTarget)topVal=t.top;
+    else if(t.top===bestTarget)topVal=t.bot;
+    const score=topVal!==null&&!existing.has(topVal)?100
+               :topVal!==null?10:0;
+    if(score>best){best=score;bestFi=i;}
   });
   return bestFi;
 }
 function botHardDiscardRikka(hand){
-  const tb=botHardTargetBot(hand);
-  let worstScore=-Infinity, wi=0;
+  // フリップ済みの手牌から捨てる牌を選ぶ
+  // 目標底値を取得（eBot使用）
+  const freq={};
+  hand.forEach(t=>{const b=eBot(t);freq[b]=(freq[b]||0)+1;});
+  const target=parseInt(Object.entries(freq).sort((a,b2)=>b2[1]-a[1])[0][0]);
+  const usedTops=new Set();
+  let worstIdx=0, worstScore=-Infinity;
   hand.forEach((t,i)=>{
-    let eTop=null;
-    if(t.bot===tb)eTop=t.top;
-    else if(t.top===tb)eTop=t.bot;
-    const isDup = eTop!==null && hand.some((t2,j)=>j!==i&&(
-      (t2.bot===tb&&t2.top===eTop)||(t2.top===tb&&t2.bot===eTop)
-    ));
-    const score = eTop===null ? 100 : isDup ? 50 : 0;
-    if(score>worstScore){worstScore=score;wi=i;}
+    const ab=eBot(t), at=eTop(t);
+    let score;
+    if(ab!==target) score=100;                    // 底値が違う→最優先で捨てる
+    else if(usedTops.has(at)) score=50;            // 上値が重複→次点で捨てる
+    else{score=0;usedTops.add(at);}               // 有用なタイル→残す
+    if(score>worstScore){worstScore=score;worstIdx=i;}
   });
-  return wi;
+  return worstIdx;
+}
 }
 function evalHand(hand, optR) {
   if (hand.length === 6) {
