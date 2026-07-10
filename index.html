@@ -1717,7 +1717,7 @@ let assistDiscardIdx = -1;
     try{
       let bestScore = -Infinity;
       p.hand.forEach((_,i) => {
-        const score = evalHand(p.hand.filter((_,j)=>j!==i), optR);
+        const score = evalDiscardAssist(p.hand.filter((_,j)=>j!==i), G.field, optR);
         if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
       });
       if(assistDiscardIdx !== -1){
