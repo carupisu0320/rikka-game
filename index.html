@@ -1952,35 +1952,120 @@ function botBestDiscard(hand) {
 function evalPickAssist(hand6, optR){
   if(hand6.length !== 6) return evalHand(hand6, optR);
   const w = checkWin(hand6, optR);
-  if(w) return (w.pts + (w.noBonus ? 0 : countZorome(hand6))) * 1000;
-  // 最善の捨て牌を選んだ後のスコアを返す
+  if(w) return (w.pts + (w.noBonus ? 0 : countZorome(hand6))) * 10000;
   let best = 0;
-  hand6.forEach((_, i) => {
-    const score = evalHand(hand6.filter((_,j) => j !== i), optR);
+  hand6.forEach((_,i) => {
+    const score = evalHand(hand6.filter((_,j)=>j!==i), optR);
     if(score > best) best = score;
   });
   return best;
 }
 
-// 2手先読み: 捨てた後の最善拾い評価
+// 捨てた後の評価: 正常牌=期待値 / 捨て牌=最善値
 function evalDiscardAssist(hand5, field, optR){
   if(!field || field.length === 0) return evalHand(hand5, optR);
-  let best = evalHand(hand5, optR);
-  field.forEach(t => {
-    const hand6 = [...hand5, t];
-    const w = checkWin(hand6, optR);
-    if(w){
-      const score = (w.pts + (w.noBonus ? 0 : countZorome(hand6))) * 1000;
-      if(score > best) best = score;
-    } else {
-      const lim = Math.min(1 << 6, 64);
-      for(let m = 0; m < lim; m++){
-        const h = hand6.map((ti,i) => ({...ti, flip:!!(m&(1<<i))}));
-        const score = scoreProgress(h, optR);
-        if(score > best) best = score;
-      }
-    }
+  const normalTiles  = field.filter(t => !t.discarded);
+  const discardTiles = field.filter(t =>  t.discarded);
+
+  // 正常牌: 期待値（どれを引くかわからないので平均）
+  let normalEV = evalHand(hand5, optR);
+  if(normalTiles.length > 0){
+    let sum = 0;
+    normalTiles.forEach(t => {
+      const h6 = [...hand5, t];
+      const w  = checkWin(h6, optR);
+      sum += w
+        ? (w.pts + (w.noBonus ? 0 : countZorome(h6))) * 10000
+        : evalHand(h6, optR);
+    });
+    normalEV = sum / normalTiles.length;
+  }
+
+  // 捨て牌: 最善値（見えているので好きな牌を選べる）
+  let discardBest = 0;
+  discardTiles.forEach(t => {
+    const h6 = [...hand5, t];
+    const w  = checkWin(h6, optR);
+    const score = w
+      ? (w.pts + (w.noBonus ? 0 : countZorome(h6))) * 10000
+      : evalHand(h6, optR);
+    if(score > discardBest) discardBest = score;
   });
+
+  return Math.max(normalEV, discardBest);
+}
+
+function scoreProgress(hand, optR){
+  const use = r => !optR || optR.includes(r);
+  let best = 0;
+  const n = hand.length;
+
+  // ── 六華 (6pt): 同じ底値に1〜6の上値を揃える ──
+  for(let b = 1; b <= 6; b++){
+    const aligned = hand.filter(t => eBot(t) === b);
+    const tops    = new Set(aligned.map(eTop));
+    const zoromes = aligned.filter(t => eTop(t) === b).length;
+    // 6種揃えば330点(winスコアに近い)、1種につき55点
+    best = Math.max(best, tops.size * 55 + zoromes * 10);
+  }
+
+  // ── 一色 (1pt): 底値を1種に揃える ──
+  for(let b = 1; b <= 6; b++){
+    const cnt = hand.filter(t => eBot(t) === b).length;
+    best = Math.max(best, cnt * 14);
+  }
+
+  // ── 三連 (3pt): 底値ごとの連続上値ラン ──
+  const tripleScore = b => {
+    const ts = [...new Set(hand.filter(t=>eBot(t)===b).map(eTop))].sort((a,c)=>a-c);
+    let maxRun = ts.length ? 1 : 0, cur = 1;
+    for(let i = 1; i < ts.length; i++){
+      if(ts[i]===ts[i-1]+1){ cur++; maxRun = Math.max(maxRun, cur); } else cur = 1;
+    }
+    return maxRun>=3 ? 120 : maxRun===2 ? 65 : ts.length ? 22 : 0;
+  };
+  for(let b1 = 1; b1 <= 6; b1++)
+    for(let b2 = b1+1; b2 <= 6; b2++)
+      best = Math.max(best, tripleScore(b1) + tripleScore(b2));
+  // 同底値で6枚(3+3)の場合
+  for(let b = 1; b <= 6; b++){
+    const ts = [...new Set(hand.filter(t=>eBot(t)===b).map(eTop))].sort((a,c)=>a-c);
+    let runs = 0, cur = 1;
+    for(let i = 1; i < ts.length; i++){
+      if(ts[i]===ts[i-1]+1){ cur++; if(cur===3) runs++; }
+      else cur = 1;
+    }
+    best = Math.max(best, runs>=2 ? 240 : ts.length * 16);
+  }
+
+  // ── 三対 (2pt): ペア×3 ──
+  if(use('三対')){
+    const pf = {};
+    hand.forEach(t=>{ const k=`${eTop(t)},${eBot(t)}`; pf[k]=(pf[k]||0)+1; });
+    const pairs   = Object.values(pf).filter(v=>v>=2).length;
+    const singles = Object.values(pf).filter(v=>v===1).length;
+    best = Math.max(best, pairs * 45 + singles * 4);
+  }
+
+  // ── 三色 (3pt): 全上下値が3種類のみ ──
+  if(use('三色')){
+    const vals = new Set();
+    hand.forEach(t=>{ vals.add(eTop(t)); vals.add(eBot(t)); });
+    best = Math.max(best, Math.max(0, (5 - Math.max(0, vals.size-3))) * 24);
+  }
+
+  // ── 無双 (9pt): ゾロ目6種類 ──
+  if(use('無双')){
+    const zt = new Set(hand.filter(t=>eTop(t)===eBot(t)).map(eTop));
+    best = Math.max(best, zt.size * 55);
+  }
+
+  // ── 輝光 (5pt): 全ゾロ目6枚 ──
+  if(use('輝光')){
+    const zc = hand.filter(t=>eTop(t)===eBot(t)).length;
+    best = Math.max(best, zc * 65);
+  }
+
   return best;
 }
 function evalHandNormal(hand){
