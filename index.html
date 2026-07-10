@@ -1637,11 +1637,11 @@ function renderField() {
       const p = G.players[myOnlineIdx];
       const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
       normalTiles.forEach(t => {
-        const score = evalHand([...p.hand, t], optR);
+        const score = evalPickAssist([...p.hand, t], optR);
         if(score > bestNormalScore){ bestNormalScore = score; bestNormalTile = t; }
       });
       discardTiles.forEach(t => {
-        const score = evalHand([...p.hand, t], optR);
+        const score = evalPickAssist([...p.hand, t], optR);
         if(score > bestDiscardScore){ bestDiscardScore = score; bestDiscardTile = t; }
       });
     }catch(e){ bestNormalTile = null; bestDiscardTile = null; }
@@ -1947,6 +1947,41 @@ function botBestDiscard(hand) {
     if (s > best) { best = s; bi = i; }
   });
   return bi;
+}
+// 2手先読み: 拾った後の最善捨て評価
+function evalPickAssist(hand6, optR){
+  if(hand6.length !== 6) return evalHand(hand6, optR);
+  const w = checkWin(hand6, optR);
+  if(w) return (w.pts + (w.noBonus ? 0 : countZorome(hand6))) * 1000;
+  // 最善の捨て牌を選んだ後のスコアを返す
+  let best = 0;
+  hand6.forEach((_, i) => {
+    const score = evalHand(hand6.filter((_,j) => j !== i), optR);
+    if(score > best) best = score;
+  });
+  return best;
+}
+
+// 2手先読み: 捨てた後の最善拾い評価
+function evalDiscardAssist(hand5, field, optR){
+  if(!field || field.length === 0) return evalHand(hand5, optR);
+  let best = evalHand(hand5, optR);
+  field.forEach(t => {
+    const hand6 = [...hand5, t];
+    const w = checkWin(hand6, optR);
+    if(w){
+      const score = (w.pts + (w.noBonus ? 0 : countZorome(hand6))) * 1000;
+      if(score > best) best = score;
+    } else {
+      const lim = Math.min(1 << 6, 64);
+      for(let m = 0; m < lim; m++){
+        const h = hand6.map((ti,i) => ({...ti, flip:!!(m&(1<<i))}));
+        const score = scoreProgress(h, optR);
+        if(score > best) best = score;
+      }
+    }
+  });
+  return best;
 }
 function evalHandNormal(hand){
   // 一色に向かう評価（下の数が最も多い値に揃える）
