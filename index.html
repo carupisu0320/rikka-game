@@ -2026,33 +2026,92 @@ function botHardDiscardRikka(hand){
     if(score>worstScore){worstScore=score;worstIdx=i;}
   });
   return worstIdx;
-}
-function evalHand(hand, optR) {
-  if (hand.length === 6) {
-    const w = checkWin(hand, optR); if (w) return w.pts * 100;
+}function evalHand(hand, optR) {
+  if(hand.length === 6){
+    const w = checkWin(hand, optR);
+    if(w) return (w.pts + (w.noBonus ? 0 : countZorome(hand))) * 100;
   }
   let best = 0;
   const n = hand.length;
   const lim = Math.min(1 << n, 64);
-  for (let m = 0; m < lim; m++) {
+  for(let m = 0; m < lim; m++){
     const h = hand.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
-    best = Math.max(best, scoreBots(h));
+    best = Math.max(best, scoreProgress(h, optR));
   }
   return best;
 }
 
-function scoreBots(hand) {
-  const bots = hand.map(eBot);
-  const freq = {};
-  bots.forEach(v => freq[v] = (freq[v]||0)+1);
-  const maxFreq = Math.max(...Object.values(freq));
-  const tops = hand.map(eTop);
-  const tf = {};
-  tops.forEach(v => tf[v] = (tf[v]||0)+1);
-  const ks = Object.keys(tf).map(Number).sort((a,b)=>a-b);
-  let cp = 0;
-  for (let i=0; i<ks.length-1; i++) if (ks[i+1]===ks[i]+1) cp++;
-  return maxFreq * 25 + cp * 12;
+function scoreProgress(hand, optR){
+  const use = r => !optR || optR.includes(r);
+  let best = 0;
+
+  // 六華向け: 同じ底値のユニーク上値数（最大6種類が目標）
+  for(let b = 1; b <= 6; b++){
+    const tops = new Set();
+    let zoromes = 0;
+    hand.forEach(t => {
+      if(eBot(t) === b){ tops.add(eTop(t)); if(eTop(t)===b) zoromes++; }
+    });
+    // ユニーク上値1つにつき50点（六華6点×高倍率）＋ゾロ目ボーナス
+    best = Math.max(best, tops.size * 50 + zoromes * 15);
+  }
+
+  // 一色向け: 同じ底値のタイル数
+  for(let b = 1; b <= 6; b++){
+    const cnt = hand.filter(t => eBot(t) === b).length;
+    best = Math.max(best, cnt * 12);
+  }
+
+  // 三連向け: 底値の揃い＋上値の連続性
+  {
+    const bf = {};
+    hand.forEach(t => { const b=eBot(t); bf[b]=(bf[b]||0)+1; });
+    const maxBotFreq = Object.values(bf).length ? Math.max(...Object.values(bf)) : 0;
+    const tf = {};
+    hand.forEach(t => { const v=eTop(t); tf[v]=(tf[v]||0)+1; });
+    const ks = Object.keys(tf).map(Number).sort((a,b)=>a-b);
+    let maxConsec = 1, cur = 1;
+    for(let i = 1; i < ks.length; i++){
+      if(ks[i] === ks[i-1]+1){ cur++; maxConsec = Math.max(maxConsec, cur); }
+      else cur = 1;
+    }
+    best = Math.max(best, maxBotFreq * 20 + maxConsec * 25);
+  }
+
+  // 三対向け: ペア数（2枚組×3が目標）
+  if(use('三対')){
+    const pf = {};
+    hand.forEach(t => {
+      const k = `${Math.min(eTop(t),eBot(t))},${Math.max(eTop(t),eBot(t))}`;
+      pf[k] = (pf[k]||0)+1;
+    });
+    const pairs = Object.values(pf).filter(v => v >= 2).length;
+    best = Math.max(best, pairs * 35);
+  }
+
+  // 三色向け: 全上下値の種類数が3種類に近いほど良い
+  if(use('三色')){
+    const vals = new Set();
+    hand.forEach(t => { vals.add(eTop(t)); vals.add(eBot(t)); });
+    // 3種類が目標（6値のうち3種類に絞る）
+    const score = Math.max(0, (7 - vals.size)) * 22;
+    best = Math.max(best, score);
+  }
+
+  // 無双向け: ゾロ目牌の種類数（6種類が目標）
+  if(use('無双')){
+    const zt = new Set();
+    hand.forEach(t => { if(eTop(t)===eBot(t)) zt.add(eTop(t)); });
+    best = Math.max(best, zt.size * 45);
+  }
+
+  // 輝光向け: ゾロ目牌の数（6枚全部が目標）
+  if(use('輝光')){
+    const zc = hand.filter(t => eTop(t)===eBot(t)).length;
+    best = Math.max(best, zc * 55);
+  }
+
+  return best;
 }
 
 // ============================================================
