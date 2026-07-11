@@ -1641,7 +1641,7 @@ function renderField() {
         if(score > bestNormalScore){ bestNormalScore = score; bestNormalTile = t; }
       });
       discardTiles.forEach(t => {
-        const score = evalPickAssist([...p.hand, t], optR);
+        const score = evalPickAssist([...p.hand, t], G.field, optR);
         if(score > bestDiscardScore){ bestDiscardScore = score; bestDiscardTile = t; }
       });
     }catch(e){ bestNormalTile = null; bestDiscardTile = null; }
