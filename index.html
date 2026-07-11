@@ -2177,64 +2177,7 @@ function botHardDiscardRikka(hand){
   return best;
 }
 
-  // 一色向け: 同じ底値のタイル数
-  for(let b = 1; b <= 6; b++){
-    const cnt = hand.filter(t => eBot(t) === b).length;
-    best = Math.max(best, cnt * 12);
-  }
-
-  // 三連向け: 底値の揃い＋上値の連続性
-  {
-    const bf = {};
-    hand.forEach(t => { const b=eBot(t); bf[b]=(bf[b]||0)+1; });
-    const maxBotFreq = Object.values(bf).length ? Math.max(...Object.values(bf)) : 0;
-    const tf = {};
-    hand.forEach(t => { const v=eTop(t); tf[v]=(tf[v]||0)+1; });
-    const ks = Object.keys(tf).map(Number).sort((a,b)=>a-b);
-    let maxConsec = 1, cur = 1;
-    for(let i = 1; i < ks.length; i++){
-      if(ks[i] === ks[i-1]+1){ cur++; maxConsec = Math.max(maxConsec, cur); }
-      else cur = 1;
-    }
-    best = Math.max(best, maxBotFreq * 20 + maxConsec * 25);
-  }
-
-  // 三対向け: ペア数（2枚組×3が目標）
-  if(use('三対')){
-    const pf = {};
-    hand.forEach(t => {
-      const k = `${Math.min(eTop(t),eBot(t))},${Math.max(eTop(t),eBot(t))}`;
-      pf[k] = (pf[k]||0)+1;
-    });
-    const pairs = Object.values(pf).filter(v => v >= 2).length;
-    best = Math.max(best, pairs * 35);
-  }
-
-  // 三色向け: 全上下値の種類数が3種類に近いほど良い
-  if(use('三色')){
-    const vals = new Set();
-    hand.forEach(t => { vals.add(eTop(t)); vals.add(eBot(t)); });
-    // 3種類が目標（6値のうち3種類に絞る）
-    const score = Math.max(0, (7 - vals.size)) * 22;
-    best = Math.max(best, score);
-  }
-
-  // 無双向け: ゾロ目牌の種類数（6種類が目標）
-  if(use('無双')){
-    const zt = new Set();
-    hand.forEach(t => { if(eTop(t)===eBot(t)) zt.add(eTop(t)); });
-    best = Math.max(best, zt.size * 45);
-  }
-
-  // 輝光向け: ゾロ目牌の数（6枚全部が目標）
-  if(use('輝光')){
-    const zc = hand.filter(t => eTop(t)===eBot(t)).length;
-    best = Math.max(best, zc * 55);
-  }
-
-  return best;
-}
-
+ 
 // ============================================================
 //  勝利処理
 // ============================================================
