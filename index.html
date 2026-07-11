@@ -1630,12 +1630,18 @@ function renderField() {
   grid.innerHTML = '';
 
   // アシスト計算
-  let bestNormalTile = null, bestNormalScore = -Infinity;
-  let bestDiscardTile = null, bestDiscardScore = -Infinity;
-  if(assistMode && canPick){
+  let bestNormalTile=null,bestNormalScore=-Infinity,bestDiscardTile=null,bestDiscardScore=-Infinity;
+  if(assistMode&&canPick){
+    const p=G.players[myOnlineIdx];
+    const optR=onlineMode?(G?.optRoles??null):getOptRoles('bot-opt-');
+    const cacheKey=getAssistCacheKey(p.hand,G.field,optR);
+    if(_assistCache&&_assistCacheKey===cacheKey){
+      bestNormalTile=_assistCache.bestNormalTile;
+      bestNormalScore=_assistCache.bestNormalScore;
+      bestDiscardTile=_assistCache.bestDiscardTile;
+      bestDiscardScore=_assistCache.bestDiscardScore;
+    } else {
     try{
-      const p = G.players[myOnlineIdx];
-      const optR = onlineMode ? (G?.optRoles ?? null) : getOptRoles('bot-opt-');
       normalTiles.forEach(t => {
         const score = evalPickAssist([...p.hand, t], G.field, optR);
         if(score > bestNormalScore){ bestNormalScore = score; bestNormalTile = t; }
@@ -1644,7 +1650,10 @@ function renderField() {
         const score = evalPickAssist([...p.hand, t], G.field, optR);
         if(score > bestDiscardScore){ bestDiscardScore = score; bestDiscardTile = t; }
       });
-    }catch(e){ bestNormalTile = null; bestDiscardTile = null; }
+    }catch(e){ bestNormalTile=null; bestDiscardTile=null; }
+    _assistCache={bestNormalTile,bestNormalScore,bestDiscardTile,bestDiscardScore};
+    _assistCacheKey=cacheKey;
+    }
   }
   const normalIsBetter = bestNormalScore >= bestDiscardScore;
 
@@ -1948,64 +1957,57 @@ function botBestDiscard(hand) {
   });
   return bi;
 }
-// 4手先読み: 拾う→捨てる→次拾い期待値→捨てる
+// アシストキャッシュ（毎フレーム再計算を防ぐ）
+let _assistCache = null;
+let _assistCacheKey = '';
+
+function getAssistCacheKey(hand, field, optR){
+  return hand.map(t=>`${t.top}${t.bot}${t.flip?1:0}`).join(',')
+    +'|'+field.filter(t=>t.discarded).map(t=>`${t.top}${t.bot}`).join(',')
+    +'|'+field.filter(t=>!t.discarded).length
+    +'|'+(optR?optR.join(','):'null');
+}
+
+// ピック評価: 拾う→最善捨て（1手先）
 function evalPickAssist(hand6, field, optR){
   if(hand6.length!==6) return evalHand(hand6, optR);
   const w=checkWin(hand6, optR);
   if(w) return (w.pts+(w.noBonus?0:countZorome(hand6)))*10000;
   let best=0;
   hand6.forEach((_,i)=>{
-    const h5=hand6.filter((_,j)=>j!==i);
-    const s=evalDiscardAssist(h5, field, optR);
+    const s=evalHand(hand6.filter((_,j)=>j!==i), optR);
     if(s>best) best=s;
   });
   return best;
 }
 
-// 3手先読み: 捨てる→次拾い期待値→捨てる
+// 捨て評価: 捨てる→次の拾い期待値（サンプリングで高速化）
 function evalDiscardAssist(hand5, field, optR){
   if(!field||field.length===0) return evalHand(hand5, optR);
   const normals =field.filter(t=>!t.discarded);
   const discards=field.filter(t=> t.discarded);
 
-  // 正常牌: 期待値（ランダムなので平均）
+  // 正常牌: 最大8枚をサンプリングして期待値を計算
   let normalEV=evalHand(hand5, optR);
   if(normals.length>0){
+    const step=Math.max(1, Math.floor(normals.length/8));
+    const sample=normals.filter((_,i)=>i%step===0);
     let sum=0;
-    normals.forEach(t=>{
-      const h6=[...hand5, t];
-      const w=checkWin(h6, optR);
-      if(w){
-        sum+=(w.pts+(w.noBonus?0:countZorome(h6)))*10000;
-      } else {
-        // 拾った後の最善捨てを評価
-        let pickBest=0;
-        h6.forEach((_,i)=>{
-          const s=evalHand(h6.filter((_,j)=>j!==i), optR);
-          if(s>pickBest) pickBest=s;
-        });
-        sum+=pickBest;
-      }
+    sample.forEach(t=>{
+      const h6=[...hand5,t];
+      const w=checkWin(h6,optR);
+      sum+=w?(w.pts+(w.noBonus?0:countZorome(h6)))*10000:evalHand(h6,optR);
     });
-    normalEV=sum/normals.length;
+    normalEV=sum/sample.length;
   }
 
-  // 捨て牌: 最善値（見えているので最良を選べる）
+  // 捨て牌: 全件評価（見えているので正確に）
   let discardBest=0;
   discards.forEach(t=>{
-    const h6=[...hand5, t];
-    const w=checkWin(h6, optR);
-    if(w){
-      const s=(w.pts+(w.noBonus?0:countZorome(h6)))*10000;
-      if(s>discardBest) discardBest=s;
-    } else {
-      let pickBest=0;
-      h6.forEach((_,i)=>{
-        const s=evalHand(h6.filter((_,j)=>j!==i), optR);
-        if(s>pickBest) pickBest=s;
-      });
-      if(pickBest>discardBest) discardBest=pickBest;
-    }
+    const h6=[...hand5,t];
+    const w=checkWin(h6,optR);
+    const s=w?(w.pts+(w.noBonus?0:countZorome(h6)))*10000:evalHand(h6,optR);
+    if(s>discardBest) discardBest=s;
   });
 
   return Math.max(normalEV, discardBest);
