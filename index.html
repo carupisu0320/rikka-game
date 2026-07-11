@@ -2177,21 +2177,6 @@ function botHardDiscardRikka(hand){
   return best;
 }
 
-function scoreProgress(hand, optR){
-  const use = r => !optR || optR.includes(r);
-  let best = 0;
-
-  // 六華向け: 同じ底値のユニーク上値数（最大6種類が目標）
-  for(let b = 1; b <= 6; b++){
-    const tops = new Set();
-    let zoromes = 0;
-    hand.forEach(t => {
-      if(eBot(t) === b){ tops.add(eTop(t)); if(eTop(t)===b) zoromes++; }
-    });
-    // ユニーク上値1つにつき50点（六華6点×高倍率）＋ゾロ目ボーナス
-    best = Math.max(best, tops.size * 50 + zoromes * 15);
-  }
-
   // 一色向け: 同じ底値のタイル数
   for(let b = 1; b <= 6; b++){
     const cnt = hand.filter(t => eBot(t) === b).length;
