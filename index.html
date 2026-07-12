@@ -1333,6 +1333,8 @@ function applyOnlineState(st){
 
 function showOnlineWinMsg(wd){
   saveHistory(makeHistoryEntry(Number(wd.winnerIdx)===Number(myOnlineIdx), wd.role, (wd.pts||0)+(wd.bonus||0), true, (wd.scores||[]).map(s=>s.name)));
+  // ついでに完成表示
+  const tsuideList = wd.tsuideList || [];
   const winnerIdx  = wd.winnerIdx;
   const winnerName = wd.winnerName;
   const hand       = wd.hand || [];
@@ -1373,6 +1375,11 @@ function showOnlineGameOver(){
     <div style="font-size:1.5rem;color:#f5e0a0;margin:.5rem 0;
       font-family:'Hiragino Mincho ProN','Yu Mincho',serif">${esc(winner?.name||'')} の勝利！</div>
     <table class="mscores">${rows}</table>
+    ${tsuideList.length>0?`
+    <div style="margin:.6rem 0 .3rem;font-size:.78rem;color:#8a7048;border-top:1px solid #2a1e10;padding-top:.5rem">✨ ついでに完成</div>
+    ${tsuideList.map(t=>`<div style="font-size:.82rem;color:#e8c97a;margin:.2rem 0">
+      ${esc(t.name)}：${t.role}（${t.pts}点${t.bonus>0?'＋★×'+t.bonus:''}）→ +${t.total}点
+    </div>`).join('')}`:''}
     <button class="mbtn" id="btn-rematch-online"
       onclick="requestRematch()"
       style="background:linear-gradient(135deg,#2a9e8e,#1a6e60);color:#e0fff8;margin-bottom:.5rem">
@@ -1771,6 +1778,22 @@ function getOptRoles(prefix){
     const el=document.getElementById(prefix+r);
     return !el||el.checked;
   });
+}
+// ついでに完成チェック
+function checkTsuide(hand5, field, optR){
+  if(hand5.length!==5)return null;
+  const discards=field.filter(t=>t.discarded);
+  let bestRes=null,bestPts=-1;
+  discards.forEach(t=>{
+    const hand6=[...hand5,t];
+    const w=checkWin(hand6,optR);
+    if(w&&w.pts>bestPts){
+      bestPts=w.pts;
+      const bonus=w.noBonus?0:countZorome(hand6);
+      bestRes={role:w.role,pts:w.pts,bonus,total:w.pts+bonus};
+    }
+  });
+  return bestRes;
 }
 function isMusou(hand){
   if(!hand.every(t=>eTop(t)===eBot(t)))return false;
@@ -2202,19 +2225,26 @@ function processWin(pi, res) {
   const bonus = res.noBonus ? 0 : countZorome(G.players[pi].hand);
   res.bonus = bonus;
   G.players[pi].score += res.pts + bonus;
-  setTimeout(()=>{
-    const scoreEls = document.querySelectorAll('.spill .sv');
-    if(scoreEls[pi]) animateScore(scoreEls[pi]);
-  }, 100);
   saveHistory(makeHistoryEntry(pi===myOnlineIdx, res.role, res.pts+bonus, false, G.players.map(p=>p.name)));
-  showWinModal(G.players[pi], res);
+  // ついでに完成チェック
+  const optR = G?.optRoles ?? null;
+  const tsuideList = [];
+  G.players.forEach((p,i) => {
+    if(i===pi) return;
+    const tr = checkTsuide(p.hand, G.field, optR);
+    if(tr){
+      p.score += tr.total;
+      tsuideList.push({name:p.name, role:tr.role, pts:tr.pts, bonus:tr.bonus, total:tr.total});
+    }
+  });
+  showWinModal(G.players[pi], res, tsuideList);
 }
 
 // ============================================================
 //  モーダル（勝利・ゲームオーバー）
 // ============================================================
-function showWinModal(p, res) {
-if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G?.goal || WIN_SCORE);  const rows   = G.players.map(pl =>
+function showWinModal(p, res, tsuideList=[]) {
+  if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G?.goal || WIN_SCORE);  const rows   = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
   const tiles  = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
   const bonus  = res.bonus || 0;
@@ -2233,6 +2263,11 @@ if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G
     ${bonusLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
+    ${tsuideList.length>0?`
+    <div style="margin:.6rem 0 .3rem;font-size:.78rem;color:#8a7048;border-top:1px solid #2a1e10;padding-top:.5rem">✨ ついでに完成</div>
+    ${tsuideList.map(t=>`<div style="font-size:.82rem;color:#e8c97a;margin:.2rem 0">
+      ${esc(t.name)}：${t.role}（${t.pts}点${t.bonus>0?'＋★×'+t.bonus:''}）→ +${t.total}点
+    </div>`).join('')}`:''}
     ${over
       ? `<button class="mbtn" onclick="showGameOver()">ゲーム終了を確認 →</button>`
       : `<button class="mbtn" onclick="doNextRound()">次のラウンドへ →</button>`}
