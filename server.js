@@ -50,6 +50,21 @@ function checkWin(hand, optRoles){
   if(allBot)return{role:'一色',pts:1};
   return null;
 }
+function checkTsuide(hand5, field, optRoles){
+  if(hand5.length!==5)return null;
+  const discards=field.filter(t=>t.discarded);
+  let bestRes=null,bestPts=-1;
+  discards.forEach(t=>{
+    const hand6=[...hand5,t];
+    const w=checkWin(hand6,optRoles);
+    if(w&&w.pts>bestPts){
+      bestPts=w.pts;
+      const bonus=w.noBonus?0:countZorome(hand6);
+      bestRes={role:w.role,pts:w.pts,bonus,total:w.pts+bonus};
+    }
+  });
+  return bestRes;
+}
 function isSanren(hand) {
   for (let m = 0; m < 64; m++) {
     if (popcount(m) !== 3) continue;
@@ -291,6 +306,16 @@ const res = checkWin(player.hand, room.roles !== undefined ? room.roles : null);
 const bonus = res.noBonus ? 0 : countZorome(player.hand);
 player.score += res.pts + bonus;
     room.phase = 'roundEnd';
+    // ついでに完成チェック
+    const tsuideList=[];
+    room.players.forEach((p,i)=>{
+      if(i===winnerIdx)return;
+      const tr=checkTsuide(p.hand,room.field,room.roles!==undefined?room.roles:null);
+      if(tr){
+        p.score+=tr.total;
+        tsuideList.push({name:p.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});
+      }
+    });
     io.to(code).emit('round_win', {
       winnerIdx:  pi,
       winnerName: player.name,
@@ -299,7 +324,8 @@ player.score += res.pts + bonus;
       pts:        res.pts,
       bonus,
       scores:     room.players.map(p => ({ name: p.name, score: p.score })),
-      isGameOver: player.score >= (room.goal || 10),
+      isGameOver: room.players.some(p => p.score >= (room.goal || 10)),
+      tsuideList,
     });
   });
 
