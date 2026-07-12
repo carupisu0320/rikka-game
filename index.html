@@ -2002,73 +2002,100 @@ function calcAssist(hand, field, optR){
 
 function scoreProgress(hand, optR){
   const use = r => !optR || optR.includes(r);
-  let best = 0;
   const n = hand.length;
 
-  // ── 六華 (6pt): 同じ底値に1〜6の上値を揃える ──
-  for(let b = 1; b <= 6; b++){
-    const aligned = hand.filter(t => eBot(t) === b);
-    const tops    = new Set(aligned.map(eTop));
-    const zoromes = aligned.filter(t => eTop(t) === b).length;
-    // 6種揃えば330点(winスコアに近い)、1種につき55点
-    best = Math.max(best, tops.size * 55 + zoromes * 10);
+  // 揃いやすさ重視スコア: 役点数よりも残り手数を優先
+  // 残り手数が少ないほど高スコア、役点は補正程度
+  function rs(moves, pts){
+    return Math.pow(pts, 0.3) / (Math.max(0, moves) * 1.5 + 0.3) * 100;
   }
 
-  // ── 一色 (1pt): 底値を1種に揃える ──
-  for(let b = 1; b <= 6; b++){
-    const cnt = hand.filter(t => eBot(t) === b).length;
-    best = Math.max(best, cnt * 14);
+  let best = 0;
+
+  // 対象底値bに揃えられるタイル（反転考慮）
+  function alignedTo(b){ return hand.filter(t=>eBot(t)===b||eTop(t)===b); }
+  // 揃えたときの上値セット
+  function topSet(tiles, b){ return new Set(tiles.map(t=>t.bot===b?t.top:t.bot)); }
+
+  // ── 一色 (1pt): 底値を1種類に ──
+  for(let b=1;b<=6;b++){
+    const m=alignedTo(b).length;
+    best=Math.max(best, rs(n-m, 1));
   }
 
-  // ── 三連 (3pt): 底値ごとの連続上値ラン ──
-  const tripleScore = b => {
-    const ts = [...new Set(hand.filter(t=>eBot(t)===b).map(eTop))].sort((a,c)=>a-c);
-    let maxRun = ts.length ? 1 : 0, cur = 1;
-    for(let i = 1; i < ts.length; i++){
-      if(ts[i]===ts[i-1]+1){ cur++; maxRun = Math.max(maxRun, cur); } else cur = 1;
+  // ── 六華 (6pt): 同じ底値で上値1〜6 ──
+  for(let b=1;b<=6;b++){
+    const al=alignedTo(b);
+    const tops=topSet(al,b);
+    const dups=al.length-tops.size;
+    best=Math.max(best, rs(n-al.length+dups, 6));
+  }
+
+  // ── 三連 (3pt): 底値ごとの連続上値ラン×2組 ──
+  function maxRun(arr){
+    if(!arr.length) return 0;
+    let m=1,c=1;
+    for(let i=1;i<arr.length;i++){if(arr[i]===arr[i-1]+1){c++;m=Math.max(m,c);}else c=1;}
+    return m;
+  }
+  // 2組を別底値で作る場合
+  for(let b1=1;b1<=6;b1++){
+    const al1=alignedTo(b1);
+    const t1=[...topSet(al1,b1)].sort((a,c)=>a-c);
+    const run1=maxRun(t1);
+    const need1=Math.max(0,3-run1);
+    for(let b2=b1+1;b2<=6;b2++){
+      const al2=alignedTo(b2);
+      const t2=[...topSet(al2,b2)].sort((a,c)=>a-c);
+      const run2=maxRun(t2);
+      const need2=Math.max(0,3-run2);
+      // 両組に属さないタイル
+      const both=hand.filter(t=>(eBot(t)===b1||eTop(t)===b1)||(eBot(t)===b2||eTop(t)===b2)).length;
+      const nonContrib=n-both;
+      best=Math.max(best, rs(need1+need2+Math.max(0,nonContrib), 3));
     }
-    return maxRun>=3 ? 120 : maxRun===2 ? 65 : ts.length ? 22 : 0;
-  };
-  for(let b1 = 1; b1 <= 6; b1++)
-    for(let b2 = b1+1; b2 <= 6; b2++)
-      best = Math.max(best, tripleScore(b1) + tripleScore(b2));
-  // 同底値で6枚(3+3)の場合
-  for(let b = 1; b <= 6; b++){
-    const ts = [...new Set(hand.filter(t=>eBot(t)===b).map(eTop))].sort((a,c)=>a-c);
-    let runs = 0, cur = 1;
-    for(let i = 1; i < ts.length; i++){
-      if(ts[i]===ts[i-1]+1){ cur++; if(cur===3) runs++; }
-      else cur = 1;
+    // 同じ底値で2組作る場合（六華が崩れた形）
+    if(t1.length>=2){
+      let minNeeded=6;
+      for(let k1=1;k1<=4;k1++){
+        const n1=[k1,k1+1,k1+2].filter(v=>t1.includes(v)).length;
+        for(let k2=k1+3;k2<=4;k2++){
+          const n2=[k2,k2+1,k2+2].filter(v=>t1.includes(v)).length;
+          minNeeded=Math.min(minNeeded,(3-n1)+(3-n2));
+        }
+      }
+      if(minNeeded<6) best=Math.max(best, rs(minNeeded+(n-al1.length), 3));
     }
-    best = Math.max(best, runs>=2 ? 240 : ts.length * 16);
   }
 
   // ── 三対 (2pt): ペア×3 ──
   if(use('三対')){
-    const pf = {};
-    hand.forEach(t=>{ const k=`${eTop(t)},${eBot(t)}`; pf[k]=(pf[k]||0)+1; });
-    const pairs   = Object.values(pf).filter(v=>v>=2).length;
-    const singles = Object.values(pf).filter(v=>v===1).length;
-    best = Math.max(best, pairs * 45 + singles * 4);
+    const pf={};
+    hand.forEach(t=>{const k=`${Math.min(eTop(t),eBot(t))},${Math.max(eTop(t),eBot(t))}`;pf[k]=(pf[k]||0)+1;});
+    const pairs=Object.values(pf).filter(v=>v>=2).length;
+    best=Math.max(best, rs(Math.max(0,3-pairs), 2));
   }
 
-  // ── 三色 (3pt): 全上下値が3種類のみ ──
+  // ── 三色 (3pt): 上下値を3種類のみに ──
   if(use('三色')){
-    const vals = new Set();
-    hand.forEach(t=>{ vals.add(eTop(t)); vals.add(eBot(t)); });
-    best = Math.max(best, Math.max(0, (5 - Math.max(0, vals.size-3))) * 24);
+    let bestM=0;
+    for(let a=1;a<=4;a++) for(let b=a+1;b<=5;b++) for(let c=b+1;c<=6;c++){
+      const m=hand.filter(t=>[a,b,c].includes(eTop(t))&&[a,b,c].includes(eBot(t))).length;
+      bestM=Math.max(bestM,m);
+    }
+    best=Math.max(best, rs(n-bestM, 3));
   }
 
   // ── 無双 (9pt): ゾロ目6種類 ──
   if(use('無双')){
-    const zt = new Set(hand.filter(t=>eTop(t)===eBot(t)).map(eTop));
-    best = Math.max(best, zt.size * 55);
+    const zt=new Set(hand.filter(t=>eTop(t)===eBot(t)).map(eTop));
+    best=Math.max(best, rs(6-zt.size, 9));
   }
 
-  // ── 輝光 (5pt): 全ゾロ目6枚 ──
+  // ── 輝光 (5pt): 全ゾロ目 ──
   if(use('輝光')){
-    const zc = hand.filter(t=>eTop(t)===eBot(t)).length;
-    best = Math.max(best, zc * 65);
+    const zc=hand.filter(t=>eTop(t)===eBot(t)).length;
+    best=Math.max(best, rs(n-zc, 5));
   }
 
   return best;
