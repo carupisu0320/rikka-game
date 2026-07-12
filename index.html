@@ -1632,8 +1632,13 @@ function renderField() {
   // アシスト計算
   let bestNormalTile=null,bestNormalScore=-Infinity,bestDiscardTile=null,bestDiscardScore=-Infinity;
   if(assistMode&&canPick){
-    const p=G.players[myOnlineIdx];
-    const optR=onlineMode?(G?.optRoles??null):getOptRoles('bot-opt-');
+    try{
+      const p=G.players[myOnlineIdx];
+      const optR=onlineMode?(G?.optRoles??null):getOptRoles('bot-opt-');
+      const r=calcAssist(p.hand,G.field,optR);
+      bestNormalTile=r.bestNormalTile;bestNormalScore=r.bestNormalScore;
+      bestDiscardTile=r.bestDiscardTile;bestDiscardScore=r.bestDiscardScore;
+    }catch(e){}
   }
   const normalIsBetter = bestNormalScore >= bestDiscardScore;
 
