@@ -1724,11 +1724,8 @@ function renderHand() {
 let assistDiscardIdx = -1;
   if(assistMode && isDiscard && has6 && !winRes){
     try{
-      let bestScore = -Infinity;
-      p.hand.forEach((_,i) => {
-        const score = evalDiscardAssist(p.hand.filter((_,j)=>j!==i), G.field, optR);
-        if(score > bestScore){ bestScore = score; assistDiscardIdx = i; }
-      });
+      const r=calcAssist(p.hand,G.field,optR);
+      assistDiscardIdx=r.discardIdx;
       if(assistDiscardIdx !== -1){
         const tiles = document.getElementById('hand-tiles').querySelectorAll('.htile');
         if(tiles[assistDiscardIdx]) tiles[assistDiscardIdx].classList.add('assist-discard');
@@ -1969,48 +1966,55 @@ function getAssistCacheKey(hand, field, optR){
 }
 
 // ピック評価: 拾う→最善捨て（1手先）
-function evalPickAssist(hand6, field, optR){
-  if(hand6.length!==6) return evalHand(hand6, optR);
-  const w=checkWin(hand6, optR);
-  if(w) return (w.pts+(w.noBonus?0:countZorome(hand6)))*10000;
+// ── アシスト評価（シンプル・高速版）──
+let _assistCache=null, _assistCacheKey='';
+
+function _assistKey(hand, field, optR){
+  return hand.map(t=>`${t.top}${t.bot}${t.flip?1:0}`).join(',')
+    +'|'+field.map(t=>`${t.top}${t.bot}${t.discarded?1:0}`).join(',')
+    +'|'+(optR?optR.join(','):'null');
+}
+
+function evalHandFull(hand, optR){
+  if(hand.length===6){
+    const w=checkWin(hand,optR);
+    if(w) return (w.pts+(w.noBonus?0:countZorome(hand)))*10000;
+  }
   let best=0;
-  hand6.forEach((_,i)=>{
-    const s=evalHand(hand6.filter((_,j)=>j!==i), optR);
-    if(s>best) best=s;
-  });
+  const lim=Math.min(1<<hand.length,64);
+  for(let m=0;m<lim;m++){
+    const h=hand.map((t,i)=>({...t,flip:!!(m&(1<<i))}));
+    best=Math.max(best,scoreProgress(h,optR));
+  }
   return best;
 }
 
-// 捨て評価: 捨てる→次の拾い期待値（サンプリングで高速化）
-function evalDiscardAssist(hand5, field, optR){
-  if(!field||field.length===0) return evalHand(hand5, optR);
-  const normals =field.filter(t=>!t.discarded);
+function calcAssist(hand, field, optR){
+  const key=_assistKey(hand,field,optR);
+  if(_assistCache&&_assistCacheKey===key) return _assistCache;
+  const normals=field.filter(t=>!t.discarded);
   const discards=field.filter(t=> t.discarded);
-
-  // 正常牌: 最大8枚をサンプリングして期待値を計算
-  let normalEV=evalHand(hand5, optR);
-  if(normals.length>0){
-    const step=Math.max(1, Math.floor(normals.length/8));
-    const sample=normals.filter((_,i)=>i%step===0);
-    let sum=0;
-    sample.forEach(t=>{
-      const h6=[...hand5,t];
-      const w=checkWin(h6,optR);
-      sum+=w?(w.pts+(w.noBonus?0:countZorome(h6)))*10000:evalHand(h6,optR);
-    });
-    normalEV=sum/sample.length;
-  }
-
-  // 捨て牌: 全件評価（見えているので正確に）
-  let discardBest=0;
-  discards.forEach(t=>{
-    const h6=[...hand5,t];
-    const w=checkWin(h6,optR);
-    const s=w?(w.pts+(w.noBonus?0:countZorome(h6)))*10000:evalHand(h6,optR);
-    if(s>discardBest) discardBest=s;
+  let bestNormalTile=null, bestNormalScore=-Infinity;
+  normals.forEach(t=>{
+    const s=evalHandFull([...hand,t],optR);
+    if(s>bestNormalScore){bestNormalScore=s;bestNormalTile=t;}
   });
-
-  return Math.max(normalEV, discardBest);
+  let bestDiscardTile=null, bestDiscardScore=-Infinity;
+  discards.forEach(t=>{
+    const s=evalHandFull([...hand,t],optR);
+    if(s>bestDiscardScore){bestDiscardScore=s;bestDiscardTile=t;}
+  });
+  let discardIdx=-1;
+  if(hand.length===6){
+    let bestKeep=-Infinity;
+    hand.forEach((_,i)=>{
+      const s=evalHandFull(hand.filter((_,j)=>j!==i),optR);
+      if(s>bestKeep){bestKeep=s;discardIdx=i;}
+    });
+  }
+  const result={bestNormalTile,bestNormalScore,bestDiscardTile,bestDiscardScore,discardIdx};
+  _assistCache=result;_assistCacheKey=key;
+  return result;
 }
 
 function scoreProgress(hand, optR){
