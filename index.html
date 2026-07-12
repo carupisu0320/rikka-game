@@ -1634,26 +1634,6 @@ function renderField() {
   if(assistMode&&canPick){
     const p=G.players[myOnlineIdx];
     const optR=onlineMode?(G?.optRoles??null):getOptRoles('bot-opt-');
-    const cacheKey=getAssistCacheKey(p.hand,G.field,optR);
-    if(_assistCache&&_assistCacheKey===cacheKey){
-      bestNormalTile=_assistCache.bestNormalTile;
-      bestNormalScore=_assistCache.bestNormalScore;
-      bestDiscardTile=_assistCache.bestDiscardTile;
-      bestDiscardScore=_assistCache.bestDiscardScore;
-    } else {
-    try{
-      normalTiles.forEach(t => {
-        const score = evalPickAssist([...p.hand, t], G.field, optR);
-        if(score > bestNormalScore){ bestNormalScore = score; bestNormalTile = t; }
-      });
-      discardTiles.forEach(t => {
-        const score = evalPickAssist([...p.hand, t], G.field, optR);
-        if(score > bestDiscardScore){ bestDiscardScore = score; bestDiscardTile = t; }
-      });
-    }catch(e){ bestNormalTile=null; bestDiscardTile=null; }
-    _assistCache={bestNormalTile,bestNormalScore,bestDiscardTile,bestDiscardScore};
-    _assistCacheKey=cacheKey;
-    }
   }
   const normalIsBetter = bestNormalScore >= bestDiscardScore;
 
@@ -1955,8 +1935,6 @@ function botBestDiscard(hand) {
   return bi;
 }
 // アシストキャッシュ（毎フレーム再計算を防ぐ）
-let _assistCache = null;
-let _assistCacheKey = '';
 
 function getAssistCacheKey(hand, field, optR){
   return hand.map(t=>`${t.top}${t.bot}${t.flip?1:0}`).join(',')
