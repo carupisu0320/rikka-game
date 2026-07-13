@@ -943,6 +943,19 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   </div>
 </div>
 <canvas id="confetti-canvas"></canvas>
+<!-- リーチ・ロンボタン -->
+<button id="riichi-btn" onclick="declareRiichi()" style="display:none;position:fixed;bottom:14rem;right:.75rem;z-index:310;
+  padding:.5rem 1rem;background:linear-gradient(135deg,#c84a4a,#8a1a1a);border:none;border-radius:10px;
+  color:#fff;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+  box-shadow:0 2px 12px rgba(200,74,74,.6);animation:assistPulse 1s infinite">
+  🀄 リーチ宣言
+</button>
+<button id="ron-btn" onclick="declareRon()" style="display:none;position:fixed;bottom:14rem;right:.75rem;z-index:310;
+  padding:.6rem 1.2rem;background:linear-gradient(135deg,#e0a020,#a06010);border:none;border-radius:10px;
+  color:#fff;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+  box-shadow:0 2px 16px rgba(224,160,32,.7);animation:assistPulse .6s infinite">
+  ロン！
+</button>
 <!-- ボットチャット -->
 <button id="bot-chat-toggle" onclick="toggleBotChat()">
   💬<span id="bot-chat-badge"></span>
@@ -1593,9 +1606,8 @@ function startGame() {
   const name  = document.getElementById('pname').value.trim() || 'プレイヤー';
   const bcnt  = parseInt(document.getElementById('bcnt').value);
   const bdiff = document.getElementById('bdiff').value;
-  const players = [{name, hand:[], score:0, isBot:false}];
-  for (let i = 0; i < bcnt; i++)
-    players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff});
+  const players=[{name, hand:[], score:0, isBot:false, riichi:false}];
+for(let i=0;i<bcnt;i++) players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff, riichi:false});
   G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing', optRoles: getOptRoles('bot-opt-')};  myOnlineIdx = 0;
   onlineMode  = false;
   currentCode = '';
@@ -1783,6 +1795,14 @@ if (winRes) {
     hh.textContent = `★ ${winRes.role}（${winRes.pts}点${bonusTxt}）上がれます！`;
     hh.className = 'can-win';
     updateWinSparkle(winRes);
+  // リーチボタン表示
+  if(!onlineMode||true){
+    const p2=G.players[myOnlineIdx];
+    const optR2=G?.optRoles??null;
+    const canRiichi=isDiscard&&has6&&!p2.riichi&&!winRes&&
+      p2.hand.some((_,i)=>isTenpai(p2.hand.filter((_,j)=>j!==i),optR2));
+    showRiichiBtn(canRiichi);
+  }
   } else if (p.hand.length < 6) {
     hh.textContent = `手牌 ${p.hand.length}枚 — 場から1枚引いてください`;
     hh.className = '';
@@ -1820,6 +1840,127 @@ function tileInner(t) {
   return `<div class="th">${SYM_SVG[tv]}</div>${star}<div class="tb">${SYM_SVG[bv]}</div>`;
 }
 function countZorome(hand) { return hand.filter(t => t.top === t.bot).length; }
+// ── リーチ・ロン ──
+function isTenpai(hand5, optR){
+  if(hand5.length!==5) return false;
+  for(let top=1;top<=6;top++)
+    for(let bot=1;bot<=6;bot++){
+      const t={id:8888,top,bot,flip:false,discarded:false};
+      if(evalHand([...hand5,t],optR)>=100) return true;
+    }
+  return false;
+}
+function canRon(hand5, tile, optR){
+  return evalHand([...hand5,tile],optR)>=100;
+}
+let _ronPending=null, _ronTimer=null;
+function openRonWindow(tile, discardedByIdx){
+  _ronPending={tile,discardedByIdx};
+  showRonBtn(true);
+  clearTimeout(_ronTimer);
+  _ronTimer=setTimeout(()=>{clearRonWindow();},5000);
+}
+function clearRonWindow(){
+  clearTimeout(_ronTimer);_ronTimer=null;_ronPending=null;
+  showRonBtn(false);
+}
+function showRonBtn(show){
+  const el=document.getElementById('ron-btn');
+  if(el) el.style.display=show?'block':'none';
+}
+function showRiichiBtn(show){
+  const el=document.getElementById('riichi-btn');
+  if(el) el.style.display=show?'block':'none';
+}
+function declareRiichi(){
+  if(!G||G.phase!=='playing') return;
+  const p=G.players[myOnlineIdx];
+  if(p.riichi||G.turn!==myOnlineIdx||G.tphase!=='discard') return;
+  const optR=G?.optRoles??null;
+  let ok=false;
+  p.hand.forEach((_,i)=>{if(isTenpai(p.hand.filter((_,j)=>j!==i),optR))ok=true;});
+  if(!ok){toast('テンパイしていません');return;}
+  p.riichi=true;
+  if(onlineMode) socket?.emit('riichi',{code:currentCode});
+  showRiichiBtn(false);
+  const chatLog=document.getElementById(onlineMode?'chat-log':'bot-chat-log');
+  if(chatLog){
+    const div=document.createElement('div');
+    div.className='chat-msg mine';
+    div.innerHTML=`<div class="chat-name">${esc(p.name)}</div>🀄 リーチ！`;
+    chatLog.appendChild(div);chatLog.scrollTop=chatLog.scrollHeight;
+  }
+  toast('🀄 リーチ宣言！手牌が固定されます');
+  render();
+}
+function declareRon(){
+  if(!G||G.phase!=='playing'||!_ronPending) return;
+  const p=G.players[myOnlineIdx];
+  const {tile,discardedByIdx}=_ronPending;
+  const optR=G?.optRoles??null;
+  if(!canRon(p.hand,tile,optR)){toast('ロンできません');clearRonWindow();return;}
+  clearRonWindow();
+  if(onlineMode){socket?.emit('ron_declare',{code:currentCode});return;}
+  // ボット対戦ロン処理
+  const hand6=[...p.hand,tile];
+  const res=checkWin(hand6,optR);if(!res)return;
+  const bonus=(res.noBonus?0:countZorome(hand6))+(p.riichi?1:0);
+  res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
+  p.hand=hand6;p.score+=res.pts+bonus;
+  G.players[discardedByIdx].score-=res.pts;
+  G.phase='roundEnd';
+  launchConfetti();
+  const tsuideList=[];
+  G.players.forEach((pl,i)=>{
+    if(i===myOnlineIdx||i===discardedByIdx)return;
+    const tr=checkTsuide(pl.hand,G.field,optR);
+    if(tr){pl.score+=tr.total;tsuideList.push({name:pl.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
+  });
+  showWinModal(p,res,tsuideList);
+}
+function checkBotRon(discardedByIdx){
+  if(!G||onlineMode) return false;
+  const optR=G?.optRoles??null;
+  const discardedTile=G.field.filter(t=>t.discarded).slice(-1)[0];
+  if(!discardedTile) return false;
+  let ronPossible=false;
+  // ボットがロンできるかチェック
+  G.players.forEach((pl,i)=>{
+    if(i===discardedByIdx||pl.isBot===false) return;
+    if(!pl.riichi) return; // リーチ中のみ自動ロン
+    if(canRon(pl.hand,discardedTile,optR)){
+      ronPossible=true;
+      // ボット自動ロン
+      setTimeout(()=>{
+        if(!G||G.phase!=='playing') return;
+        const hand6=[...pl.hand,discardedTile];
+        const res=checkWin(hand6,optR);if(!res)return;
+        const bonus=(res.noBonus?0:countZorome(hand6))+(pl.riichi?1:0);
+        res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
+        pl.hand=hand6;pl.score+=res.pts+bonus;
+        G.players[discardedByIdx].score-=res.pts;
+        G.phase='roundEnd';
+        const tsuideList=[];
+        G.players.forEach((p2,j)=>{
+          if(j===i||j===discardedByIdx)return;
+          const tr=checkTsuide(p2.hand,G.field,optR);
+          if(tr){p2.score+=tr.total;tsuideList.push({name:p2.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
+        });
+        showWinModal(pl,res,tsuideList);
+      },800);
+    }
+  });
+  // プレイヤーがロンできるかチェック
+  const player=G.players[myOnlineIdx];
+  if(!player.riichi&&canRon(player.hand,discardedTile,optR)){
+    openRonWindow(discardedTile,discardedByIdx);
+    ronPossible=true;
+  } else if(player.riichi&&canRon(player.hand,discardedTile,optR)){
+    openRonWindow(discardedTile,discardedByIdx);
+    ronPossible=true;
+  }
+  return ronPossible;
+}
 function getOptRoles(prefix){
   return['三対','三色','輝光','無双'].filter(r=>{
     const el=document.getElementById(prefix+r);
@@ -1871,8 +2012,33 @@ function pickField(fi) {
     socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
     return;
   }
-  p.hand.push(G.field.splice(fi, 1)[0]);
-  G.tphase = 'discard'; G.selIdx = -1; render();
+  const picked=G.field.splice(fi,1)[0];
+  p.hand.push(picked);
+  G.tphase='discard';
+  G.selIdx=-1;
+  render();
+  // リーチ中: 上がり牌でなければ自動捨て
+  if(p.riichi){
+    const optR=G?.optRoles??null;
+    const winRes=checkWin(p.hand,optR);
+    if(winRes){
+      // 上がれる: そのまま(プレイヤーが上がるボタンを押す)
+    } else {
+      // 引いた牌を自動捨て
+      setTimeout(()=>{
+        const idx=p.hand.indexOf(picked);
+        if(idx!==-1){
+          const tile=p.hand.splice(G.selIdx,1)[0];
+  tile.discarded=true;
+  G.field.push(tile);
+  G.selIdx=-1;
+  // ロンチェック
+  if(checkBotRon(myOnlineIdx)) return;
+  nextTurn();
+        }
+      },600);
+    }
+  }
 }
 
 function clickHand(i) {
@@ -1979,6 +2145,26 @@ function runBot() {
     const _wr=checkWin(bot.hand,_optR);
     if(_wr) botComment('winning');
     else if(Math.random()<0.2) botComment('pick');
+  // ボットリーチ判定
+    if(!bot.riichi&&!_wr2){
+      const optR2=G?.optRoles??null;
+      const afterDiscard=bot.diff==='easy'?null:(() => {
+        let bestIdx=0,bestS=-Infinity;
+        bot.hand.forEach((_,i)=>{const s=evalHand(bot.hand.filter((_,j)=>j!==i),optR2);if(s>bestS){bestS=s;bestIdx=i;}});
+        return bot.hand.filter((_,i)=>i!==bestIdx);
+      })();
+      if(afterDiscard&&isTenpai(afterDiscard,optR2)&&Math.random()<0.7){
+        bot.riichi=true;
+        const chatLog=document.getElementById('bot-chat-log');
+        if(chatLog){
+          const div=document.createElement('div');
+          div.className='chat-msg theirs';
+          div.innerHTML=`<div class="chat-name">${esc(bot.name)}</div>🀄 リーチ！`;
+          chatLog.appendChild(div);chatLog.scrollTop=chatLog.scrollHeight;
+        }
+        toast(`${bot.name} がリーチ宣言！`);
+      }
+    }
 
   const optR = G?.optRoles ?? null;
   const wr = checkWin(bot.hand, optR);
@@ -1999,7 +2185,9 @@ function runBot() {
       // ボットの手牌を上の数で昇順ソートして整理
       bot.hand.sort((a,b) => eTop(a) - eTop(b));
      G.field.push(tile);render();
-      if(Math.random()<0.15) botComment('discard');
+      if(Math.random()<0.15)botComment('discard');
+      // ロンチェック
+      if(checkBotRon(G.turn)) return;
       setTimeout(nextTurn,200);
     }, d);
   }
@@ -2327,6 +2515,8 @@ function showWinModal(p, res, tsuideList=[]) {
     ${bonusLine}
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
+    ${res.ron?`<div style="font-size:.85rem;color:#e0a020;margin:.3rem 0">⚡ ロン！（${esc(res.ronFrom||'')} の捨て牌）</div>`:''}
+    ${res.bonus>0&&G.players[pi]?.riichi?`<div style="font-size:.82rem;color:#f5d040">🀄 リーチボーナス +1点含む</div>`:''}
     ${tsuideList.length>0?`
     <div style="margin:.6rem 0 .3rem;font-size:.78rem;color:#8a7048;border-top:1px solid #2a1e10;padding-top:.5rem">✨ ついでに完成</div>
     ${tsuideList.map(t=>`<div style="font-size:.82rem;color:#e8c97a;margin:.2rem 0">
@@ -2353,11 +2543,13 @@ function showGameOver() {
   `;
 }
 
-function doNextRound() {
+function doNextRound(){
   document.getElementById('modal').classList.remove('open');
+  clearRonWindow();showRiichiBtn(false);
   dealRound();
+  G.players.forEach(p=>p.riichi=false);
   render();
-  if (G.players[G.turn].isBot) scheduleBot();
+  if(G.players[G.turn].isBot)scheduleBot();
 }
 function doRematchBot(){
   document.getElementById('modal').classList.remove('open');
@@ -2376,6 +2568,7 @@ function requestRematch(){
 function goLobby(){
   document.getElementById('modal').classList.remove('open');
   document.getElementById('chat-toggle').style.display='none';
+  clearRonWindow();showRiichiBtn(false);showRonBtn(false);
   document.getElementById('bot-chat-toggle').style.display='none';
   document.getElementById('bot-chat-wrap').style.display='none';
   botChatOpen=false;
