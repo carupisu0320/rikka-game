@@ -442,6 +442,18 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   box-shadow:0 0 18px rgba(224,48,48,.8),0 0 6px rgba(224,48,48,.4)!important;
   animation:assistPulse 1.2s infinite}
 @keyframes assistPulse{0%,100%{opacity:1}50%{opacity:.65}}
+/* ── ボットチャット ── */
+#bot-chat-wrap{position:fixed;bottom:9rem;left:.75rem;width:min(260px,70vw);z-index:300;
+  display:none;flex-direction:column;gap:.4rem}
+#bot-chat-log{background:rgba(13,10,6,.92);border:1px solid #3e2e1e;border-radius:10px;
+  height:160px;overflow-y:auto;padding:.5rem;display:flex;flex-direction:column;gap:.35rem}
+#bot-chat-toggle{position:fixed;bottom:.75rem;left:.75rem;z-index:300;display:none;
+  background:linear-gradient(135deg,#6a4aad,#3a1a7d);border:none;border-radius:50%;
+  width:44px;height:44px;color:#e8d8ff;font-size:1.2rem;cursor:pointer;
+  box-shadow:0 2px 12px rgba(0,0,0,.5)}
+#bot-chat-badge{position:absolute;top:-4px;right:-4px;background:#e05050;color:#fff;
+  border-radius:50%;width:16px;height:16px;font-size:.62rem;display:none;
+  align-items:center;justify-content:center;font-weight:700}
 /* ── チャット ── */
 #chat-wrap{position:fixed;bottom:5rem;right:.75rem;width:min(300px,88vw);z-index:300;
   display:none;flex-direction:column;gap:.4rem}
@@ -931,6 +943,19 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   </div>
 </div>
 <canvas id="confetti-canvas"></canvas>
+<!-- ボットチャット -->
+<button id="bot-chat-toggle" onclick="toggleBotChat()" style="position:fixed;bottom:.75rem;left:.75rem">
+  💬<span id="bot-chat-badge"></span>
+</button>
+<div id="bot-chat-wrap">
+  <div id="bot-chat-log"></div>
+  <div id="chat-input-row">
+    <input id="bot-chat-input" class="finput" type="text" placeholder="メッセージ..." maxlength="60"
+      style="font-size:.82rem;padding:.45rem .6rem"
+      onkeydown="if(event.key==='Enter')sendBotChat()">
+    <button id="chat-send-btn" onclick="sendBotChat()" style="padding:.45rem .7rem;white-space:nowrap">送信</button>
+  </div>
+</div>
 <div id="toast"></div>
   <!-- アイコン編集モーダル -->
 <div id="icon-modal">
@@ -1577,6 +1602,14 @@ function startGame() {
   dealRound();
   showScreen('game');
   render();
+  // ボットチャット初期化
+  document.getElementById('bot-chat-toggle').style.display='flex';
+  document.getElementById('bot-chat-log').innerHTML='';
+  botChatUnread=0; botChatOpen=false;
+  document.getElementById('bot-chat-wrap').style.display='none';
+  const _startBot=G.players.find(p=>p.isBot);
+  if(_startBot) setTimeout(()=>addBotChatMsg(_startBot.name,
+    ['よろしく！','さあ始めよう！','負けないよ！','楽しもう！'][Math.floor(Math.random()*4)],false),600);
   if (G.players[G.turn].isBot) scheduleBot();
 }
 
@@ -1938,10 +1971,14 @@ function runBot() {
       fi = botHardPickRikka(bot.hand, G.field);
     }
 
-    bot.hand.push(G.field.splice(fi,1)[0]);
+   bot.hand.push(G.field.splice(fi,1)[0]);
     G.tphase='discard';
     if(bot.diff==='hard') botHardFlipOptimize(bot.hand);
     render();
+    const _optR=G?.optRoles??null;
+    const _wr=checkWin(bot.hand,_optR);
+    if(_wr) botComment('winning');
+    else if(Math.random()<0.2) botComment('pick');
 
   const optR = G?.optRoles ?? null;
   const wr = checkWin(bot.hand, optR);
@@ -1961,9 +1998,9 @@ function runBot() {
       tile.discarded = true;
       // ボットの手牌を上の数で昇順ソートして整理
       bot.hand.sort((a,b) => eTop(a) - eTop(b));
-      G.field.push(tile);
-      render();
-      setTimeout(nextTurn, 200);
+     G.field.push(tile);render();
+      if(Math.random()<0.15) botComment('discard');
+      setTimeout(nextTurn,200);
     }, d);
   }
 }
@@ -2251,6 +2288,19 @@ function processWin(pi, res) {
       tsuideList.push({name:p.name, role:tr.role, pts:tr.pts, bonus:tr.bonus, total:tr.total});
     }
   });
+const _isMyWin = pi===myOnlineIdx;
+  const _isGameOver = G.players.some(p=>p.score>=(G?.goal||WIN_SCORE));
+  if(_isMyWin){
+    G.players.filter(p=>p.isBot).forEach(b=>{
+      setTimeout(()=>addBotChatMsg(b.name,rndComment(_isGameOver?'gamelose':'lose'),false),500);
+    });
+  } else if(G.players[pi].isBot){
+    botComment(_isGameOver?'gamewin':'win');
+  }
+  tsuideList.forEach(t=>{
+    if(!G.players.find(p=>p.name===t.name&&!p.isBot))
+      setTimeout(()=>addBotChatMsg(t.name,rndComment('tsuide'),false),700);
+  });
   showWinModal(G.players[pi], res, tsuideList);
 }
 
@@ -2326,6 +2376,9 @@ function requestRematch(){
 function goLobby(){
   document.getElementById('modal').classList.remove('open');
   document.getElementById('chat-toggle').style.display='none';
+  document.getElementById('bot-chat-toggle').style.display='none';
+  document.getElementById('bot-chat-wrap').style.display='none';
+  botChatOpen=false;
   document.getElementById('chat-wrap').style.display='none';
   chatOpen=false;
   onlineMode=false;
@@ -2693,6 +2746,90 @@ function updateWinSparkle(winRes){
     });
   }
 }
+// ============================================================
+//  ボットチャット
+// ============================================================
+let botChatOpen = false;
+let botChatUnread = 0;
+
+const BOT_COMMENTS = {
+  pick:    ['ふむ…','これにしよう','いいね','おっ','うーん…'],
+  discard: ['いらないな','これを捨てよう','えいっ','うーむ'],
+  winning: ['あと少し！','もう少しだ…','そろそろ…','いい感じ'],
+  win:     ['やった！上がり！','勝ったぞ！','ふふ、もらった','やりました！'],
+  tsuide:  ['ついでに完成！','ラッキー！','もらえた！'],
+  lose:    ['くっ…','次は負けないぞ','惜しかった…','まだまだ！'],
+  gamewin: ['ゲーム勝利！やった！','完勝だ！'],
+  gamelose:['次は勝つぞ！','また勝負しよう'],
+};
+
+function rndComment(key){ return BOT_COMMENTS[key][Math.floor(Math.random()*BOT_COMMENTS[key].length)]; }
+
+function addBotChatMsg(name, msg, isMine){
+  const log = document.getElementById('bot-chat-log');
+  if(!log) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (isMine ? 'mine' : 'theirs');
+  div.innerHTML = `<div class="chat-name">${esc(name)}</div>${esc(msg)}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  if(!botChatOpen && !isMine){
+    botChatUnread++;
+    const badge = document.getElementById('bot-chat-badge');
+    badge.textContent = botChatUnread > 9 ? '9+' : botChatUnread;
+    badge.style.display = 'flex';
+  }
+}
+
+function sendBotChat(){
+  const input = document.getElementById('bot-chat-input');
+  const msg = input.value.trim();
+  if(!msg || !G || G.phase!=='playing') return;
+  const name = G.players[myOnlineIdx].name;
+  addBotChatMsg(name, msg, true);
+  input.value = '';
+  // ボットが50%の確率で返答
+  if(Math.random() < 0.5){
+    const bot = G.players.find(p=>p.isBot);
+    if(bot){
+      const replies = ['そうだね','うん！','ふむ','なるほど','そうか…','…','へえ'];
+      setTimeout(()=>{
+        addBotChatMsg(bot.name, replies[Math.floor(Math.random()*replies.length)], false);
+      }, 800 + Math.random()*1000);
+    }
+  }
+}
+
+function botComment(key){
+  if(!G) return;
+  const bot = G.players.find(p=>p.isBot);
+  if(!bot) return;
+  const msg = rndComment(key);
+  setTimeout(()=>addBotChatMsg(bot.name, msg, false), 300+Math.random()*500);
+}
+
+function toggleBotChat(){
+  botChatOpen = !botChatOpen;
+  document.getElementById('bot-chat-wrap').style.display = botChatOpen ? 'flex' : 'none';
+  if(botChatOpen){
+    botChatUnread = 0;
+    const badge = document.getElementById('bot-chat-badge');
+    badge.style.display = 'none';
+    badge.textContent = '';
+    document.getElementById('bot-chat-log').scrollTop = 999999;
+  }
+}
+
+// チャット外クリックで閉じる
+document.addEventListener('click', e=>{
+  if(!botChatOpen) return;
+  const wrap = document.getElementById('bot-chat-wrap');
+  const btn  = document.getElementById('bot-chat-toggle');
+  if(wrap&&!wrap.contains(e.target)&&btn&&!btn.contains(e.target)){
+    botChatOpen=false;
+    wrap.style.display='none';
+  }
+});
 function openSidebar(){
   document.getElementById('sidebar').style.display='block';
   document.getElementById('sidebar-overlay').style.display='block';
