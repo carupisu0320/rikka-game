@@ -65,6 +65,17 @@ function checkTsuide(hand5, field, optRoles){
   });
   return bestRes;
 }
+function canRonServer(hand5, tile, optR){
+  if(!tile) return false;
+  const hand6 = [...hand5, tile];
+  const lim = Math.min(1 << 6, 64);
+  for(let m = 0; m < lim; m++){
+    const h = hand6.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
+    const w = checkWin(h, optR);
+    if(w) return true;
+  }
+  return false;
+}
 function isSanren(hand) {
   for (let m = 0; m < 64; m++) {
     if (popcount(m) !== 3) continue;
@@ -263,6 +274,19 @@ socket.on('pick', ({ code, fieldIdx }) => {
     room.tphase = 'discard';
     sendState(room);
   });
+  socket.on('player_riichi',({name,idx})=>{
+  if(G&&G.players[idx]) G.players[idx].riichi=true;
+  toast(`🀄 ${esc(name)} がリーチ！`);
+  render();
+});
+socket.on('ron_available',({tile,discardedByIdx,timeout})=>{
+  const optR=G?.optRoles??null;
+  const p=G?.players[myOnlineIdx];
+  if(p&&canRon(p.hand,tile,optR)){
+    openRonWindow(tile,discardedByIdx);
+  }
+});
+socket.on('ron_timeout',()=>{ clearRonWindow(); });
   socket.on('rematch_request', ({ code }) => {
     const room = rooms.get(code);
     if (!room) return;
@@ -284,6 +308,48 @@ socket.on('pick', ({ code, fieldIdx }) => {
       io.to(code).emit('rematch_start');
       sendState(room);
     }
+  });
+  // リーチ宣言
+  socket.on('riichi', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'playing') return;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi === -1) return;
+    room.players[pi].riichi = true;
+    io.to(code).emit('player_riichi', { name: room.players[pi].name, idx: pi });
+    sendState(room);
+  });
+
+  // ロン宣言
+  socket.on('ron_declare', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'playing' || !room.ronPending) return;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi === -1) return;
+    const { tile, discardedByIdx } = room.ronPending;
+    const hand6 = [...room.players[pi].hand, tile];
+    const res = checkWin(hand6, room.roles !== undefined ? room.roles : null);
+    if (!res) { socket.emit('err', 'ロンできません'); return; }
+    room.ronPending = null;
+    clearTimeout(room.ronTimer);
+    const bonus = (res.noBonus ? 0 : countZorome(hand6)) + (room.players[pi].riichi ? 1 : 0);
+    room.players[pi].hand = hand6;
+    room.players[pi].score += res.pts + bonus;
+    room.players[discardedByIdx].score -= res.pts;
+    room.phase = 'roundEnd';
+    const tsuideList = [];
+    room.players.forEach((p, i) => {
+      if (i === pi || i === discardedByIdx) return;
+      const tr = checkTsuide(p.hand, room.field, room.roles !== undefined ? room.roles : null);
+      if (tr) { p.score += tr.total; tsuideList.push({ name: p.name, role: tr.role, pts: tr.pts, bonus: tr.bonus, total: tr.total }); }
+    });
+    const isGameOver = room.players.some(p => p.score >= (room.goal || 10));
+    io.to(code).emit('round_win', {
+      winnerIdx: pi, winnerName: room.players[pi].name,
+      hand: hand6, role: res.role, pts: res.pts, bonus,
+      scores: room.players.map(p => ({ name: p.name, score: p.score })),
+      isGameOver, tsuideList, ron: true, ronFrom: room.players[discardedByIdx].name
+    });
   });
   socket.on('chat', ({ code, msg }) => {
     const room = rooms.get(code);
