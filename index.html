@@ -1331,6 +1331,7 @@ const goalEl = document.querySelector('input[name="room-goal"]:checked');
   const goal = goalEl ? parseInt(goalEl.value) : 10;
   const useRR2 = document.getElementById('room-opt-リーチロン')?.checked || false;
   socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-'), goal, useRiichiRon: useRR2});
+}
 function copyRoomCode(){
   const code=document.getElementById('room-code-display').textContent;
   navigator.clipboard?.writeText(code).then(()=>toast('コードをコピーしました！'));
