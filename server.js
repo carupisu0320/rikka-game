@@ -136,7 +136,7 @@ function sendState(room) {
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
       code:      room.code,
       optRoles:  room.roles !== undefined ? room.roles : null,
-      goal:      room.goal || 10, 
+      useRiichiRon: room.useRiichiRon || false, 
     });
   });
 }
@@ -183,12 +183,13 @@ if (queue.length >= 2) {
   });
 
   // ルーム作成
-socket.on('create_room', ({ name, roles, goal }) => {
+socket.on('create_room', ({ name, roles, goal, useRiichiRon }) => {
     const code = genCode();
     rooms.set(code, {
       code, host: socket.id,
       roles: roles || [],
       goal: [5,10,15,20,30].includes(goal) ? goal : 10,
+      useRiichiRon: useRiichiRon || false,
       players: [{ id: socket.id, name, hand: [], score: 0 }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
@@ -250,7 +251,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     // ロン可能チェック
     const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
     const optR = room.roles !== undefined ? room.roles : null;
-    const ronCandidates = room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR));
+    const ronCandidates = room.useRiichiRon ? room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR)) : [];
     if(ronCandidates.length > 0){
       room.ronPending = { tile: discardedTile, discardedByIdx: pi };
       io.to(code).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
