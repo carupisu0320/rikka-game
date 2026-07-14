@@ -136,7 +136,8 @@ function sendState(room) {
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
       code:      room.code,
       optRoles:  room.roles !== undefined ? room.roles : null,
-      useRiichiRon: room.useRiichiRon || false, 
+      useRiichi: room.useRiichi || false,
+      useRon:    room.useRon    || false,
     });
   });
 }
@@ -183,13 +184,14 @@ if (queue.length >= 2) {
   });
 
   // ルーム作成
-socket.on('create_room', ({ name, roles, goal, useRiichiRon }) => {
+socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
     const code = genCode();
     rooms.set(code, {
       code, host: socket.id,
       roles: roles || [],
       goal: [5,10,15,20,30].includes(goal) ? goal : 10,
-      useRiichiRon: useRiichiRon || false,
+      useRiichi: useRiichi || false,
+      useRon: useRon || false,
       players: [{ id: socket.id, name, hand: [], score: 0 }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
@@ -251,7 +253,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     // ロン可能チェック
     const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
     const optR = room.roles !== undefined ? room.roles : null;
-    const ronCandidates = room.useRiichiRon ? room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR)) : [];
+    const ronCandidates = room.useRon ? room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR)) : [];
     if(ronCandidates.length > 0){
       room.ronPending = { tile: discardedTile, discardedByIdx: pi };
       io.to(code).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
@@ -329,7 +331,7 @@ socket.on('ron_timeout',()=>{ clearRonWindow(); });
   // リーチ宣言
   socket.on('riichi', ({ code }) => {
     const room = rooms.get(code);
-    if (!room || room.phase !== 'playing') return;
+    if (!room || room.phase !== 'playing' || !room.useRiichi) return;
     const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi === -1) return;
     room.players[pi].riichi = true;
