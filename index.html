@@ -611,7 +611,10 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   </div>
   <div style="border-top:1px solid #2a1e10;margin-top:.5rem;padding-top:.5rem">
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
-      <input type="checkbox" id="bot-opt-リーチロン" style="accent-color:#e05050"> リーチ・ロンあり
+      <input type="checkbox" id="bot-opt-リーチ" style="accent-color:#e05050"> リーチあり
+    </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="bot-opt-ロン" style="accent-color:#e0a020"> ロンあり
     </label>
   </div>
 </div>
@@ -680,8 +683,10 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   </div>
   <div style="border-top:1px solid #2a1e10;margin-top:.5rem;padding-top:.5rem">
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
-      <input type="checkbox" id="room-opt-リーチロン" style="accent-color:#e05050"> リーチ・ロンあり
+      <input type="checkbox" id="room-opt-リーチ" style="accent-color:#e05050"> リーチあり
     </label>
+    <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
+      <input type="checkbox" id="room-opt-ロン" style="accent-color:#e0a020"> ロンあり
   </div>
 </div>
     <!-- ルーム作成 -->
@@ -1329,8 +1334,9 @@ function createRoom(){
   document.getElementById('btn-create-room').disabled=true;
 const goalEl = document.querySelector('input[name="room-goal"]:checked');
   const goal = goalEl ? parseInt(goalEl.value) : 10;
-  const useRR2 = document.getElementById('room-opt-リーチロン')?.checked || false;
-  socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-'), goal, useRiichiRon: useRR2});
+  const useRiichi2 = document.getElementById('room-opt-リーチ')?.checked || false;
+  const useRon2    = document.getElementById('room-opt-ロン')?.checked || false;
+  socket.emit('create_room',{name:myName(), roles:getOptRoles('room-opt-'), goal, useRiichi: useRiichi2, useRon: useRon2});
 }
 function copyRoomCode(){
   const code=document.getElementById('room-code-display').textContent;
@@ -1389,7 +1395,8 @@ function applyOnlineState(st){
   G.tphase = st.tphase;
   G.phase  = st.phase;
   G.optRoles = st.optRoles !== undefined ? st.optRoles : null;
-  G.useRiichiRon = st.useRiichiRon || false;
+  G.useRiichi = st.useRiichi || false;
+  G.useRon    = st.useRon    || false;
 
   st.scores.forEach((s,i) => {
     G.players[i].score = s.score;
@@ -1631,8 +1638,10 @@ function startGame() {
   const bdiff = document.getElementById('bdiff').value;
   const players=[{name, hand:[], score:0, isBot:false, riichi:false}];
 for(let i=0;i<bcnt;i++) players.push({name:BNAMES[i], hand:[], score:0, isBot:true, diff:bdiff, riichi:false});
-const useRR = document.getElementById('bot-opt-リーチロン')?.checked || false;
-  G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing', optRoles: getOptRoles('bot-opt-'), useRiichiRon: useRR};  myOnlineIdx = 0;
+  const useRiichi = document.getElementById('bot-opt-リーチ')?.checked || false;
+  const useRon    = document.getElementById('bot-opt-ロン')?.checked || false;
+  G = {players, field:[], turn:0, tphase:'pick', selIdx:-1, phase:'playing', optRoles: getOptRoles('bot-opt-'), useRiichi, useRon};
+  myOnlineIdx = 0;
   onlineMode  = false;
   currentCode = '';
   dealRound();
@@ -1823,7 +1832,7 @@ if (winRes) {
   if(!onlineMode||true){
     const p2=G.players[myOnlineIdx];
     const optR2=G?.optRoles??null;
-    const canRiichi=!!(G?.useRiichiRon)&&isDiscard&&has6&&!p2.riichi&&!winRes&&
+    const canRiichi=!!(G?.useRiichi)&&isDiscard&&has6&&!p2.riichi&&!winRes&&
     p2.hand.some((_,i)=>isTenpai(p2.hand.filter((_,j)=>j!==i),optR2));
   showRiichiBtn(canRiichi);
   }
@@ -1875,7 +1884,13 @@ function isTenpai(hand5, optR){
   return false;
 }
 function canRon(hand5, tile, optR){
-  return evalHand([...hand5,tile],optR)>=100;
+  const hand6=[...hand5,tile];
+  const lim=Math.min(1<<6,64);
+  for(let m=0;m<lim;m++){
+    const h=hand6.map((t,i)=>({...t,flip:!!(m&(1<<i))}));
+    if(checkWin(h,optR)) return true;
+  }
+  return false;
 }
 let _ronPending=null, _ronTimer=null, _ronContinue=null;
 function openRonWindow(tile, discardedByIdx, onExpire){
@@ -1902,7 +1917,7 @@ function showRiichiBtn(show){
   if(el) el.style.display=show?'block':'none';
 }
 function declareRiichi(){
-  if(!G||G.phase!=='playing') return;
+  if(!G||G.phase!=='playing'||!G.useRiichi) return;
   const p=G.players[myOnlineIdx];
   if(p.riichi||G.turn!==myOnlineIdx||G.tphase!=='discard') return;
   const optR=G?.optRoles??null;
@@ -1948,7 +1963,7 @@ function declareRon(){
   showWinModal(p,res,tsuideList);
 }
 function checkBotRon(discardedByIdx){
-  if(!G||onlineMode||!G.useRiichiRon) return false;
+  if(!G||onlineMode||(!G.useRiichi&&!G.useRon)) return false;
   const optR=G?.optRoles??null;
   const discardedTile=G.field.filter(t=>t.discarded).slice(-1)[0];
   if(!discardedTile) return false;
@@ -1956,7 +1971,8 @@ function checkBotRon(discardedByIdx){
   // ボットがロンできるかチェック
   G.players.forEach((pl,i)=>{
     if(i===discardedByIdx||pl.isBot===false) return;
-    if(!pl.riichi) return; // リーチ中のみ自動ロン
+    if(!G.useRon) return;
+    if(!pl.riichi&&G.useRiichi) return; // リーチあり設定時はリーチ中のみ自動ロン
     if(canRon(pl.hand,discardedTile,optR)){
       ronPossible=true;
       // ボット自動ロン
@@ -1980,7 +1996,7 @@ function checkBotRon(discardedByIdx){
     }
   });
   // プレイヤーがロンできるかチェック（自分の捨て牌は除く）
-  if(discardedByIdx!==myOnlineIdx){
+if(G.useRon&&discardedByIdx!==myOnlineIdx){
     const player=G.players[myOnlineIdx];
     if(canRon(player.hand,discardedTile,optR)){
       openRonWindow(discardedTile,discardedByIdx,()=>nextTurn());
@@ -2174,7 +2190,7 @@ function runBot() {
     if(_wr) botComment('winning');
     else if(Math.random()<0.2) botComment('pick');
     // ボットリーチ判定
-    if(G?.useRiichiRon&&!bot.riichi&&!_wr2){
+    if(G?.useRiichi&&!bot.riichi&&!_wr2){
       const optR2=G?.optRoles??null;
       const afterDiscard=bot.diff==='easy'?null:(() => {
         let bestIdx=0,bestS=-Infinity;
