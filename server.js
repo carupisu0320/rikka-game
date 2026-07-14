@@ -247,9 +247,25 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const tile = player.hand.splice(ti, 1)[0];
     tile.discarded = true;
     room.field.push(tile);
-    room.turn = (room.turn + 1) % room.players.length;
-    room.tphase = 'pick';
-    sendState(room);
+    // ロン可能チェック
+    const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
+    const optR = room.roles !== undefined ? room.roles : null;
+    const ronCandidates = room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR));
+    if(ronCandidates.length > 0){
+      room.ronPending = { tile: discardedTile, discardedByIdx: pi };
+      io.to(code).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
+      room.ronTimer = setTimeout(() => {
+        room.ronPending = null;
+        room.turn = (room.turn + 1) % room.players.length;
+        room.tphase = 'pick';
+        io.to(code).emit('ron_timeout');
+        sendState(room);
+      }, 5000);
+    } else {
+      room.turn = (room.turn + 1) % room.players.length;
+      room.tphase = 'pick';
+      sendState(room);
+    }
   });
 
   // 反転
