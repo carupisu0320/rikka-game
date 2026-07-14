@@ -1269,6 +1269,17 @@ socket.on('game_start',()=>{
   });
   socket.on('state',st=>{ onlineMode=true; applyOnlineState(st); });
   socket.on('round_win',wd=>showOnlineWinMsg(wd));
+  socket.on('player_riichi',({name,idx})=>{
+  if(G&&G.players[idx]) G.players[idx].riichi=true;
+  toast(`🀄 ${esc(name)} がリーチ！`);
+  render();
+});
+socket.on('ron_available',({tile,discardedByIdx})=>{
+  const optR=G?.optRoles??null;
+  const p=G?.players[myOnlineIdx];
+  if(p&&canRon(p.hand,tile,optR)) openRonWindow(tile,discardedByIdx);
+});
+socket.on('ron_timeout',()=>{ clearRonWindow(); });
   socket.on('rematch_waiting',({waiting, total})=>{
   const st = document.getElementById('rematch-status');
   if(st) st.textContent = `⏳ リマッチ待機中... (${waiting}/${total}人が同意)`;
