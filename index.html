@@ -1979,11 +1979,13 @@ function checkBotRon(discardedByIdx){
       },800);
     }
   });
-  // プレイヤーがロンできるかチェック
-  const player=G.players[myOnlineIdx];
-  if(canRon(player.hand,discardedTile,optR)){
-    openRonWindow(discardedTile,discardedByIdx,()=>nextTurn());
-    ronPossible=true;
+  // プレイヤーがロンできるかチェック（自分の捨て牌は除く）
+  if(discardedByIdx!==myOnlineIdx){
+    const player=G.players[myOnlineIdx];
+    if(canRon(player.hand,discardedTile,optR)){
+      openRonWindow(discardedTile,discardedByIdx,()=>nextTurn());
+      ronPossible=true;
+    }
   }
   return ronPossible;
 }
