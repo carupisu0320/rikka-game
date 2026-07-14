@@ -2160,7 +2160,7 @@ function scheduleBot() {
 }
 
 function runBot() {
-  if (G.phase!=='playing') return;
+  if (!G||G.phase!=='playing') return;
   const bot = G.players[G.turn];
   if (!bot?.isBot) return;
   const d = {easy:1100, normal:750, hard:400}[bot.diff] || 750;
@@ -2190,7 +2190,7 @@ function runBot() {
     if(_wr) botComment('winning');
     else if(Math.random()<0.2) botComment('pick');
     // ボットリーチ判定
-    if(G?.useRiichi&&!bot.riichi&&!_wr2){
+    if(G?.useRiichi&&!bot.riichi&&!_wr){
       const optR2=G?.optRoles??null;
       const afterDiscard=bot.diff==='easy'?null:(() => {
         let bestIdx=0,bestS=-Infinity;
