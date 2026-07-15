@@ -2214,10 +2214,13 @@ function runBot() {
   const wr = checkWin(bot.hand, optR);
   if (wr) { setTimeout(() => processWin(G.turn, wr), d); return; }
 
-    setTimeout(() => {
-      if (G.phase!=='playing') return;
+   setTimeout(() => {
+      if(!G||G.phase!=='playing') return;
       let di;
-      if (bot.diff === 'easy') {
+      // リーチ中は引いた牌（最後の牌）を捨てる
+      if(bot.riichi){
+        di = bot.hand.length - 1;
+      } else if (bot.diff === 'easy') {
         di = Math.floor(Math.random() * bot.hand.length);
       } else if (bot.diff === 'normal') {
         di = botNormalDiscard(bot.hand);
@@ -2226,11 +2229,9 @@ function runBot() {
       }
       const tile = bot.hand.splice(di, 1)[0];
       tile.discarded = true;
-      // ボットの手牌を上の数で昇順ソートして整理
       bot.hand.sort((a,b) => eTop(a) - eTop(b));
-     G.field.push(tile);render();
+      G.field.push(tile);render();
       if(Math.random()<0.15)botComment('discard');
-      // ロンチェック
       if(checkBotRon(G.turn)) return;
       setTimeout(nextTurn,200);
     }, d);
