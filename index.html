@@ -2140,7 +2140,11 @@ if (!res) { toast('まだ役が揃っていません'); return; }
 // ============================================================
 //  ターン管理
 // ============================================================
+let _botWatchdog = null;
+
 function nextTurn() {
+  if(!G||G.phase!=='playing') return;
+  clearTimeout(_botWatchdog);
   G.turn   = (G.turn + 1) % G.players.length;
   G.tphase = 'pick';
   G.selIdx = -1;
@@ -2148,14 +2152,20 @@ function nextTurn() {
   if (G.players[G.turn].isBot) scheduleBot();
 }
 
-// ============================================================
-//  ボットAI
-// ============================================================
 function scheduleBot() {
-  if (G.phase!=='playing') return;
+  if(!G||G.phase!=='playing') return;
   const bot = G.players[G.turn];
   if (!bot?.isBot) return;
   const d = {easy:1500, normal:1000, hard:600}[bot.diff] || 1000;
+  clearTimeout(_botWatchdog);
+  // ボットが8秒以内に動かなければ強制的にターンを進める
+  _botWatchdog = setTimeout(()=>{
+    if(!G||G.phase!=='playing') return;
+    if(G.players[G.turn]?.isBot){
+      G.tphase='pick';
+      nextTurn();
+    }
+  }, 8000);
   setTimeout(runBot, d);
 }
 
@@ -2163,6 +2173,8 @@ function runBot() {
   if (!G||G.phase!=='playing') return;
   const bot = G.players[G.turn];
   if (!bot?.isBot) return;
+  // tphaseが'discard'のままなら強制的にpickに戻す
+  if(G.tphase !== 'pick'){ G.tphase='pick'; }
   const d = {easy:1100, normal:750, hard:400}[bot.diff] || 750;
 
   if (G.tphase === 'pick') {
@@ -2614,6 +2626,7 @@ function goLobby(){
   document.getElementById('modal').classList.remove('open');
   document.getElementById('chat-toggle').style.display='none';
   clearRonWindow();showRiichiBtn(false);showRonBtn(false);
+  clearTimeout(_botWatchdog);
   document.getElementById('bot-chat-toggle').style.display='none';
   document.getElementById('bot-chat-wrap').style.display='none';
   botChatOpen=false;
