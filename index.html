@@ -2234,7 +2234,11 @@ function runBot() {
   if(wr){
     // 最適フリップ状態をボットの手牌に反映
     bot.hand.forEach((t,i) => { t.flip = wrHand[i].flip; });
-    setTimeout(() => processWin(G.turn, wr), d);
+    const winTurn = G.turn;
+    setTimeout(() => {
+      if(!G||G.phase!=='playing') return;
+      processWin(winTurn, wr);
+    }, d);
     return;
   }
    setTimeout(() => {
