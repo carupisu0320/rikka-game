@@ -1831,24 +1831,20 @@ if (winRes) {
     const bonusTxt = bonus > 0 ? ` ＋★×${bonus}` : '';
     hh.textContent = `★ ${winRes.role}（${winRes.pts}点${bonusTxt}）上がれます！`;
     hh.className = 'can-win';
-        updateWinSparkle(winRes);
+    updateWinSparkle(winRes);
   } else if (p.hand.length < 6) {
-    ...
-  } else {
-    ...
-  }
-  const p2=G.players[myOnlineIdx];
-  const optR2=G?.optRoles??null;
-  const canRiichi=!!(G?.useRiichi)&&isDiscard&&has6&&!p2.riichi&&!winRes&&
-    p2.hand.some((_,i)=>isTenpai(p2.hand.filter((_,j)=>j!==i),optR2));
-  showRiichiBtn(canRiichi);
-}
     hh.textContent = `手牌 ${p.hand.length}枚 — 場から1枚引いてください`;
     hh.className = '';
   } else {
     hh.textContent = `手牌 ${p.hand.length}枚 — 捨てるか役を揃えて上がろう`;
     hh.className = '';
   }
+  // リーチボタン表示
+  const p2=G.players[myOnlineIdx];
+  const optR2=G?.optRoles??null;
+  const canRiichi=!!(G?.useRiichi)&&isDiscard&&has6&&!p2.riichi&&!winRes&&
+    p2.hand.some((_,i)=>isTenpai(p2.hand.filter((_,j)=>j!==i),optR2));
+  showRiichiBtn(canRiichi);
 }
 
 function renderStatus() {
@@ -2130,8 +2126,8 @@ function doDiscard() {
   const tile = p.hand.splice(G.selIdx,1)[0];
   tile.discarded = true; G.field.push(tile);
   G.selIdx = -1;
-if(checkBotRon(myOnlineIdx)) return;
-nextTurn();
+  if(checkBotRon(myOnlineIdx)) return;
+  nextTurn();
 }
 
 function doWin() {
