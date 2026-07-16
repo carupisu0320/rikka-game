@@ -2223,9 +2223,20 @@ function runBot() {
     }
 
   const optR = G?.optRoles ?? null;
-  const wr = checkWin(bot.hand, optR);
-  if (wr) { setTimeout(() => processWin(G.turn, wr), d); return; }
-
+  // 全フリップ組み合わせで上がりチェック
+  let wr = null, wrHand = null;
+  const lim = Math.min(1 << bot.hand.length, 64);
+  for(let m = 0; m < lim; m++){
+    const h = bot.hand.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
+    const w = checkWin(h, optR);
+    if(w){ wr = w; wrHand = h; break; }
+  }
+  if(wr){
+    // 最適フリップ状態をボットの手牌に反映
+    bot.hand.forEach((t,i) => { t.flip = wrHand[i].flip; });
+    setTimeout(() => processWin(G.turn, wr), d);
+    return;
+  }
    setTimeout(() => {
       if(!G||G.phase!=='playing') return;
       let di;
