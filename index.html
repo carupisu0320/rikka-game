@@ -1168,6 +1168,7 @@ let onlineMode  = false;
 let myOnlineIdx = 0;
 let currentCode = '';
 let _pendingScores = null;
+let _pendingTsuideList = null;
 let customAvatarUrl = '';
 
 function myName() { return document.getElementById('pname').value.trim() || 'プレイヤー'; }
@@ -1302,6 +1303,7 @@ socket.on('ron_timeout',()=>{ clearRonWindow(); });
 socket.on('rematch_start',()=>{
   document.getElementById('modal').classList.remove('open');
   _pendingScores = null;
+  _pendingTsuideList = null;
   document.getElementById('chat-log').innerHTML = '';
   toast('🔄 リマッチ開始！');
 });
@@ -1417,6 +1419,7 @@ function showOnlineWinMsg(wd){
   saveHistory(makeHistoryEntry(Number(wd.winnerIdx)===Number(myOnlineIdx), wd.role, (wd.pts||0)+(wd.bonus||0), true, (wd.scores||[]).map(s=>s.name)));
   // ついでに完成表示
   const tsuideList = wd.tsuideList || [];
+  _pendingTsuideList = tsuideList;
   const winnerIdx  = wd.winnerIdx;
   const winnerName = wd.winnerName;
   const hand       = wd.hand || [];
@@ -1448,6 +1451,7 @@ ${(_pendingScores = scores, isGameOver)
 }
 function showOnlineGameOver(){
   const scores = _pendingScores || [];
+  const tsuideList = _pendingTsuideList || [];
   const sorted = [...scores].sort((a,b) => b.score - a.score);
   const winner = sorted[0];
   const rows = sorted.map(p =>
@@ -2589,7 +2593,7 @@ function showWinModal(p, res, tsuideList=[]) {
     <div class="mhand">${tiles}</div>
     <table class="mscores">${rows}</table>
     ${res.ron?`<div style="font-size:.85rem;color:#e0a020;margin:.3rem 0">⚡ ロン！（${esc(res.ronFrom||'')} の捨て牌）</div>`:''}
-    ${res.bonus>0&&G.players[pi]?.riichi?`<div style="font-size:.82rem;color:#f5d040">🀄 リーチボーナス +1点含む</div>`:''}
+    ${res.bonus>0&&p.riichi?`<div style="font-size:.82rem;color:#f5d040">🀄 リーチボーナス +1点含む</div>`:''}
     ${tsuideList.length>0?`
     <div style="margin:.6rem 0 .3rem;font-size:.78rem;color:#8a7048;border-top:1px solid #2a1e10;padding-top:.5rem">✨ ついでに完成</div>
     ${tsuideList.map(t=>`<div style="font-size:.82rem;color:#e8c97a;margin:.2rem 0">
