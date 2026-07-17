@@ -959,7 +959,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 </div>
 <canvas id="confetti-canvas"></canvas>
 <!-- リーチ・ロンボタン -->
-<button id="riichi-btn" onclick="declareRiichi()" style="display:none;position:fixed;bottom:14rem;right:.75rem;z-index:310;
+<button id="riichi-btn" onclick="declareRiichi()" style="display:none;position:fixed;bottom:19rem;right:.75rem;z-index:310;
   padding:.5rem 1rem;background:linear-gradient(135deg,#c84a4a,#8a1a1a);border:none;border-radius:10px;
   color:#fff;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
   box-shadow:0 2px 12px rgba(200,74,74,.6);animation:assistPulse 1s infinite">
@@ -1881,7 +1881,7 @@ function isTenpai(hand5, optR){
   for(let top=1;top<=6;top++)
     for(let bot=1;bot<=6;bot++){
       const t={id:8888,top,bot,flip:false,discarded:false};
-      if(evalHand([...hand5,t],optR)>=100) return true;
+      if(canRon(hand5,t,optR)) return true;
     }
   return false;
 }
