@@ -2538,7 +2538,7 @@ function botHardDiscardRikka(hand){
 // ============================================================
 function processWin(pi, res) {
   G.phase = 'roundEnd';
-  const bonus = res.noBonus ? 0 : countZorome(G.players[pi].hand);
+  const bonus = (res.noBonus ? 0 : countZorome(G.players[pi].hand)) + (G.players[pi].riichi ? 1 : 0);
   res.bonus = bonus;
   G.players[pi].score += res.pts + bonus;
   saveHistory(makeHistoryEntry(pi===myOnlineIdx, res.role, res.pts+bonus, false, G.players.map(p=>p.name)));
