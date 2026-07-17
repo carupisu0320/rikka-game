@@ -2237,12 +2237,11 @@ function runBot() {
   }
   if(wr){
     bot.hand.forEach((t,i) => { t.flip = wrHand[i].flip; });
-    G.phase = 'roundEnd'; // 即座にロックして他のタイマーの干渉を防ぐ
     clearTimeout(_botWatchdog);
     const winTurn = G.turn;
     setTimeout(() => {
-      G.phase = 'playing'; // processWin内で再度roundEndに設定される
-      processWin(winTurn, wr);
+      if(!G||G.phase!=='playing') return;
+      if(G.players[winTurn]?.isBot) processWin(winTurn, wr);
     }, d);
     return;
   }
