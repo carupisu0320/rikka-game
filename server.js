@@ -293,19 +293,6 @@ socket.on('pick', ({ code, fieldIdx }) => {
     room.tphase = 'discard';
     sendState(room);
   });
-  socket.on('player_riichi',({name,idx})=>{
-  if(G&&G.players[idx]) G.players[idx].riichi=true;
-  toast(`🀄 ${esc(name)} がリーチ！`);
-  render();
-});
-socket.on('ron_available',({tile,discardedByIdx,timeout})=>{
-  const optR=G?.optRoles??null;
-  const p=G?.players[myOnlineIdx];
-  if(p&&canRon(p.hand,tile,optR)){
-    openRonWindow(tile,discardedByIdx);
-  }
-});
-socket.on('ron_timeout',()=>{ clearRonWindow(); });
   socket.on('rematch_request', ({ code }) => {
     const room = rooms.get(code);
     if (!room) return;
@@ -388,13 +375,13 @@ socket.on('ron_timeout',()=>{ clearRonWindow(); });
     const player = room.players[pi];
     if (player.hand.length !== 6) return;
 const res = checkWin(player.hand, room.roles !== undefined ? room.roles : null);if (!res) { socket.emit('err', '役が揃っていません'); return; }
-const bonus = res.noBonus ? 0 : countZorome(player.hand);
+const bonus = (res.noBonus ? 0 : countZorome(player.hand)) + (player.riichi ? 1 : 0);
 player.score += res.pts + bonus;
     room.phase = 'roundEnd';
     // ついでに完成チェック
     const tsuideList=[];
     room.players.forEach((p,i)=>{
-      if(i===winnerIdx)return;
+      if(i===pi)return;
       const tr=checkTsuide(p.hand,room.field,room.roles!==undefined?room.roles:null);
       if(tr){
         p.score+=tr.total;
