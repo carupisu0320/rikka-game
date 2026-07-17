@@ -1953,7 +1953,7 @@ function declareRon(){
   const bonus=(res.noBonus?0:countZorome(hand6))+(p.riichi?1:0);
   res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
   p.hand=hand6;p.score+=res.pts+bonus;
-  G.players[discardedByIdx].score-=res.pts;
+  G.players[discardedByIdx].score-=(res.pts+bonus);
   G.phase='roundEnd';
   launchConfetti();
   const tsuideList=[];
@@ -1985,7 +1985,7 @@ function checkBotRon(discardedByIdx){
         const bonus=(res.noBonus?0:countZorome(hand6))+(pl.riichi?1:0);
         res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
         pl.hand=hand6;pl.score+=res.pts+bonus;
-        G.players[discardedByIdx].score-=res.pts;
+        G.players[discardedByIdx].score-=(res.pts+bonus);
         G.phase='roundEnd';
         const tsuideList=[];
         G.players.forEach((p2,j)=>{
