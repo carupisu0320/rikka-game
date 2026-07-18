@@ -1079,6 +1079,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
           <div class="rb-role-ex">例）手牌5枚＋捨て牌1枚で三連が完成 → +3点</div>
         </div>
       </div>
+      <div id="rb-riichi-ron"></div>
     </div>
     <!-- 牌について -->
     <div class="rb-section">
@@ -1140,6 +1141,14 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
       <div class="rb-op-row">
         <div class="rb-op-key">「上がる！」ボタン</div>
         <div class="rb-op-desc">役が揃ったときに光る → 押して得点獲得</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">「リーチ宣言」ボタン</div>
+        <div class="rb-op-desc">捨てればテンパイ（あと1枚で上がれる状態）になるときに表示 → 押すとリーチ成立</div>
+      </div>
+      <div class="rb-op-row">
+        <div class="rb-op-key">「ロン！」ボタン</div>
+        <div class="rb-op-desc">相手の捨て牌で上がれるとき数秒間だけ表示 → 押すとその場で上がる</div>
       </div>
     </div>
 
@@ -2665,6 +2674,7 @@ function openRuleBook() {
   document.getElementById('rule-modal').classList.add('open');
   renderRulebookExamples();
   renderOptionalRoles();
+  renderRiichiRonInfo();
 }
 function renderRulebookExamples() {
   function rbTile(top, bot) {
@@ -2720,6 +2730,39 @@ function renderOptionalRoles() {
       <div class="rb-ex">${r.tiles.map(([t,b])=>rbT(t,b)).join('')}</div>
     </div>`).join('');
   const el = document.getElementById('rb-optional-roles');
+  if(el) el.innerHTML = html;
+}
+function renderRiichiRonInfo() {
+  const useRiichi = !G || G.useRiichi;
+  const useRon    = !G || G.useRon;
+  let html = '';
+  if(useRiichi){
+    html += `
+    <div class="rb-role" style="background:rgba(200,74,74,.06);border-radius:6px;padding:.6rem .4rem;margin-top:.4rem">
+      <div>
+        <div class="rb-role-name" style="color:#e07070">🀄 リーチ</div>
+      </div>
+      <div class="rb-role-desc">
+        手牌6枚のとき、<b style="color:#e07070">ある牌を捨てればテンパイ（あと1枚で上がれる状態）になる</b>なら「リーチ宣言」ボタンが押せる。<br>
+        宣言すると、以降は引いた牌が役の完成牌でない限り<b style="color:#e07070">自動で捨てられる</b>（手牌を動かせなくなる）。<br>
+        リーチ中に上がると<b style="color:#f5d040">+1点</b>のボーナスが付く。
+      </div>
+    </div>`;
+  }
+  if(useRon){
+    html += `
+    <div class="rb-role" style="background:rgba(224,160,32,.06);border-radius:6px;padding:.6rem .4rem;margin-top:.4rem">
+      <div>
+        <div class="rb-role-name" style="color:#e0a020">ロン</div>
+      </div>
+      <div class="rb-role-desc">
+        他のプレイヤーが捨てた牌を使うと自分の役が完成するとき、「ロン！」ボタンが数秒間だけ表示される。<br>
+        押すとその牌をもらってその場で上がれる。<br>
+        ロンで得た点数（役点＋ボーナス）は、<b style="color:#e0a020">牌を捨てた相手から差し引かれる</b>。
+      </div>
+    </div>`;
+  }
+  const el = document.getElementById('rb-riichi-ron');
   if(el) el.innerHTML = html;
 }
 function closeRuleBook() { document.getElementById('rule-modal').classList.remove('open'); }
