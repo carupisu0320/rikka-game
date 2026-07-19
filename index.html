@@ -891,6 +891,23 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
     </div>
   </div>
   <div class="sb-section">
+    <div class="sb-section-title">― サウンド ―</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+      <span style="font-size:.82rem;color:#c8b898">効果音</span>
+      <button id="sound-toggle-btn" onclick="toggleSound()"
+        style="padding:.28rem .75rem;border-radius:6px;border:1px solid #3e2e1e;
+               background:#2a1e14;color:#8a7048;font-family:inherit;font-size:.82rem;cursor:pointer">
+        OFF
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:.75rem;color:#6a5830">🔈</span>
+      <input id="sound-volume-slider" type="range" min="0" max="100" value="50"
+        oninput="setSoundVolume(this.value)" style="flex:1;accent-color:#c9a84c">
+      <span style="font-size:.75rem;color:#6a5830">🔊</span>
+    </div>
+  </div>
+  <div class="sb-section">
     <div class="sb-section-title">― 戦績 ―</div>
     <div style="display:flex;gap:.4rem;margin-bottom:.6rem">
       <button id="stats-tab-bot" onclick="switchStatsTab('bot')"
@@ -1298,6 +1315,7 @@ socket.on('game_start',()=>{
   socket.on('round_win',wd=>showOnlineWinMsg(wd));
   socket.on('player_riichi',({name,idx})=>{
   if(G&&G.players[idx]) G.players[idx].riichi=true;
+  if(Number(idx)!==Number(myOnlineIdx)) playSound('riichi');
   toast(`🀄 ${esc(name)} がリーチ！`);
   render();
 });
@@ -1427,6 +1445,7 @@ function applyOnlineState(st){
 }
 
 function showOnlineWinMsg(wd){
+  playSound(wd.ron ? 'ron' : 'win');
   saveHistory(makeHistoryEntry(Number(wd.winnerIdx)===Number(myOnlineIdx), wd.role, (wd.pts||0)+(wd.bonus||0), true, (wd.scores||[]).map(s=>s.name)));
   // ついでに完成表示
   const tsuideList = wd.tsuideList || [];
@@ -1949,6 +1968,7 @@ function declareRiichi(){
   p.hand.forEach((_,i)=>{if(isTenpai(p.hand.filter((_,j)=>j!==i),optR))ok=true;});
   if(!ok){toast('テンパイしていません');return;}
   p.riichi=true;
+  playSound('riichi');
   if(onlineMode) socket?.emit('riichi',{code:currentCode});
   showRiichiBtn(false);
   const chatLog=document.getElementById(onlineMode?'chat-log':'bot-chat-log');
@@ -2052,6 +2072,115 @@ function checkTsuide(hand5, field, optR){
   });
   return bestRes;
 }
+// ============================================================
+//  役判定ロジックの自動テスト（開発用）
+//  ブラウザのコンソールで runWinLogicTests() を実行すると、
+//  checkWin・canRon・isTenpai・checkTsuide の動作を一括チェックできる。
+//  このページ上で既に定義されている関数をそのまま呼ぶだけなので、
+//  ファイルはこれ1つで完結する。
+// ============================================================
+function runWinLogicTests(){
+  let nextId=1;
+  const tile=(top,bot,flip=false)=>({id:nextId++,top,bot,flip,discarded:false});
+  let passed=0, failed=0;
+  const failures=[];
+  const test=(name,fn)=>{ try{ fn(); passed++; } catch(e){ failed++; failures.push({name,error:e.message}); } };
+  const ok=(cond,msg)=>{ if(!cond) throw new Error(msg||'assertion failed'); };
+  const eq=(a,b,msg)=>{ if(a!==b) throw new Error(msg||`expected ${JSON.stringify(b)} だが実際は ${JSON.stringify(a)}`); };
+
+  test('checkWin: 一色（六華にも三連にもならない組み合わせ）', ()=>{
+    const hand=[tile(1,3),tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
+    const res=checkWin(hand,null);
+    ok(res && res.role==='一色', `一色になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('checkWin: 三連（3つ並び×2組）', ()=>{
+    const hand=[tile(1,1),tile(2,1),tile(3,1),tile(4,2),tile(5,2),tile(6,2)];
+    const res=checkWin(hand,null);
+    ok(res && res.role==='三連', `三連になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('checkWin: 三対（同じ組み合わせのペア×3）', ()=>{
+    const hand=[tile(1,2),tile(2,1,true),tile(3,4),tile(4,3,true),tile(5,6),tile(6,5,true)];
+    const res=checkWin(hand,null);
+    ok(res && res.role==='三対', `三対になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('checkWin: 輝光（全部ゾロ目）', ()=>{
+    const hand=[tile(1,1),tile(1,1),tile(2,2),tile(2,2),tile(3,3),tile(3,3)];
+    const res=checkWin(hand,null);
+    ok(res && res.role==='輝光', `輝光になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('checkWin: 無双（全部ゾロ目で1〜6が揃う）', ()=>{
+    const hand=[tile(1,1),tile(2,2),tile(3,3),tile(4,4),tile(5,5),tile(6,6)];
+    const res=checkWin(hand,null);
+    ok(res && res.role==='無双', `無双になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('checkWin: 役無し（何も揃っていない適当な手）', ()=>{
+    const hand=[tile(1,2),tile(3,4),tile(5,6),tile(2,5),tile(4,1),tile(6,3)];
+    eq(checkWin(hand,null), null, `役無しのはず`);
+  });
+  test('checkWin: optRoles で無効化した役は成立しない', ()=>{
+    const hand=[tile(1,2),tile(2,1,true),tile(3,4),tile(4,3,true),tile(5,6),tile(6,5,true)];
+    eq(checkWin(hand,['無双','輝光']), null, `三対が無効化されているので役無しのはず`);
+  });
+  test('countZorome: ゾロ目の枚数を正しく数える', ()=>{
+    eq(countZorome([tile(1,1),tile(2,3),tile(4,4),tile(5,6),tile(3,3)]), 3);
+  });
+  test('canRon: 通常のロン（反転不要）', ()=>{
+    const hand5=[tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
+    eq(canRon(hand5, tile(3,3), null), true);
+  });
+  test('canRon: ロンできない牌はfalse', ()=>{
+    const hand5=[tile(1,2),tile(3,4),tile(5,6),tile(2,5),tile(4,1)];
+    eq(canRon(hand5, tile(6,3), null), false);
+  });
+  test('【回帰テスト】canRon: 捨て牌を反転させないと揃わないケース', ()=>{
+    const hand5=[tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
+    eq(canRon(hand5, tile(3,5,false), null), true, '捨て牌を反転すれば一色が完成するので true になるはず');
+  });
+  test('【回帰テスト】findRonWin: 反転が必要なロンで正しい役とフリップ状態を返す', ()=>{
+    const hand5=[tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
+    const found=findRonWin(hand5, tile(3,5,false), null);
+    ok(found, '役が見つかるはず');
+    eq(found.res.role, '一色');
+    const flipped=found.hand.find(t=>t.top===3&&t.bot===5);
+    ok(flipped, '返された手牌の中に捨て牌が含まれているはず');
+    eq(flipped.flip, true, '捨て牌は反転された状態で返るはず');
+  });
+  test('findRonWin: ロンできないときは null を返す', ()=>{
+    const hand5=[tile(1,2),tile(3,4),tile(5,6),tile(2,5),tile(4,1)];
+    eq(findRonWin(hand5, tile(6,3), null), null);
+  });
+  test('isTenpai: テンパイの手牌はtrue', ()=>{
+    eq(isTenpai([tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)], null), true);
+  });
+  test('isTenpai: テンパイしていない手牌はfalse', ()=>{
+    eq(isTenpai([tile(1,2),tile(3,4),tile(5,6),tile(2,5),tile(4,1)], null), false);
+  });
+  test('checkTsuide: 捨て牌を使って役が完成すればボーナスを返す', ()=>{
+    const hand5=[tile(1,3),tile(1,3),tile(2,3),tile(4,3),tile(5,3)];
+    const d=tile(6,3); d.discarded=true;
+    const res=checkTsuide(hand5,[d],null);
+    ok(res, 'ボーナスが成立するはず');
+    eq(res.role, '一色');
+  });
+  test('【回帰テスト】checkTsuide: 捨て牌の反転が必要なケースでも検出する', ()=>{
+    const hand5=[tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
+    const d=tile(3,5,false); d.discarded=true;
+    ok(checkTsuide(hand5,[d],null), '反転すれば一色が完成するのでボーナスが成立するはず');
+  });
+  test('checkTsuide: 完成する捨て牌が無ければnull', ()=>{
+    const hand5=[tile(1,2),tile(3,4),tile(5,6),tile(2,5),tile(4,1)];
+    const d=tile(6,3); d.discarded=true;
+    eq(checkTsuide(hand5,[d],null), null);
+  });
+
+  const ok_ = failed===0;
+  console.log(`%c六華 ロジックテスト: ${passed}件成功 / ${failed}件失敗`, `color:${ok_?'#50c864':'#e05050'};font-weight:bold;font-size:1.1em`);
+  if(failures.length){
+    failures.forEach(f=>console.log(`%c✗ ${f.name}`,'color:#e05050',`\n    ${f.error}`));
+  }
+  return {passed, failed, failures};
+}
+window.runWinLogicTests = runWinLogicTests;
 function isMusou(hand){
   if(!hand.every(t=>eTop(t)===eBot(t)))return false;
   return new Set(hand.map(t=>eTop(t))).size===6;
@@ -2247,6 +2376,7 @@ function runBot() {
       })();
       if(afterDiscard&&isTenpai(afterDiscard,optR2)&&Math.random()<0.7){
         bot.riichi=true;
+        playSound('riichi');
         const chatLog=document.getElementById('bot-chat-log');
         if(chatLog){
           const div=document.createElement('div');
@@ -2604,6 +2734,7 @@ const _isMyWin = pi===myOnlineIdx;
 //  モーダル（勝利・ゲームオーバー）
 // ============================================================
 function showWinModal(p, res, tsuideList=[]) {
+  playSound(res.ron ? 'ron' : 'win');
   if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G?.goal || WIN_SCORE);  const rows   = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
   const tiles  = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
@@ -2949,6 +3080,72 @@ function toggleAssist(){
 let chatOpen = false;
 let chatUnread = 0;
 
+// ============================================================
+//  サウンド
+// ============================================================
+let soundEnabled = localStorage.getItem('rikka_sound_enabled') === 'true';
+let soundVolume  = localStorage.getItem('rikka_sound_volume') !== null
+  ? parseFloat(localStorage.getItem('rikka_sound_volume')) : 0.5;
+let _audioCtx = null;
+function _getAudioCtx(){
+  if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return _audioCtx;
+}
+function playSound(kind){
+  if(!soundEnabled) return;
+  try{
+    const ctx = _getAudioCtx();
+    if(ctx.state==='suspended') ctx.resume();
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.value = soundVolume;
+    master.connect(ctx.destination);
+    const tone=(freq,start,dur,type,gain)=>{
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.type=type; osc.frequency.value=freq;
+      g.gain.setValueAtTime(0,now+start);
+      g.gain.linearRampToValueAtTime(gain,now+start+0.012);
+      g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
+      osc.connect(g); g.connect(master);
+      osc.start(now+start); osc.stop(now+start+dur+0.03);
+    };
+    if(kind==='riichi'){
+      tone(440,0,.16,'triangle',.32);
+      tone(660,.09,.22,'triangle',.32);
+    } else if(kind==='ron'){
+      tone(880,0,.09,'square',.28);
+      tone(660,.06,.12,'square',.28);
+      tone(440,.12,.2,'square',.24);
+    } else if(kind==='win'){
+      tone(523.25,0,.16,'sine',.3);
+      tone(659.25,.1,.16,'sine',.3);
+      tone(783.99,.2,.16,'sine',.3);
+      tone(1046.5,.3,.32,'sine',.34);
+    }
+  }catch(e){}
+}
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('rikka_sound_enabled', soundEnabled);
+  updateSoundUI();
+  if(soundEnabled) playSound('win');
+}
+function setSoundVolume(v){
+  soundVolume = Math.max(0,Math.min(100,Number(v)))/100;
+  localStorage.setItem('rikka_sound_volume', soundVolume);
+}
+function updateSoundUI(){
+  const btn = document.getElementById('sound-toggle-btn');
+  if(btn){
+    btn.textContent = soundEnabled ? 'ON' : 'OFF';
+    btn.style.background = soundEnabled ? 'linear-gradient(135deg,#2a9e6e,#1a6e40)' : '#2a1e14';
+    btn.style.color = soundEnabled ? '#e0fff8' : '#8a7048';
+    btn.style.borderColor = soundEnabled ? '#2a9e6e' : '#3e2e1e';
+  }
+  const slider = document.getElementById('sound-volume-slider');
+  if(slider) slider.value = Math.round(soundVolume*100);
+}
+
 function toggleChat(){
   chatOpen = !chatOpen;
   document.getElementById('chat-wrap').style.display = chatOpen ? 'flex' : 'none';
@@ -3174,6 +3371,7 @@ function openSidebar(){
   document.getElementById('sb-email').textContent=gUser.email||'';
   updateAvatarDisplay();
   renderSidebarStats();
+  updateSoundUI();
 }
 function updateAvatarDisplay(){
   const wrap = document.getElementById('sb-avatar-wrap');
