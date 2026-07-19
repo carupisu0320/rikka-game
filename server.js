@@ -55,12 +55,11 @@ function checkTsuide(hand5, field, optRoles){
   const discards=field.filter(t=>t.discarded);
   let bestRes=null,bestPts=-1;
   discards.forEach(t=>{
-    const hand6=[...hand5,t];
-    const w=checkWin(hand6,optRoles);
-    if(w&&w.pts>bestPts){
-      bestPts=w.pts;
-      const bonus=w.noBonus?0:countZorome(hand6);
-      bestRes={role:w.role,pts:w.pts,bonus,total:w.pts+bonus};
+    const found=findRonWinServer(hand5,t,optRoles);
+    if(found&&found.res.pts>bestPts){
+      bestPts=found.res.pts;
+      const bonus=found.res.noBonus?0:countZorome(found.hand);
+      bestRes={role:found.res.role,pts:found.res.pts,bonus,total:found.res.pts+bonus};
     }
   });
   return bestRes;
@@ -75,6 +74,18 @@ function canRonServer(hand5, tile, optR){
     if(w) return true;
   }
   return false;
+}
+// canRonServerと違い、実際に上がれるフリップの組み合わせ(res・hand)を返す
+function findRonWinServer(hand5, tile, optR){
+  if(!tile) return null;
+  const hand6 = [...hand5, tile];
+  const lim = Math.min(1 << 6, 64);
+  for(let m = 0; m < lim; m++){
+    const h = hand6.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
+    const w = checkWin(h, optR);
+    if(w) return {res:w, hand:h};
+  }
+  return null;
 }
 function isSanren(hand) {
   for (let m = 0; m < 64; m++) {
@@ -333,9 +344,9 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi === -1) return;
     const { tile, discardedByIdx } = room.ronPending;
-    const hand6 = [...room.players[pi].hand, tile];
-    const res = checkWin(hand6, room.roles !== undefined ? room.roles : null);
-    if (!res) { socket.emit('err', 'ロンできません'); return; }
+    const found = findRonWinServer(room.players[pi].hand, tile, room.roles !== undefined ? room.roles : null);
+    if (!found) { socket.emit('err', 'ロンできません'); return; }
+    const { res, hand: hand6 } = found;
     room.ronPending = null;
     clearTimeout(room.ronTimer);
     const bonus = (res.noBonus ? 0 : countZorome(hand6)) + (room.players[pi].riichi ? 1 : 0);
