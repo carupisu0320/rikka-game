@@ -2208,10 +2208,12 @@ function pickField(fi) {
   if (p.hand.length >= 6) { toast('もう持てないよ！'); return; }
   if (onlineMode) {
     socket?.emit('pick', { code: currentCode, fieldIdx: Number(fi) });
+    playSound('pick');
     return;
   }
   const picked=G.field.splice(fi,1)[0];
   p.hand.push(picked);
+  playSound('pick');
   G.tphase='discard';
   G.selIdx=-1;
   render();
@@ -2238,6 +2240,7 @@ function pickField(fi) {
           const tile=p.hand.splice(idx,1)[0];
   tile.discarded=true;
   G.field.push(tile);
+  playSound('discard');
   G.selIdx=-1;
   // ロンチェック
   if(checkBotRon(myOnlineIdx)) return;
@@ -2281,11 +2284,13 @@ function doDiscard() {
   if (p.hand.length <= 5) { toast('これ以上捨てれないよ！'); return; }
   if (onlineMode) {
     socket?.emit('discard', { code: currentCode, tileId: p.hand[G.selIdx].id });
+    playSound('discard');
     G.selIdx = -1; render();
     return;
   }
   const tile = p.hand.splice(G.selIdx,1)[0];
   tile.discarded = true; G.field.push(tile);
+  playSound('discard');
   G.selIdx = -1;
   if(checkBotRon(myOnlineIdx)) return;
   nextTurn();
@@ -2359,6 +2364,7 @@ function runBot() {
     }
 
    bot.hand.push(G.field.splice(fi,1)[0]);
+    playSound('pick');
     G.tphase='discard';
     if(bot.diff==='hard') botHardFlipOptimize(bot.hand);
     render();
@@ -2424,6 +2430,7 @@ function runBot() {
       tile.discarded = true;
       bot.hand.sort((a,b) => eTop(a) - eTop(b));
       G.field.push(tile);render();
+      playSound('discard');
       if(Math.random()<0.15)botComment('discard');
       if(checkBotRon(G.turn)) return;
       setTimeout(nextTurn,200);
@@ -3095,32 +3102,55 @@ function playSound(kind){
   if(!soundEnabled) return;
   try{
     const ctx = _getAudioCtx();
-    if(ctx.state==='suspended') ctx.resume();
-    const now = ctx.currentTime;
-    const master = ctx.createGain();
-    master.gain.value = soundVolume;
-    master.connect(ctx.destination);
-    const tone=(freq,start,dur,type,gain)=>{
-      const osc=ctx.createOscillator(), g=ctx.createGain();
-      osc.type=type; osc.frequency.value=freq;
-      g.gain.setValueAtTime(0,now+start);
-      g.gain.linearRampToValueAtTime(gain,now+start+0.012);
-      g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
-      osc.connect(g); g.connect(master);
-      osc.start(now+start); osc.stop(now+start+dur+0.03);
+    const fire = () => {
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.value = soundVolume;
+      master.connect(ctx.destination);
+      const tone=(freq,start,dur,type,gain)=>{
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.type=type; osc.frequency.value=freq;
+        g.gain.setValueAtTime(0,now+start);
+        g.gain.linearRampToValueAtTime(gain,now+start+0.012);
+        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
+        osc.connect(g); g.connect(master);
+        osc.start(now+start); osc.stop(now+start+dur+0.03);
+      };
+      // カンッ、と硬いものがぶつかるような打撃音（アタックが一瞬・ピッチが少し下がる）
+      const click=(freq,start,dur,gain)=>{
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.type='square';
+        osc.frequency.setValueAtTime(freq,now+start);
+        osc.frequency.exponentialRampToValueAtTime(freq*0.55,now+start+dur);
+        g.gain.setValueAtTime(gain,now+start);
+        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
+        osc.connect(g); g.connect(master);
+        osc.start(now+start); osc.stop(now+start+dur+0.02);
+      };
+      if(kind==='riichi'){
+        tone(440,0,.16,'triangle',.32);
+        tone(660,.09,.22,'triangle',.32);
+      } else if(kind==='ron'){
+        tone(880,0,.09,'square',.28);
+        tone(660,.06,.12,'square',.28);
+        tone(440,.12,.2,'square',.24);
+      } else if(kind==='win'){
+        tone(523.25,0,.16,'sine',.3);
+        tone(659.25,.1,.16,'sine',.3);
+        tone(783.99,.2,.16,'sine',.3);
+        tone(1046.5,.3,.32,'sine',.34);
+      } else if(kind==='pick'){
+        click(1400,0,.045,.22);
+        click(750,0,.035,.12);
+      } else if(kind==='discard'){
+        click(950,0,.05,.24);
+        click(500,0,.045,.14);
+      }
     };
-    if(kind==='riichi'){
-      tone(440,0,.16,'triangle',.32);
-      tone(660,.09,.22,'triangle',.32);
-    } else if(kind==='ron'){
-      tone(880,0,.09,'square',.28);
-      tone(660,.06,.12,'square',.28);
-      tone(440,.12,.2,'square',.24);
-    } else if(kind==='win'){
-      tone(523.25,0,.16,'sine',.3);
-      tone(659.25,.1,.16,'sine',.3);
-      tone(783.99,.2,.16,'sine',.3);
-      tone(1046.5,.3,.32,'sine',.34);
+    if(ctx.state==='suspended'){
+      ctx.resume().then(fire).catch(()=>{});
+    } else {
+      fire();
     }
   }catch(e){}
 }
