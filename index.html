@@ -789,6 +789,16 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   <span class="rdesc">上がり後、<b style="color:#60c870">捨て牌＋手牌</b>で役が完成したら得点獲得</span>
   <span class="rpts" style="color:#60c870">随時</span>
 </div>
+<div class="rrow">
+  <span class="rname" style="color:#e07070">リーチ</span>
+  <span class="rdesc">捨てればテンパイになるなら宣言可。以降は<b style="color:#e07070">自動で捨て</b>、上がると<b style="color:#f5d040">+1点</b></span>
+  <span class="rpts" style="color:#e07070">任意</span>
+</div>
+<div class="rrow">
+  <span class="rname" style="color:#e0a020">ロン</span>
+  <span class="rdesc">相手の捨て牌で役が完成するなら宣言可。<b style="color:#e0a020">捨てた人から得点を奪う</b></span>
+  <span class="rpts" style="color:#e0a020">任意</span>
+</div>
     <div class="rnote">
       💡 右クリック（スマホ長押し）で牌を反転<br>
       💡 牌を選択して別の牌をクリックで並び替え<br>
@@ -2898,8 +2908,8 @@ function renderOptionalRoles() {
   if(el) el.innerHTML = html;
 }
 function renderRiichiRonInfo() {
-  const useRiichi = !G || G.useRiichi;
-  const useRon    = !G || G.useRon;
+  const useRiichi = !!(G && G.useRiichi);
+  const useRon    = !!(G && G.useRon);
   let html = '';
   if(useRiichi){
     html += `
