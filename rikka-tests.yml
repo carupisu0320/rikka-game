@@ -1,0 +1,324 @@
+name: Rikka Logic Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 役判定・得点移動ロジックのテスト
+        run: |
+          cat > /tmp/ci_test_rikka.js << 'RIKKA_TEST_EOF'
+          #!/usr/bin/env node
+          // 六華 (Rikka) の自動テスト（CI専用・依存パッケージ無し）
+          //
+          // 使い方:
+          //   node ci_test_rikka.js path/to/index.html
+          //   引数を省略すると ./index.html を対象にする
+          //
+          // index.html の <script> から関数をソースのまま抜き出してテストする。
+          // index.html 自体は一切変更しない。
+          //
+          // カバー範囲は2段階:
+          //  1) checkWin・canRon・isTenpai など役判定そのもの
+          //  2) processWin・declareRon・checkBotRon など「実際に得点が
+          //     正しく移動するか」（ロンで捨てた人から正しい額が引かれるか、
+          //     リーチ+1点がツモでも乗るか）
+          // 2)は過去にこのプロジェクトで実際に見つかったバグの回帰テスト。
+          //
+          // GitHub Actions などCI環境（ブラウザ無し）でそのまま動かせるよう、
+          // DOM・localStorage・setTimeoutを最小限だけスタブしている。
+          // このスタブは「テストの都合」であり、index.html 側の実装は無傷。
+
+          const fs = require('fs');
+          const assert = require('assert');
+          const Module = require('module');
+
+          // ── ブラウザ環境の最小スタブ ──
+          // processWin / declareRon / checkBotRon が呼ぶ「画面表示・演出」系の
+          // 関数は、得点の計算には関係ないのですべて no-op にする。
+          const noop = () => {};
+          const stubEl = () => ({
+            style: {}, classList: { add: noop, remove: noop, contains: () => false },
+            textContent: '', innerHTML: '', value: '', disabled: false,
+            appendChild: noop, scrollTop: 0, querySelectorAll: () => [],
+            addEventListener: noop,
+          });
+          global.document = {
+            getElementById: stubEl,
+            querySelectorAll: () => [],
+            createElement: () => ({ classList: { add: noop }, style: {} }),
+          };
+          global.localStorage = (() => {
+            let store = {};
+            return {
+              getItem: k => (k in store ? store[k] : null),
+              setItem: (k, v) => { store[k] = String(v); },
+              removeItem: k => { delete store[k]; },
+            };
+          })();
+          global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
+          global.navigator = { clipboard: { writeText: noop } };
+          global.setTimeout = (fn) => fn(); // CIでは同期実行でOK（タイミングは検証対象外）
+          global.esc = x => x;
+          global.toast = noop;
+          global.render = noop;
+          global.launchConfetti = noop;
+          global.showWinModal = noop; // 画面表示は対象外。得点だけ見る
+          global.showRonBtn = noop;
+          global.showRiichiBtn = noop;
+          global.clearRonWindow = noop;
+          global.openRonWindow = noop;
+          global.botComment = noop;
+          global.addBotChatMsg = noop;
+          global.rndComment = () => '';
+          global.nextTurn = noop;
+          global.playSound = noop;
+
+          // ── 抜き出しユーティリティ ──
+
+          function extractInlineScript(html) {
+            const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+              .map(m => m[1]);
+            return scripts.reduce((a, b) => (b.length > a.length ? b : a), '');
+          }
+
+          function extractFunction(source, name) {
+            const marker = `function ${name}(`;
+            const start = source.indexOf(marker);
+            if (start === -1) return null;
+            const braceStart = source.indexOf('{', start);
+            if (braceStart === -1) return null;
+            let depth = 1;
+            let i = braceStart + 1;
+            while (depth > 0 && i < source.length) {
+              const ch = source[i];
+              if (ch === '{') depth++;
+              else if (ch === '}') depth--;
+              i++;
+            }
+            return source.slice(start, i);
+          }
+
+          function loadGameLogic(htmlPath, names) {
+            const html = fs.readFileSync(htmlPath, 'utf-8');
+            const script = extractInlineScript(html);
+            const missing = [];
+            const parts = names.map(name => {
+              const src = extractFunction(script, name);
+              if (!src) missing.push(name);
+              return src;
+            });
+            if (missing.length) {
+              throw new Error(
+                `以下の関数が ${htmlPath} 内に見つかりませんでした: ${missing.join(', ')}\n` +
+                `（関数名が変わった、または削除された可能性があります）`
+              );
+            }
+            // G / myOnlineIdx / onlineMode / _ronPending / WIN_SCORE は
+            // モジュールのトップレベル変数として、テスト側から差し替えられるようにする。
+            const wrapped = `
+              let G = null, myOnlineIdx = 0, onlineMode = false, _ronPending = null;
+              const WIN_SCORE = 10;
+              ${parts.join('\n\n')}
+              module.exports = {
+                ${names.join(', ')},
+                setState(state){
+                  G = state.G; myOnlineIdx = state.myOnlineIdx ?? 0;
+                  onlineMode = state.onlineMode ?? false; _ronPending = state._ronPending ?? null;
+                },
+                getG(){ return G; },
+              };
+            `;
+            const m = new Module(htmlPath, null);
+            m._compile(wrapped, htmlPath + ' (extracted)');
+            return m.exports;
+          }
+
+          // ── 対象読み込み ──
+
+          const targetPath = process.argv[2] || 'index.html';
+          const FUNCS = [
+            'eTop', 'eBot', 'isSanren', 'isSet3', 'popcount',
+            'isMusou', 'isKikou', 'isSanshiki', 'isSantui', 'countZorome',
+            'checkWin', 'canRon', 'findRonWin', 'isTenpai', 'checkTsuide',
+            'makeHistoryEntry', 'saveHistory',
+            'processWin', 'declareRon', 'checkBotRon',
+          ];
+
+          let logic;
+          try {
+            logic = loadGameLogic(targetPath, FUNCS);
+          } catch (e) {
+            console.error(`❌ ${targetPath} の読み込みに失敗しました:`);
+            console.error('   ' + e.message);
+            process.exit(1);
+          }
+          const {
+            checkWin, canRon, findRonWin, isTenpai, checkTsuide, countZorome,
+            processWin, declareRon, checkBotRon, setState,
+          } = logic;
+
+          // ── テスト用ヘルパー ──
+
+          let nextId = 1;
+          function tile(top, bot, flip = false) {
+            return { id: nextId++, top, bot, flip, discarded: false };
+          }
+          function player(name, score = 0, opts = {}) {
+            return { name, score, hand: [], riichi: false, isBot: false, ...opts };
+          }
+
+          let passed = 0, failed = 0;
+          const failures = [];
+          function test(name, fn) {
+            try { fn(); passed++; }
+            catch (e) { failed++; failures.push({ name, error: e.message }); }
+          }
+
+          // ============================================================
+          //  役判定ロジック（checkWin / canRon / findRonWin / isTenpai / checkTsuide）
+          // ============================================================
+
+          test('checkWin: 一色（六華にも三連にもならない組み合わせ）', () => {
+            const hand = [tile(1,3), tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3)];
+            const res = checkWin(hand, null);
+            assert.ok(res && res.role === '一色', `一色になるはずが: ${JSON.stringify(res)}`);
+          });
+
+          test('checkWin: 役無しはnull', () => {
+            const hand = [tile(1,2), tile(3,4), tile(5,6), tile(2,5), tile(4,1), tile(6,3)];
+            assert.strictEqual(checkWin(hand, null), null);
+          });
+
+          test('countZorome: ゾロ目の枚数を正しく数える', () => {
+            assert.strictEqual(countZorome([tile(1,1), tile(2,3), tile(4,4), tile(5,6), tile(3,3)]), 3);
+          });
+
+          test('【回帰テスト】canRon: 捨て牌を反転させないと揃わないケース', () => {
+            const hand5 = [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3)];
+            assert.strictEqual(canRon(hand5, tile(3, 5, false), null), true);
+          });
+
+          test('【回帰テスト】findRonWin: 反転が必要なロンで正しいフリップ状態を返す', () => {
+            const hand5 = [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3)];
+            const found = findRonWin(hand5, tile(3, 5, false), null);
+            assert.ok(found);
+            const flipped = found.hand.find(t => t.top === 3 && t.bot === 5);
+            assert.strictEqual(flipped.flip, true);
+          });
+
+          test('isTenpai: テンパイの手牌はtrue', () => {
+            assert.strictEqual(isTenpai([tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3)], null), true);
+          });
+
+          test('【回帰テスト】checkTsuide: 捨て牌の反転が必要なケースでも検出する', () => {
+            const hand5 = [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3)];
+            const d = tile(3, 5, false); d.discarded = true;
+            assert.ok(checkTsuide(hand5, [d], null));
+          });
+
+          // ============================================================
+          //  得点移動: processWin（ツモ・「上がる」ボタン）
+          //  回帰対象: リーチ中にツモると+1点ボーナスが乗るか
+          // ============================================================
+
+          test('【回帰テスト】processWin: リーチ中のツモにリーチ+1点が乗る', () => {
+            const winner = player('王', 0, { riichi: true, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3), tile(1,3)] });
+            // countZorome=0（ゾロ目無し・六華にもならない一色）なので、+1はリーチ分のみ
+            const other = player('相手', 0);
+            setState({ G: { phase: 'playing', players: [winner, other], field: [], optRoles: null, goal: 10 }, myOnlineIdx: 0 });
+            const res = { role: '一色', pts: 1 };
+            processWin(0, res);
+            assert.strictEqual(winner.score, 2, `役点1+リーチ1=2点になるはずが${winner.score}点`);
+          });
+
+          test('processWin: リーチしていなければ+1点は乗らない', () => {
+            const winner = player('王', 0, { riichi: false, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(6,3), tile(1,3)] });
+            const other = player('相手', 0);
+            setState({ G: { phase: 'playing', players: [winner, other], field: [], optRoles: null, goal: 10 }, myOnlineIdx: 0 });
+            const res = { role: '一色', pts: 1 };
+            processWin(0, res);
+            assert.strictEqual(winner.score, 1, `役点1のみになるはずが${winner.score}点`);
+          });
+
+          test('processWin: ゾロ目ボーナスとリーチ+1点が両方乗る', () => {
+            const winner = player('王', 0, { riichi: true, hand: [] });
+            // 一色（bot=3で統一）かつ(3,3)がゾロ目1枚になるように組み立てる
+            winner.hand = [tile(1,3), tile(2,3), tile(3,3), tile(5,3), tile(6,3), tile(4,3)];
+            const other = player('相手', 0);
+            setState({ G: { phase: 'playing', players: [winner, other], field: [], optRoles: null, goal: 10 }, myOnlineIdx: 0 });
+            const res = { role: '一色', pts: 1 };
+            processWin(0, res);
+            // countZorome=1（3,3のみ）+ riichi 1 = bonus 2、pts 1 と合わせて3点
+            assert.strictEqual(winner.score, 3, `役点1+ゾロ目1+リーチ1=3点になるはずが${winner.score}点`);
+          });
+
+          // ============================================================
+          //  得点移動: declareRon（人間のロン宣言・ボット対戦）
+          //  回帰対象: 捨てた人から「役点+ボーナス」の全額が引かれるか
+          // ============================================================
+
+          test('【回帰テスト】declareRon: 捨てた人から役点+ボーナスの全額が引かれる', () => {
+            const winner  = player('勝者', 0, { riichi: true, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(1,3)] });
+            const discarder = player('放銃者', 5);
+            const discardedTile = tile(6,3); // 一色(pts=1)完成。六華にはならない（1が重複、3が欠けている）
+            setState({
+              G: { phase: 'playing', players: [winner, discarder], field: [], optRoles: null, goal: 10 },
+              myOnlineIdx: 0, onlineMode: false,
+              _ronPending: { tile: discardedTile, discardedByIdx: 1 },
+            });
+            declareRon();
+            // pts=1(一色) + bonus(riichi 1、ゾロ目0) = 2点。winnerは+2、discarderは-2で揃うはず
+            assert.strictEqual(winner.score, 2, `勝者は+2点になるはずが${winner.score}点`);
+            assert.strictEqual(discarder.score, 3, `放銃者は5-2=3点になるはずが${discarder.score}点`);
+          });
+
+          // ============================================================
+          //  得点移動: checkBotRon（ボットの自動ロン）
+          // ============================================================
+
+          test('【回帰テスト】checkBotRon: ボット自動ロンでも捨てた人から全額引かれる', () => {
+            const bot = player('ボット', 0, { riichi: true, isBot: true, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(1,3)] });
+            const human = player('自分', 5, { hand: [tile(1,1), tile(2,2), tile(3,3), tile(4,4), tile(5,5)] });
+            const discardedTile = tile(6,3); discardedTile.discarded = true; // 一色(pts=1)完成、六華にはならない
+            setState({
+              G: {
+                phase: 'playing',
+                players: [human, bot],
+                field: [discardedTile],
+                optRoles: null, goal: 10, useRon: true, useRiichi: true,
+              },
+              myOnlineIdx: 0, onlineMode: false,
+            });
+            checkBotRon(0); // discardedByIdx=0（自分の捨て牌に対してボットがロン）
+            // pts=1 + bonus(ゾロ目0 + リーチ1) = 2点
+            assert.strictEqual(bot.score, 2, `ボットは一色1点+リーチ1点=2点を獲得するはずが${bot.score}点`);
+            assert.strictEqual(human.score, 3, `放銃した自分は5-2=3点になるはずが${human.score}点`);
+          });
+
+          // ============================================================
+          //  結果表示
+          // ============================================================
+
+          console.log(`\n対象ファイル: ${targetPath}\n`);
+          if (failures.length) {
+            console.log('失敗したテスト:');
+            failures.forEach(f => console.log(`  ✗ ${f.name}\n      ${f.error}`));
+            console.log('');
+          }
+          console.log(`結果: ${passed}件成功 / ${failed}件失敗 （全${passed + failed}件）`);
+          process.exit(failed ? 1 : 0);
+
+          RIKKA_TEST_EOF
+          node /tmp/ci_test_rikka.js index.html
