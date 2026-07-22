@@ -203,7 +203,7 @@ socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
       goal: [5,10,15,20,30].includes(goal) ? goal : 10,
       useRiichi: useRiichi || false,
       useRon: useRon || false,
-      players: [{ id: socket.id, name, hand: [], score: 0 }],
+      players: [{ id: socket.id, name, hand: [], score: 0, riichi: false }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
     socket.join(code);
@@ -220,7 +220,7 @@ socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
     if (room.players.length >= 4) { socket.emit('err', '部屋が満員です'); return; }
     if (room.players.some(p => p.id === socket.id)) { socket.emit('err', 'すでに参加しています'); return; }
     if (room.players.some(p => p.name === name)) { socket.emit('err', 'この名前はすでに使われています'); return; }
-    room.players.push({ id: socket.id, name, hand: [], score: 0 });
+    room.players.push({ id: socket.id, name, hand: [], score: 0, riichi: false });
     socket.join(c);
     io.to(c).emit('room_update', { players: room.players.map(p => p.name), code: c });
   });
