@@ -120,6 +120,28 @@ function isSantui(hand){
   hand.forEach(t=>{const k=`${eTop(t)},${eBot(t)}`;f[k]=(f[k]||0)+1;});
   return Object.values(f).every(v=>v%2===0);
 }
+// ── ロンの得点授受・同時ロン判定 ──
+// ロンで得た点数は、ストックからではなく捨てた本人の得点チップから奪う。
+// 相手の点数が足りない場合は奪えるだけ奪う（相手が0点なら何ももらえない）。
+function applyRonScoreTransfer(winner, discarder, amount) {
+  const taken = Math.max(0, Math.min(amount, discarder.score));
+  winner.score += taken;
+  discarder.score -= taken;
+  return taken;
+}
+// 複数人が同時にロン可能でも、捨てた人（discardedByIdx）から時計回りで最も近い1人だけが有効。
+function pickRonWinnerIdx(players, discardedByIdx, tile, optR) {
+  const n = players.length;
+  let bestIdx = -1, bestDist = Infinity;
+  players.forEach((p, i) => {
+    if (i === discardedByIdx) return;
+    if (!canRonServer(p.hand, tile, optR)) return;
+    const dist = (i - discardedByIdx + n) % n;
+    if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+  });
+  return bestIdx;
+}
+
 // ── ルームユーティリティ ──
 function genCode() {
   let c;
@@ -261,13 +283,13 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const tile = player.hand.splice(ti, 1)[0];
     tile.discarded = true;
     room.field.push(tile);
-    // ロン可能チェック
+    // ロン可能チェック：同時ロン可能でも捨てた人から時計回りで最も近い1人だけが有効
     const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
     const optR = room.roles !== undefined ? room.roles : null;
-    const ronCandidates = room.useRon ? room.players.filter((p, i) => i !== pi && canRonServer(p.hand, discardedTile, optR)) : [];
-    if(ronCandidates.length > 0){
-      room.ronPending = { tile: discardedTile, discardedByIdx: pi };
-      io.to(code).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
+    const winnerIdx = room.useRon ? pickRonWinnerIdx(room.players, pi, discardedTile, optR) : -1;
+    if (winnerIdx !== -1) {
+      room.ronPending = { tile: discardedTile, discardedByIdx: pi, winnerIdx };
+      io.to(room.players[winnerIdx].id).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
       room.ronTimer = setTimeout(() => {
         room.ronPending = null;
         room.turn = (room.turn + 1) % room.players.length;
@@ -343,16 +365,17 @@ socket.on('pick', ({ code, fieldIdx }) => {
     if (!room || room.phase !== 'playing' || !room.ronPending) return;
     const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi === -1) return;
-    const { tile, discardedByIdx } = room.ronPending;
+    const { tile, discardedByIdx, winnerIdx } = room.ronPending;
+    if (pi !== winnerIdx) { socket.emit('err', 'ロンできません'); return; } // 同時ロン時は最も近い1人だけが有効
     const found = findRonWinServer(room.players[pi].hand, tile, room.roles !== undefined ? room.roles : null);
     if (!found) { socket.emit('err', 'ロンできません'); return; }
     const { res, hand: hand6 } = found;
     room.ronPending = null;
     clearTimeout(room.ronTimer);
     const bonus = (res.noBonus ? 0 : countZorome(hand6)) + (room.players[pi].riichi ? 1 : 0);
+    const discarder = room.players[discardedByIdx];
     room.players[pi].hand = hand6;
-    room.players[pi].score += res.pts + bonus;
-    room.players[discardedByIdx].score -= (res.pts + bonus);
+    applyRonScoreTransfer(room.players[pi], discarder, res.pts + bonus);
     room.phase = 'roundEnd';
     const tsuideList = [];
     room.players.forEach((p, i) => {
@@ -365,7 +388,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
       winnerIdx: pi, winnerName: room.players[pi].name,
       hand: hand6, role: res.role, pts: res.pts, bonus,
       scores: room.players.map(p => ({ name: p.name, score: p.score })),
-      isGameOver, tsuideList, ron: true, ronFrom: room.players[discardedByIdx].name
+      isGameOver, tsuideList, ron: true, ronFrom: discarder.name
     });
   });
   socket.on('chat', ({ code, msg }) => {
