@@ -796,7 +796,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 </div>
 <div class="rrow">
   <span class="rname" style="color:#e0a020">ロン</span>
-  <span class="rdesc">相手の捨て牌で役が完成するなら宣言可。<b style="color:#e0a020">捨てた人の得点チップを奪う</b>（足りなければ奪えるだけ／同時宣言は捨てた人から時計回りで最も近い1人のみ有効）</span>
+  <span class="rdesc">相手の捨て牌で役が完成するなら宣言可。<b style="color:#e0a020">捨てた人から得点を奪う</b></span>
   <span class="rpts" style="color:#e0a020">任意</span>
 </div>
     <div class="rnote">
@@ -1995,27 +1995,6 @@ function declareRiichi(){
   toast('🀄 リーチ宣言！手牌が固定されます');
   render();
 }
-// ロンの得点授受：ストックからではなく、捨てた本人の得点チップから奪う。
-// 相手の点数が足りない場合は奪えるだけ奪う（相手が0点なら何ももらえない）。
-function applyRonScoreTransfer(winner, discarder, amount){
-  const taken = Math.max(0, Math.min(amount, discarder.score));
-  winner.score += taken;
-  discarder.score -= taken;
-  return taken;
-}
-// 同時ロン判定：捨てた人（discardedByIdx）から時計回りで最も近い1人だけが有効。
-function pickRonWinnerIdx(discardedByIdx, discardedTile, optR){
-  const n = G.players.length;
-  let bestIdx = -1, bestDist = Infinity;
-  G.players.forEach((pl,i)=>{
-    if(i===discardedByIdx) return;
-    if(pl.isBot && G.useRiichi && !pl.riichi) return; // リーチあり設定時、ボットはリーチ中のみ自動ロン
-    if(!canRon(pl.hand,discardedTile,optR)) return;
-    const dist = (i - discardedByIdx + n) % n;
-    if(dist < bestDist){ bestDist = dist; bestIdx = i; }
-  });
-  return bestIdx;
-}
 function declareRon(){
   if(!G||G.phase!=='playing'||!_ronPending) return;
   const p=G.players[myOnlineIdx];
@@ -2029,10 +2008,9 @@ function declareRon(){
   if(!found)return;
   const {res,hand:hand6}=found;
   const bonus=(res.noBonus?0:countZorome(hand6))+(p.riichi?1:0);
-  const discarder=G.players[discardedByIdx];
-  res.bonus=bonus;res.ron=true;res.ronFrom=discarder.name;
-  p.hand=hand6;
-  applyRonScoreTransfer(p,discarder,res.pts+bonus);
+  res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
+  p.hand=hand6;p.score+=res.pts+bonus;
+  G.players[discardedByIdx].score-=(res.pts+bonus);
   G.phase='roundEnd';
   launchConfetti();
   const tsuideList=[];
@@ -2044,41 +2022,48 @@ function declareRon(){
   showWinModal(p,res,tsuideList);
 }
 function checkBotRon(discardedByIdx){
-  if(!G||onlineMode||!G.useRon) return false;
+  if(!G||onlineMode||(!G.useRiichi&&!G.useRon)) return false;
   const optR=G?.optRoles??null;
   const discardedTile=G.field.filter(t=>t.discarded).slice(-1)[0];
   if(!discardedTile) return false;
-  // 複数人が同時にロン可能でも、捨てた人から時計回りで最も近い1人だけが有効
-  const winnerIdx = pickRonWinnerIdx(discardedByIdx, discardedTile, optR);
-  if(winnerIdx===-1) return false;
-  if(G.players[winnerIdx].isBot){
-    // ボット自動ロン
-    setTimeout(()=>{
-      if(!G||G.phase!=='playing') return;
-      const pl=G.players[winnerIdx];
-      const found=findRonWin(pl.hand,discardedTile,optR);
-      if(!found)return;
-      const {res,hand:hand6}=found;
-      const bonus=(res.noBonus?0:countZorome(hand6))+(pl.riichi?1:0);
-      const discarder=G.players[discardedByIdx];
-      res.bonus=bonus;res.ron=true;res.ronFrom=discarder.name;
-      pl.hand=hand6;
-      applyRonScoreTransfer(pl,discarder,res.pts+bonus);
-      G.phase='roundEnd';
-      const tsuideList=[];
-      G.players.forEach((p2,j)=>{
-        if(j===winnerIdx||j===discardedByIdx)return;
-        const tr=checkTsuide(p2.hand,G.field,optR);
-        if(tr){p2.score+=tr.total;tsuideList.push({name:p2.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
-      });
-      showWinModal(pl,res,tsuideList);
-    },800);
-    return true;
-  } else if(winnerIdx===myOnlineIdx){
-    openRonWindow(discardedTile,discardedByIdx,()=>nextTurn());
-    return true;
+  let ronPossible=false;
+  // ボットがロンできるかチェック
+  G.players.forEach((pl,i)=>{
+    if(i===discardedByIdx||pl.isBot===false) return;
+    if(!G.useRon) return;
+    if(!pl.riichi&&G.useRiichi) return; // リーチあり設定時はリーチ中のみ自動ロン
+    if(canRon(pl.hand,discardedTile,optR)){
+      ronPossible=true;
+      // ボット自動ロン
+      setTimeout(()=>{
+        if(!G||G.phase!=='playing') return;
+        const found=findRonWin(pl.hand,discardedTile,optR);
+        if(!found)return;
+        const {res,hand:hand6}=found;
+        const bonus=(res.noBonus?0:countZorome(hand6))+(pl.riichi?1:0);
+        res.bonus=bonus;res.ron=true;res.ronFrom=G.players[discardedByIdx].name;
+        pl.hand=hand6;pl.score+=res.pts+bonus;
+        G.players[discardedByIdx].score-=(res.pts+bonus);
+        G.phase='roundEnd';
+        const tsuideList=[];
+        G.players.forEach((p2,j)=>{
+          if(j===i||j===discardedByIdx)return;
+          const tr=checkTsuide(p2.hand,G.field,optR);
+          if(tr){p2.score+=tr.total;tsuideList.push({name:p2.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
+        });
+        showWinModal(pl,res,tsuideList);
+      },800);
+    }
+  });
+  // プレイヤーがロンできるかチェック（自分の捨て牌は除く）
+if(G.useRon&&discardedByIdx!==myOnlineIdx){
+    const player=G.players[myOnlineIdx];
+    if(canRon(player.hand,discardedTile,optR)){
+      openRonWindow(discardedTile,discardedByIdx,()=>nextTurn());
+      ronPossible=true;
+    }
   }
-  return false;
+  return ronPossible;
 }
 function getOptRoles(prefix){
   return['三対','三色','輝光','無双'].filter(r=>{
@@ -2946,11 +2931,9 @@ function renderRiichiRonInfo() {
         <div class="rb-role-name" style="color:#e0a020">ロン</div>
       </div>
       <div class="rb-role-desc">
-        他のプレイヤーが牌を捨てたとき、その牌で自分の役が完成するなら「ロン！」ボタンが数秒間だけ表示される。<br>
-        押すと手番順を無視してその牌をもらい、その場で上がれる。<br>
-        ロンで得た点数（役点＋ボーナス）は<b style="color:#e0a020">ストックからではなく、捨てた相手の得点チップから奪う</b>。<br>
-        相手の点数が足りないときは<b style="color:#e0a020">奪えるだけ奪う</b>（相手が0点なら何ももらえない）。<br>
-        2人以上が同時にロンを宣言した場合は、<b style="color:#e0a020">捨てた人から時計回りで最も近い1人のロンだけが有効</b>となる。
+        他のプレイヤーが捨てた牌を使うと自分の役が完成するとき、「ロン！」ボタンが数秒間だけ表示される。<br>
+        押すとその牌をもらってその場で上がれる。<br>
+        ロンで得た点数（役点＋ボーナス）は、<b style="color:#e0a020">牌を捨てた相手から差し引かれる</b>。
       </div>
     </div>`;
   }
