@@ -37,7 +37,8 @@ function shuffle(a) {
 const eTop = t => t.flip ? t.bot : t.top;
 const eBot = t => t.flip ? t.top : t.bot;
 
-function checkWin(hand, optRoles){
+function checkWin(hand, optRoles, forTsuide){
+  // forTsuide: true のときだけ三色の直接完成を許可（ついでに完成でのみ成立する役のため）
   if(hand.length!==6)return null;
   const tops=hand.map(eTop),bots=hand.map(eBot),allBot=bots.every(v=>v===bots[0]);
   const use=r=>optRoles===null||optRoles.includes(r);
@@ -45,7 +46,7 @@ function checkWin(hand, optRoles){
   if(allBot){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
   if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(use('三色')&&isSanshiki(hand))return{role:'三色',pts:3};
+  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3};
   if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
   if(allBot)return{role:'一色',pts:1};
   return null;
@@ -55,7 +56,7 @@ function checkTsuide(hand5, field, optRoles){
   const discards=field.filter(t=>t.discarded);
   let bestRes=null,bestPts=-1;
   discards.forEach(t=>{
-    const found=findRonWinServer(hand5,t,optRoles);
+    const found=findRonWinServer(hand5,t,optRoles,true); // ついでに完成でのみ三色を許可
     if(found&&found.res.pts>bestPts){
       bestPts=found.res.pts;
       const bonus=found.res.noBonus?0:countZorome(found.hand);
@@ -76,13 +77,14 @@ function canRonServer(hand5, tile, optR){
   return false;
 }
 // canRonServerと違い、実際に上がれるフリップの組み合わせ(res・hand)を返す
-function findRonWinServer(hand5, tile, optR){
+// forTsuide: true のときだけ三色の完成を許可（ついでに完成専用の呼び出しで使う）
+function findRonWinServer(hand5, tile, optR, forTsuide){
   if(!tile) return null;
   const hand6 = [...hand5, tile];
   const lim = Math.min(1 << 6, 64);
   for(let m = 0; m < lim; m++){
     const h = hand6.map((t,i) => ({...t, flip:!!(m&(1<<i))}));
-    const w = checkWin(h, optR);
+    const w = checkWin(h, optR, forTsuide);
     if(w) return {res:w, hand:h};
   }
   return null;
