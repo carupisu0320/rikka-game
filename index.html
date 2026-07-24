@@ -2766,6 +2766,11 @@ function botHardDiscardRikka(hand){
 // ============================================================
 //  勝利処理
 // ============================================================
+// ゲーム終了判定：上がった本人だけでなく、ついでに完成した人も含めて
+// 全員の得点をチェックする（誰か1人でも目標点に達していれば終了）
+function isGameOver(players, goal){
+  return players.some(p => p.score >= (goal || WIN_SCORE));
+}
 function processWin(pi, res) {
   G.phase = 'roundEnd';
   const bonus = (res.noBonus ? 0 : countZorome(G.players[pi].hand)) + (G.players[pi].riichi ? 1 : 0);
@@ -2784,7 +2789,7 @@ function processWin(pi, res) {
     }
   });
 const _isMyWin = pi===myOnlineIdx;
-  const _isGameOver = G.players.some(p=>p.score>=(G?.goal||WIN_SCORE));
+  const _isGameOver = isGameOver(G.players, G?.goal);
   if(_isMyWin){
     G.players.filter(p=>p.isBot).forEach(b=>{
       setTimeout(()=>addBotChatMsg(b.name,rndComment(_isGameOver?'gamelose':'lose'),false),500);
@@ -2804,7 +2809,10 @@ const _isMyWin = pi===myOnlineIdx;
 // ============================================================
 function showWinModal(p, res, tsuideList=[]) {
   playSound(res.ron ? 'ron' : 'win');
-  if(p === G.players[myOnlineIdx]) launchConfetti();  const over   = p.score >= (G?.goal || WIN_SCORE);  const rows   = G.players.map(pl =>
+  if(p === G.players[myOnlineIdx]) launchConfetti();
+  // 上がった本人だけでなく、ついでに完成した人を含む全員の得点で判定する
+  const over = isGameOver(G.players, G?.goal);
+  const rows   = G.players.map(pl =>
     `<tr><td>${esc(pl.name)}</td><td>${pl.score}点</td></tr>`).join('');
   const tiles  = p.hand.map(t => tileHTML(t,'','tile htile')).join('');
   const bonus  = res.bonus || 0;
