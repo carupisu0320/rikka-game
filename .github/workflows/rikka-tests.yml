@@ -327,6 +327,25 @@ jobs:
             assert.strictEqual(discarder.score, 0, `放銃者は0点になるはずが${discarder.score}点`);
           });
 
+          test('【回帰テスト】declareRon: 得点が足りず奪う額が減ったとき、モーダルの表示額も実際に得た額と一致する', () => {
+            const winner  = player('勝者', 0, { riichi: true, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(1,3)] });
+            const discarder = player('放銃者', 1); // pts+bonus(2点)より少ない1点しか持っていない
+            const discardedTile = tile(6,3);
+            setState({
+              G: { phase: 'playing', players: [winner, discarder], field: [], optRoles: null, goal: 10 },
+              myOnlineIdx: 0, onlineMode: false,
+              _ronPending: { tile: discardedTile, discardedByIdx: 1 },
+            });
+            let capturedRes = null;
+            const original = global.showWinModal;
+            global.showWinModal = (p, res) => { capturedRes = res; };
+            try { declareRon(); } finally { global.showWinModal = original; }
+            assert.ok(capturedRes, 'showWinModalが呼ばれるはず');
+            // 本来pts+bonus=2点分の役だが、実際に得たのは1点なので表示もそれに合わせるべき
+            assert.strictEqual(capturedRes.pts + capturedRes.bonus, winner.score,
+              `表示額(pts+bonus=${capturedRes.pts + capturedRes.bonus})が実際の獲得額(${winner.score}点)と食い違っている`);
+          });
+
           test('【回帰テスト】declareRon: 放銃者が0点なら何ももらえない', () => {
             const winner  = player('勝者', 0, { riichi: true, hand: [tile(1,3), tile(2,3), tile(4,3), tile(5,3), tile(1,3)] });
             const discarder = player('放銃者', 0);
