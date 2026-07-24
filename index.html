@@ -771,7 +771,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
 </div>
 <div class="rrow">
   <span class="rname">三色</span>
-  <span class="rdesc">全牌の上下の数を<b style="color:#f0a050">3種類のみ</b>にする</span>
+  <span class="rdesc">全牌の上下の数を<b style="color:#f0a050">3種類のみ</b>にする（<b style="color:#60c870">ついでに完成</b>でのみ成立）</span>
   <span class="rpts">3点</span>
 </div>
 <div class="rrow">
@@ -1638,8 +1638,9 @@ function eBot(t) { return t.flip ? t.top : t.bot; }
 //  三連(3点): 「下が同じ3枚＋上が連番」のセット×2
 //  六華(6点): 下が全部同じ ＋ 上が1〜6の連番
 // ============================================================
-function checkWin(hand, optRoles){
+function checkWin(hand, optRoles, forTsuide){
   // optRoles: null=全役有効 / []=基本役のみ / ['三対',...]= 選択役のみ
+  // forTsuide: true のときだけ三色の直接完成を許可（ついでに完成でのみ成立する役のため）
   if(hand.length!==6)return null;
   const tops=hand.map(eTop),bots=hand.map(eBot),allBotSame=bots.every(v=>v===bots[0]);
   const use=r=>optRoles===null||optRoles.includes(r);
@@ -1647,7 +1648,7 @@ function checkWin(hand, optRoles){
   if(allBotSame){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
   if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(use('三色')&&isSanshiki(hand))return{role:'三色',pts:3};
+  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3};
   if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
   if(allBotSame)return{role:'一色',pts:1};
   return null;
@@ -1939,12 +1940,13 @@ function canRon(hand5, tile, optR){
   return false;
 }
 // canRonと違い、実際に上がれるフリップの組み合わせ(res・hand)を返す
-function findRonWin(hand5, tile, optR){
+// forTsuide: true のときだけ三色の完成を許可（ついでに完成専用の呼び出しで使う）
+function findRonWin(hand5, tile, optR, forTsuide){
   const hand6=[...hand5,tile];
   const lim=Math.min(1<<6,64);
   for(let m=0;m<lim;m++){
     const h=hand6.map((t,i)=>({...t,flip:!!(m&(1<<i))}));
-    const w=checkWin(h,optR);
+    const w=checkWin(h,optR,forTsuide);
     if(w) return {res:w, hand:h};
   }
   return null;
@@ -2097,7 +2099,7 @@ function checkTsuide(hand5, field, optR){
   const discards=field.filter(t=>t.discarded);
   let bestRes=null,bestPts=-1;
   discards.forEach(t=>{
-    const found=findRonWin(hand5,t,optR);
+    const found=findRonWin(hand5,t,optR,true); // ついでに完成でのみ三色を許可
     if(found&&found.res.pts>bestPts){
       bestPts=found.res.pts;
       const bonus=found.res.noBonus?0:countZorome(found.hand);
@@ -2154,6 +2156,32 @@ function runWinLogicTests(){
   test('checkWin: optRoles で無効化した役は成立しない', ()=>{
     const hand=[tile(1,2),tile(2,1,true),tile(3,4),tile(4,3,true),tile(5,6),tile(6,5,true)];
     eq(checkWin(hand,['無双','輝光']), null, `三対が無効化されているので役無しのはず`);
+  });
+  // ============================================================
+  //  三色: 「ついでに完成」でのみ成立し、通常の上がり・ロンでは成立しない
+  // ============================================================
+  test('【回帰テスト】checkWin: 三色は通常の上がりでは成立しない（forTsuide未指定）', ()=>{
+    const hand=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5),tile(5,1)];
+    eq(checkWin(hand,null), null, `三色は通常の上がりでは役無しのはずが: ${JSON.stringify(checkWin(hand,null))}`);
+  });
+  test('【回帰テスト】checkWin: forTsuide=true のときだけ三色が成立する', ()=>{
+    const hand=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5),tile(5,1)];
+    const res=checkWin(hand,null,true);
+    ok(res && res.role==='三色', `forTsuide指定時は三色になるはずが: ${JSON.stringify(res)}`);
+  });
+  test('【回帰テスト】canRon: 三色が完成する牌でもロンはできない', ()=>{
+    const hand5=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5)];
+    eq(canRon(hand5, tile(5,1), null), false, `三色はロンでは成立しないのでfalseのはずが`);
+  });
+  test('【回帰テスト】findRonWin: forTsuide指定なしでは三色は見つからない', ()=>{
+    const hand5=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5)];
+    eq(findRonWin(hand5, tile(5,1), null), null, `forTsuide未指定では三色は見つからないはず`);
+  });
+  test('【回帰テスト】checkTsuide: ついでに完成では三色が成立する', ()=>{
+    const hand5=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5)];
+    const discarded=tile(5,1); discarded.discarded=true;
+    const res=checkTsuide(hand5, [discarded], null);
+    ok(res && res.role==='三色', `ついでに完成では三色になるはずが: ${JSON.stringify(res)}`);
   });
   test('countZorome: ゾロ目の枚数を正しく数える', ()=>{
     eq(countZorome([tile(1,1),tile(2,3),tile(4,4),tile(5,6),tile(3,3)]), 3);
@@ -2904,7 +2932,7 @@ function renderOptionalRoles() {
       desc:'6枚を<b style="color:#f0a050">同じ牌のペア×3組</b>にする。',
       tiles:[[2,1],[2,1],[4,3],[4,3],[6,5],[6,5]] },
     { role:'三色', yomi:'サンシキ', pts:'3点',
-      desc:'手牌6枚の上下すべての数が<b style="color:#f0a050">合わせて3種類のみ</b>になる。',
+      desc:'手牌6枚の上下すべての数が<b style="color:#f0a050">合わせて3種類のみ</b>になる。<b style="color:#60c870">「ついでに完成」でのみ成立する役で、通常の上がり・ロンでは完成できない。</b>',
       tiles:[[1,3],[3,1],[5,3],[3,5],[1,5],[5,1]] },
     { role:'輝光', yomi:'キコウ', pts:'5点（ボーナスなし）',
       desc:'6枚すべてを<b style="color:#f5d040">★ゾロ目牌</b>にする。輝きボーナスはなし。',
