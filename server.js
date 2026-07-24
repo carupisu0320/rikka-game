@@ -46,8 +46,8 @@ function checkWin(hand, optRoles, forTsuide){
   if(allBot){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
   if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3};
-  if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
+  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3,noBonus:true};
+  if(use('三対')&&isSantui(hand))return{role:'三対',pts:5};
   if(allBot)return{role:'一色',pts:1};
   return null;
 }
