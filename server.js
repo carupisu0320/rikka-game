@@ -375,7 +375,10 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const bonus = (res.noBonus ? 0 : countZorome(hand6)) + (room.players[pi].riichi ? 1 : 0);
     const discarder = room.players[discardedByIdx];
     room.players[pi].hand = hand6;
-    applyRonScoreTransfer(room.players[pi], discarder, res.pts + bonus);
+    const taken = applyRonScoreTransfer(room.players[pi], discarder, res.pts + bonus);
+    // 実際に奪えた額に emit する pts/bonus を合わせる（ボーナス分から先に削る）
+    const cappedBonus = Math.max(0, bonus - ((res.pts + bonus) - taken));
+    const cappedPts = taken - cappedBonus;
     room.phase = 'roundEnd';
     const tsuideList = [];
     room.players.forEach((p, i) => {
@@ -386,7 +389,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const isGameOver = room.players.some(p => p.score >= (room.goal || 10));
     io.to(code).emit('round_win', {
       winnerIdx: pi, winnerName: room.players[pi].name,
-      hand: hand6, role: res.role, pts: res.pts, bonus,
+      hand: hand6, role: res.role, pts: cappedPts, bonus: cappedBonus,
       scores: room.players.map(p => ({ name: p.name, score: p.score })),
       isGameOver, tsuideList, ron: true, ronFrom: discarder.name
     });
