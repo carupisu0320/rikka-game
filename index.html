@@ -2030,9 +2030,12 @@ function declareRon(){
   const {res,hand:hand6}=found;
   const bonus=(res.noBonus?0:countZorome(hand6))+(p.riichi?1:0);
   const discarder=G.players[discardedByIdx];
-  res.bonus=bonus;res.ron=true;res.ronFrom=discarder.name;
+  res.ron=true;res.ronFrom=discarder.name;
   p.hand=hand6;
-  applyRonScoreTransfer(p,discarder,res.pts+bonus);
+  const taken=applyRonScoreTransfer(p,discarder,res.pts+bonus);
+  // 実際に奪えた額に表示を合わせる（ボーナス分から先に削る）
+  res.bonus=Math.max(0,bonus-((res.pts+bonus)-taken));
+  res.pts=taken-res.bonus;
   G.phase='roundEnd';
   launchConfetti();
   const tsuideList=[];
@@ -2061,9 +2064,11 @@ function checkBotRon(discardedByIdx){
       const {res,hand:hand6}=found;
       const bonus=(res.noBonus?0:countZorome(hand6))+(pl.riichi?1:0);
       const discarder=G.players[discardedByIdx];
-      res.bonus=bonus;res.ron=true;res.ronFrom=discarder.name;
+      res.ron=true;res.ronFrom=discarder.name;
       pl.hand=hand6;
-      applyRonScoreTransfer(pl,discarder,res.pts+bonus);
+      const taken=applyRonScoreTransfer(pl,discarder,res.pts+bonus);
+      res.bonus=Math.max(0,bonus-((res.pts+bonus)-taken));
+      res.pts=taken-res.bonus;
       G.phase='roundEnd';
       const tsuideList=[];
       G.players.forEach((p2,j)=>{
