@@ -602,7 +602,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   <div style="font-size:.82rem;color:#8a7048;margin-bottom:.5rem;letter-spacing:.06em">追加役（オプション）</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem">
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
-      <input type="checkbox" id="bot-opt-三対" checked style="accent-color:#c9a84c"> 三対（2点）
+      <input type="checkbox" id="bot-opt-三対" checked style="accent-color:#c9a84c"> 三対（5点）
     </label>
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.83rem;color:#c8b898;cursor:pointer">
       <input type="checkbox" id="bot-opt-三色" checked style="accent-color:#c9a84c"> 三色（3点）
@@ -674,7 +674,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem">
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
-      <input type="checkbox" id="room-opt-三対" checked style="accent-color:#c9a84c"> 三対（2点）
+      <input type="checkbox" id="room-opt-三対" checked style="accent-color:#c9a84c"> 三対（5点）
     </label>
     <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:#c8b898;cursor:pointer">
       <input type="checkbox" id="room-opt-三色" checked style="accent-color:#c9a84c"> 三色（3点）
@@ -767,11 +767,11 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
     <div class="rrow">
   <span class="rname">三対</span>
   <span class="rdesc">6枚を<b style="color:#f0a050">同じ牌のペア×3組</b>にする</span>
-  <span class="rpts">2点</span>
+  <span class="rpts">5点</span>
 </div>
 <div class="rrow">
   <span class="rname">三色</span>
-  <span class="rdesc">全牌の上下の数を<b style="color:#f0a050">3種類のみ</b>にする（<b style="color:#60c870">ついでに完成</b>でのみ成立）</span>
+  <span class="rdesc">全牌の上下の数を<b style="color:#f0a050">3種類のみ</b>にする（ボーナスなし／<b style="color:#60c870">ついでに完成</b>でのみ成立）</span>
   <span class="rpts">3点</span>
 </div>
 <div class="rrow">
@@ -967,7 +967,7 @@ body.back-purple .fback::after{color:rgba(160,80,255,.25)}
         <option value="輝光">輝光（5点）</option>
         <option value="三連">三連（3点）</option>
         <option value="三色">三色（3点）</option>
-        <option value="三対">三対（2点）</option>
+        <option value="三対">三対（5点）</option>
         <option value="一色">一色（1点）</option>
       </select>
       <button onclick="applyDevRikka()" class="lbtn"
@@ -1648,8 +1648,8 @@ function checkWin(hand, optRoles, forTsuide){
   if(allBotSame){const st=[...tops].sort((a,b)=>a-b);if(st.join(',') === '1,2,3,4,5,6')return{role:'六華',pts:6};}
   if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
-  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3};
-  if(use('三対')&&isSantui(hand))return{role:'三対',pts:2};
+  if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3,noBonus:true};
+  if(use('三対')&&isSantui(hand))return{role:'三対',pts:5};
   if(allBotSame)return{role:'一色',pts:1};
   return null;
 }
@@ -2138,6 +2138,7 @@ function runWinLogicTests(){
     const hand=[tile(1,2),tile(2,1,true),tile(3,4),tile(4,3,true),tile(5,6),tile(6,5,true)];
     const res=checkWin(hand,null);
     ok(res && res.role==='三対', `三対になるはずが: ${JSON.stringify(res)}`);
+    eq(res && res.pts, 5, `三対は5点のはずが: ${JSON.stringify(res)}`);
   });
   test('checkWin: 輝光（全部ゾロ目）', ()=>{
     const hand=[tile(1,1),tile(1,1),tile(2,2),tile(2,2),tile(3,3),tile(3,3)];
@@ -2168,6 +2169,7 @@ function runWinLogicTests(){
     const hand=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5),tile(5,1)];
     const res=checkWin(hand,null,true);
     ok(res && res.role==='三色', `forTsuide指定時は三色になるはずが: ${JSON.stringify(res)}`);
+    eq(res && res.noBonus, true, `三色はボーナスなしのはずが: ${JSON.stringify(res)}`);
   });
   test('【回帰テスト】canRon: 三色が完成する牌でもロンはできない', ()=>{
     const hand5=[tile(1,1),tile(3,3),tile(5,5),tile(1,3),tile(3,5)];
@@ -2182,6 +2184,8 @@ function runWinLogicTests(){
     const discarded=tile(5,1); discarded.discarded=true;
     const res=checkTsuide(hand5, [discarded], null);
     ok(res && res.role==='三色', `ついでに完成では三色になるはずが: ${JSON.stringify(res)}`);
+    eq(res && res.bonus, 0, `三色はボーナスなしのはずが: ${JSON.stringify(res)}`);
+    eq(res && res.total, 3, `三色はボーナスなしなので合計3点のはずが: ${JSON.stringify(res)}`);
   });
   test('countZorome: ゾロ目の枚数を正しく数える', ()=>{
     eq(countZorome([tile(1,1),tile(2,3),tile(4,4),tile(5,6),tile(3,3)]), 3);
@@ -2637,7 +2641,7 @@ function scoreProgress(hand, optR){
     }
   }
 
-  // ── 三対 (2pt): ペア×3 ──
+  // ── 三対 (5pt): ペア×3 ──
   if(use('三対')){
     const pf={};
     hand.forEach(t=>{const k=`${Math.min(eTop(t),eBot(t))},${Math.max(eTop(t),eBot(t))}`;pf[k]=(pf[k]||0)+1;});
@@ -2936,11 +2940,11 @@ function renderOptionalRoles() {
     return `<div class="rbtile"><div class="th">${SYM_SVG[top]}</div>${star}<div class="tb">${SYM_SVG[bot]}</div></div>`;
   }
   const roleData = [
-    { role:'三対', yomi:'サンツイ', pts:'2点',
+    { role:'三対', yomi:'サンツイ', pts:'5点',
       desc:'6枚を<b style="color:#f0a050">同じ牌のペア×3組</b>にする。',
       tiles:[[2,1],[2,1],[4,3],[4,3],[6,5],[6,5]] },
-    { role:'三色', yomi:'サンシキ', pts:'3点',
-      desc:'手牌6枚の上下すべての数が<b style="color:#f0a050">合わせて3種類のみ</b>になる。<b style="color:#60c870">「ついでに完成」でのみ成立する役で、通常の上がり・ロンでは完成できない。</b>',
+    { role:'三色', yomi:'サンシキ', pts:'3点（ボーナスなし）',
+      desc:'手牌6枚の上下すべての数が<b style="color:#f0a050">合わせて3種類のみ</b>になる。輝きボーナスはなし。<b style="color:#60c870">「ついでに完成」でのみ成立する役で、通常の上がり・ロンでは完成できない。</b>',
       tiles:[[1,3],[3,1],[5,3],[3,5],[1,5],[5,1]] },
     { role:'輝光', yomi:'キコウ', pts:'5点（ボーナスなし）',
       desc:'6枚すべてを<b style="color:#f5d040">★ゾロ目牌</b>にする。輝きボーナスはなし。',
