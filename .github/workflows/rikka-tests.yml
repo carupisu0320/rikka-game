@@ -152,7 +152,7 @@ jobs:
             'eTop', 'eBot', 'isSanren', 'isSet3', 'popcount',
             'isMusou', 'isKikou', 'isSanshiki', 'isSantui', 'countZorome',
             'checkWin', 'canRon', 'findRonWin', 'isTenpai', 'checkTsuide',
-            'makeHistoryEntry', 'saveHistory',
+            'makeHistoryEntry', 'saveHistory', 'isGameOver',
             'processWin', 'applyRonScoreTransfer', 'pickRonWinnerIdx',
             'declareRon', 'checkBotRon',
           ];
@@ -167,7 +167,7 @@ jobs:
           }
           const {
             checkWin, canRon, findRonWin, isTenpai, checkTsuide, countZorome,
-            processWin, declareRon, checkBotRon, setState,
+            processWin, declareRon, checkBotRon, setState, isGameOver,
           } = logic;
 
           // ── テスト用ヘルパー ──
@@ -295,6 +295,38 @@ jobs:
             processWin(0, res);
             // countZorome=1（3,3のみ）+ riichi 1 = bonus 2、pts 1 と合わせて3点
             assert.strictEqual(winner.score, 3, `役点1+ゾロ目1+リーチ1=3点になるはずが${winner.score}点`);
+          });
+
+          // ============================================================
+          //  ゲーム終了判定: isGameOver
+          //  回帰対象: 上がった本人ではなく「ついでに完成」側が目標点に
+          //  達した場合でもゲーム終了と判定されるか（見逃すとゲームが終わらないバグになる）
+          // ============================================================
+
+          test('【回帰テスト】isGameOver: 誰か1人でも目標点に達していればtrue', () => {
+            assert.strictEqual(isGameOver([{ score: 5 }, { score: 12 }], 10), true);
+          });
+
+          test('【回帰テスト】isGameOver: 全員が目標点未満ならfalse', () => {
+            assert.strictEqual(isGameOver([{ score: 5 }, { score: 9 }], 10), false);
+          });
+
+          test('【回帰テスト】processWin: ついでに完成側が目標点に達したら、上がった本人が未達でもゲーム終了と判定される', () => {
+            // 上がった本人はこの上がりで目標点(10)に届かない（7 → 8点）
+            const winner = player('勝者', 7, { hand: [tile(1,2), tile(3,4), tile(5,6), tile(2,3), tile(4,5), tile(6,1)] });
+            // ついでに完成する側は、この上がりのおまけで目標点(10)に届く（9 → 10点）
+            const other = player('ついで太郎', 9, { hand: [tile(1,3), tile(1,3), tile(2,3), tile(4,3), tile(5,3)] });
+            const discarded = tile(6,3); discarded.discarded = true; // 一色(1点)が完成する
+            setState({
+              G: { phase: 'playing', players: [winner, other], field: [discarded], optRoles: null, goal: 10 },
+              myOnlineIdx: 0,
+            });
+            processWin(0, { role: '一色', pts: 1 });
+            assert.strictEqual(winner.score, 8, `上がった本人は7+1=8点のはずが${winner.score}点`);
+            assert.strictEqual(other.score, 10, `ついでに完成側は9+1=10点のはずが${other.score}点`);
+            assert.ok(winner.score < 10, '上がった本人は目標点未満のはず（このケースの前提）');
+            assert.strictEqual(isGameOver([winner, other], 10), true,
+              'ついでに完成側が目標点に達しているので、上がった本人が未達でもゲーム終了と判定されるべき');
           });
 
           // ============================================================
