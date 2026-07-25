@@ -2043,7 +2043,7 @@ function declareRon(){
   const tsuideList=[];
   G.players.forEach((pl,i)=>{
     if(i===myOnlineIdx||i===discardedByIdx)return;
-    const tr=checkTsuide(pl.hand,G.field,optR);
+    const tr=checkTsuide(pl.hand,G.field,optR,pl.riichi);
     if(tr){pl.score+=tr.total;tsuideList.push({name:pl.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
   });
   showWinModal(p,res,tsuideList);
@@ -2075,7 +2075,7 @@ function checkBotRon(discardedByIdx){
       const tsuideList=[];
       G.players.forEach((p2,j)=>{
         if(j===winnerIdx||j===discardedByIdx)return;
-        const tr=checkTsuide(p2.hand,G.field,optR);
+        const tr=checkTsuide(p2.hand,G.field,optR,p2.riichi);
         if(tr){p2.score+=tr.total;tsuideList.push({name:p2.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});}
       });
       showWinModal(pl,res,tsuideList);
@@ -2094,7 +2094,7 @@ function getOptRoles(prefix){
   });
 }
 // ついでに完成チェック
-function checkTsuide(hand5, field, optR){
+function checkTsuide(hand5, field, optR, riichi){
   if(hand5.length!==5)return null;
   const discards=field.filter(t=>t.discarded);
   let bestRes=null,bestPts=-1;
@@ -2102,7 +2102,7 @@ function checkTsuide(hand5, field, optR){
     const found=findRonWin(hand5,t,optR,true); // ついでに完成でのみ三色を許可
     if(found&&found.res.pts>bestPts){
       bestPts=found.res.pts;
-      const bonus=found.res.noBonus?0:countZorome(found.hand);
+      const bonus=(found.res.noBonus?0:countZorome(found.hand))+(riichi?1:0);
       bestRes={role:found.res.role,pts:found.res.pts,bonus,total:found.res.pts+bonus};
     }
   });
@@ -2228,6 +2228,15 @@ function runWinLogicTests(){
     ok(res, 'ボーナスが成立するはず');
     eq(res.role, '一色');
   });
+  test('【回帰テスト】checkTsuide: リーチ中の「ついでに完成」にも+1点ボーナスが乗る', ()=>{
+    const hand5=[tile(1,3),tile(1,3),tile(2,3),tile(4,3),tile(5,3)];
+    const d=tile(6,3); d.discarded=true;
+    const resNoRiichi=checkTsuide(hand5,[d],null,false);
+    eq(resNoRiichi.bonus, 0, `リーチなしはボーナス0のはずが: ${JSON.stringify(resNoRiichi)}`);
+    const resRiichi=checkTsuide(hand5,[d],null,true);
+    eq(resRiichi.bonus, 1, `リーチ中は+1点ボーナスが乗るはずが: ${JSON.stringify(resRiichi)}`);
+    eq(resRiichi.total, 2, `役点1+リーチ1=2点のはずが: ${JSON.stringify(resRiichi)}`);
+  });
   test('【回帰テスト】checkTsuide: 捨て牌の反転が必要なケースでも検出する', ()=>{
     const hand5=[tile(1,3),tile(2,3),tile(4,3),tile(5,3),tile(6,3)];
     const d=tile(3,5,false); d.discarded=true;
@@ -2326,6 +2335,7 @@ function clickHand(i) {
     const h = G.players[myOnlineIdx].hand;
     [h[prev], h[i]] = [h[i], h[prev]];
     G.selIdx = -1;
+    playSound('swap');
   }
   render();
 }
@@ -2336,6 +2346,7 @@ function flipHand(e, i) {
   const tile = G.players[myOnlineIdx].hand[i];
   if (!tile) return false;
   tile.flip = !tile.flip;
+  playSound('flip');
   render();
   if (onlineMode) {
     socket?.emit('flip', { code: currentCode, tileId: tile.id });
@@ -2786,7 +2797,7 @@ function processWin(pi, res) {
   const tsuideList = [];
   G.players.forEach((p,i) => {
     if(i===pi) return;
-    const tr = checkTsuide(p.hand, G.field, optR);
+    const tr = checkTsuide(p.hand, G.field, optR, p.riichi);
     if(tr){
       p.score += tr.total;
       tsuideList.push({name:p.name, role:tr.role, pts:tr.pts, bonus:tr.bonus, total:tr.total});
@@ -3174,8 +3185,34 @@ function _getAudioCtx(){
   if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
   return _audioCtx;
 }
+// 牌の操作音（捨てる/拾う/入れ替える/反転）は、ここにファイルを指定すると
+// 合成音の代わりにそのファイルが再生される。ファイルはリポジトリの
+// sounds/ フォルダに置き、ここに書いたパスと合わせること。
+// ファイルがまだ無い/読み込めない場合は、自動的に下の合成音にフォールバックする。
+const SOUND_FILES = {
+  discard: 'sounds/discard.mp3',
+  pick:    'sounds/pick.mp3',
+  swap:    'sounds/swap.mp3',
+  flip:    'sounds/flip.mp3',
+};
+function _playSoundFile(path, fallback){
+  try{
+    const audio = new Audio(path);
+    let didFallback = false;
+    const useFallback = () => { if(didFallback) return; didFallback = true; fallback(); };
+    audio.addEventListener('error', useFallback);
+    audio.volume = soundVolume;
+    const p = audio.play();
+    if(p && typeof p.catch === 'function') p.catch(useFallback);
+  }catch(e){ fallback(); }
+}
 function playSound(kind){
   if(!soundEnabled) return;
+  const file = SOUND_FILES[kind];
+  if(file){ _playSoundFile(file, () => _playSynthSound(kind)); return; }
+  _playSynthSound(kind);
+}
+function _playSynthSound(kind){
   try{
     const ctx = _getAudioCtx();
     const fire = () => {
@@ -3221,6 +3258,13 @@ function playSound(kind){
       } else if(kind==='discard'){
         click(950,0,.05,.24);
         click(500,0,.045,.14);
+      } else if(kind==='swap'){
+        // 入れ替え：軽い二連クリック（暫定の合成音。sounds/swap.mp3 を置けば置き換わる）
+        click(1100,0,.035,.16);
+        click(1500,.045,.03,.13);
+      } else if(kind==='flip'){
+        // 反転：短いクリック1回（暫定の合成音。sounds/flip.mp3 を置けば置き換わる）
+        click(1200,0,.05,.18);
       }
     };
     if(ctx.state==='suspended'){
