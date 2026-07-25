@@ -51,7 +51,7 @@ function checkWin(hand, optRoles, forTsuide){
   if(allBot)return{role:'一色',pts:1};
   return null;
 }
-function checkTsuide(hand5, field, optRoles){
+function checkTsuide(hand5, field, optRoles, riichi){
   if(hand5.length!==5)return null;
   const discards=field.filter(t=>t.discarded);
   let bestRes=null,bestPts=-1;
@@ -59,7 +59,7 @@ function checkTsuide(hand5, field, optRoles){
     const found=findRonWinServer(hand5,t,optRoles,true); // ついでに完成でのみ三色を許可
     if(found&&found.res.pts>bestPts){
       bestPts=found.res.pts;
-      const bonus=found.res.noBonus?0:countZorome(found.hand);
+      const bonus=(found.res.noBonus?0:countZorome(found.hand))+(riichi?1:0);
       bestRes={role:found.res.role,pts:found.res.pts,bonus,total:found.res.pts+bonus};
     }
   });
@@ -143,6 +143,39 @@ function pickRonWinnerIdx(players, discardedByIdx, tile, optR) {
   });
   return bestIdx;
 }
+// 手番プレイヤー(pi)がtileを捨てたあとの共通処理：ロン可能チェック→次の手番へ。
+// 手動の捨て・リーチ中の自動捨て、どちらからも呼ばれる。
+function resolveDiscard(room, code, pi, tile) {
+  tile.discarded = true;
+  room.field.push(tile);
+  const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
+  const optR = room.roles !== undefined ? room.roles : null;
+  const winnerIdx = room.useRon ? pickRonWinnerIdx(room.players, pi, discardedTile, optR) : -1;
+  if (winnerIdx !== -1) {
+    room.ronPending = { tile: discardedTile, discardedByIdx: pi, winnerIdx };
+    io.to(room.players[winnerIdx].id).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
+    room.ronTimer = setTimeout(() => {
+      room.ronPending = null;
+      room.turn = (room.turn + 1) % room.players.length;
+      room.tphase = 'pick';
+      io.to(code).emit('ron_timeout');
+      sendState(room);
+    }, 5000);
+  } else {
+    room.turn = (room.turn + 1) % room.players.length;
+    room.tphase = 'pick';
+    sendState(room);
+  }
+}
+// 手牌がその時点で上がれる状態かどうか（全フリップ組み合わせを試す）
+function canWinNow(hand, optR) {
+  const lim = Math.min(1 << hand.length, 64);
+  for (let m = 0; m < lim; m++) {
+    const h = hand.map((t, i) => ({ ...t, flip: !!(m & (1 << i)) }));
+    if (checkWin(h, optR)) return true;
+  }
+  return false;
+}
 
 // ── ルームユーティリティ ──
 function genCode() {
@@ -157,6 +190,8 @@ function dealRound(room) {
   room.turn = Math.floor(Math.random() * room.players.length); // ← ランダムに変更
   room.tphase = 'pick';
   room.phase = 'playing';
+  if (room.forcedDiscardTimer) { clearTimeout(room.forcedDiscardTimer); room.forcedDiscardTimer = null; }
+  room.forcedDiscardTileId = null;
 }
 function sendState(room) {
   room.players.forEach((player, myIdx) => {
@@ -268,8 +303,30 @@ socket.on('pick', ({ code, fieldIdx }) => {
   if (pi !== room.turn) { socket.emit('err', `[pick] ターン違い pi=${pi} turn=${room.turn}`); return; }
   if (room.tphase !== 'pick') { socket.emit('err', `[pick] tphase=${room.tphase}`); return; }
   if (fieldIdx < 0 || fieldIdx >= room.field.length) { socket.emit('err', `[pick] インデックス範囲外 fi=${fieldIdx} len=${room.field.length}`); return; }
-  room.players[pi].hand.push(room.field.splice(fieldIdx, 1)[0]);
+  const picked = room.field.splice(fieldIdx, 1)[0];
+  const player = room.players[pi];
+  player.hand.push(picked);
   room.tphase = 'discard';
+  room.forcedDiscardTileId = null;
+  if (room.forcedDiscardTimer) { clearTimeout(room.forcedDiscardTimer); room.forcedDiscardTimer = null; }
+
+  // リーチ中：上がれる牌でない限り、引いた牌をそのまま自動で捨てる
+  if (player.riichi) {
+    const optR = room.roles !== undefined ? room.roles : null;
+    if (!canWinNow(player.hand, optR)) {
+      room.forcedDiscardTileId = picked.id;
+      sendState(room);
+      room.forcedDiscardTimer = setTimeout(() => {
+        if (!room || room.phase !== 'playing' || room.tphase !== 'discard') return;
+        const idx = player.hand.indexOf(picked);
+        if (idx === -1) return; // 手動で先に捨てられていた場合
+        room.forcedDiscardTileId = null;
+        const tile = player.hand.splice(idx, 1)[0];
+        resolveDiscard(room, code, pi, tile);
+      }, 600);
+      return;
+    }
+  }
   sendState(room);
 });
 
@@ -282,28 +339,15 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const player = room.players[pi];
     const ti = player.hand.findIndex(t => t.id === tileId);
     if (ti === -1 || player.hand.length <= 5) return;
-    const tile = player.hand.splice(ti, 1)[0];
-    tile.discarded = true;
-    room.field.push(tile);
-    // ロン可能チェック：同時ロン可能でも捨てた人から時計回りで最も近い1人だけが有効
-    const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
-    const optR = room.roles !== undefined ? room.roles : null;
-    const winnerIdx = room.useRon ? pickRonWinnerIdx(room.players, pi, discardedTile, optR) : -1;
-    if (winnerIdx !== -1) {
-      room.ronPending = { tile: discardedTile, discardedByIdx: pi, winnerIdx };
-      io.to(room.players[winnerIdx].id).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
-      room.ronTimer = setTimeout(() => {
-        room.ronPending = null;
-        room.turn = (room.turn + 1) % room.players.length;
-        room.tphase = 'pick';
-        io.to(code).emit('ron_timeout');
-        sendState(room);
-      }, 5000);
-    } else {
-      room.turn = (room.turn + 1) % room.players.length;
-      room.tphase = 'pick';
-      sendState(room);
+    // リーチ中は、自動で捨てるはずの牌以外を選ぶことはできない
+    if (player.riichi && room.forcedDiscardTileId != null && tileId !== room.forcedDiscardTileId) {
+      socket.emit('err', 'リーチ中は引いた牌をそのまま捨てる必要があります');
+      return;
     }
+    if (room.forcedDiscardTimer) { clearTimeout(room.forcedDiscardTimer); room.forcedDiscardTimer = null; }
+    room.forcedDiscardTileId = null;
+    const tile = player.hand.splice(ti, 1)[0];
+    resolveDiscard(room, code, pi, tile);
   });
 
   // 反転
@@ -385,7 +429,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     const tsuideList = [];
     room.players.forEach((p, i) => {
       if (i === pi || i === discardedByIdx) return;
-      const tr = checkTsuide(p.hand, room.field, room.roles !== undefined ? room.roles : null);
+      const tr = checkTsuide(p.hand, room.field, room.roles !== undefined ? room.roles : null, p.riichi);
       if (tr) { p.score += tr.total; tsuideList.push({ name: p.name, role: tr.role, pts: tr.pts, bonus: tr.bonus, total: tr.total }); }
     });
     const isGameOver = room.players.some(p => p.score >= (room.goal || 10));
@@ -421,7 +465,7 @@ player.score += res.pts + bonus;
     const tsuideList=[];
     room.players.forEach((p,i)=>{
       if(i===pi)return;
-      const tr=checkTsuide(p.hand,room.field,room.roles!==undefined?room.roles:null);
+      const tr=checkTsuide(p.hand,room.field,room.roles!==undefined?room.roles:null,p.riichi);
       if(tr){
         p.score+=tr.total;
         tsuideList.push({name:p.name,role:tr.role,pts:tr.pts,bonus:tr.bonus,total:tr.total});
