@@ -47,7 +47,7 @@ function checkWin(hand, optRoles, forTsuide){
   if(use('輝光')&&isKikou(hand))return{role:'輝光',pts:5,noBonus:true};
   if(isSanren(hand))return{role:'三連',pts:3};
   if(use('三色')&&forTsuide&&isSanshiki(hand))return{role:'三色',pts:3,noBonus:true};
-  if(use('三対')&&isSantui(hand))return{role:'三対',pts:5};
+  if(use('三対')&&isSantui(hand))return{role:'三対',pts:2}; // ← 5から修正（クライアント側・ルールブック表示と一致させる）
   if(allBot)return{role:'一色',pts:1};
   return null;
 }
@@ -151,21 +151,22 @@ function resolveDiscard(room, code, pi, tile) {
   const discardedTile = room.field.filter(t => t.discarded).slice(-1)[0];
   const optR = room.roles !== undefined ? room.roles : null;
   const winnerIdx = room.useRon ? pickRonWinnerIdx(room.players, pi, discardedTile, optR) : -1;
+  // ターンは即座に次の人へ進める（ロン判定待ちで全員の画面が固まらないようにするため）。
+  // ロンが成立しうる場合はronPendingを立てておき、5秒経つか次の人が牌を取るまでロン受付を続ける
+  // （実際に閉じる処理は pick ハンドラ側と、下のタイムアウトの両方で行う）。
+  room.turn = (pi + 1) % room.players.length;
+  room.tphase = 'pick';
   if (winnerIdx !== -1) {
     room.ronPending = { tile: discardedTile, discardedByIdx: pi, winnerIdx };
     io.to(room.players[winnerIdx].id).emit('ron_available', { tile: discardedTile, discardedByIdx: pi, timeout: 5000 });
     room.ronTimer = setTimeout(() => {
+      if (!room.ronPending) return; // 既に宣言 or 次の人のpickで閉じられている
       room.ronPending = null;
-      room.turn = (room.turn + 1) % room.players.length;
-      room.tphase = 'pick';
+      room.ronTimer = null;
       io.to(code).emit('ron_timeout');
-      sendState(room);
     }, 5000);
-  } else {
-    room.turn = (room.turn + 1) % room.players.length;
-    room.tphase = 'pick';
-    sendState(room);
   }
+  sendState(room);
 }
 // 手牌がその時点で上がれる状態かどうか（全フリップ組み合わせを試す）
 function canWinNow(hand, optR) {
@@ -176,8 +177,29 @@ function canWinNow(hand, optR) {
   }
   return false;
 }
+// 5枚の手牌がテンパイ（あと1枚で上がれる状態）かどうか。クライアント側isTenpaiと同じロジック。
+// リーチ宣言時にサーバー側でも本当にテンパイしているか検証するために使う。
+function isTenpaiServer(hand5, optR) {
+  if (hand5.length !== 5) return false;
+  for (let top = 1; top <= 6; top++)
+    for (let bot = 1; bot <= 6; bot++) {
+      const t = { id: 8888, top, bot, flip: false, discarded: false };
+      if (canRonServer(hand5, t, optR)) return true;
+    }
+  return false;
+}
 
 // ── ルームユーティリティ ──
+// 場の背景に使う画像URLの簡易サニタイズ。http(s)のみ許可し、
+// url(...)やHTML属性から抜け出せる引用符・バックスラッシュ・括弧を含むものは拒否する。
+function sanitizeFieldBg(url) {
+  if (typeof url !== 'string') return '';
+  url = url.trim();
+  if (url.length === 0 || url.length > 500) return '';
+  if (!/^https:\/\//i.test(url)) return '';
+  if (/["'\\()<>]/.test(url)) return '';
+  return url;
+}
 function genCode() {
   let c;
   do { c = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (rooms.has(c));
@@ -185,7 +207,7 @@ function genCode() {
 }
 function dealRound(room) {
   const deck = makeDeck(); let idx = 0;
-  room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
+  room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; p.riichi = false; });
   room.field = deck.slice(idx);
   room.turn = Math.floor(Math.random() * room.players.length); // ← ランダムに変更
   room.tphase = 'pick';
@@ -202,7 +224,7 @@ function sendState(room) {
       turn:      room.turn,
       tphase:    room.tphase,
       phase:     room.phase,
-      scores:    room.players.map(p => ({ name: p.name, score: p.score })),
+      scores:    room.players.map(p => ({ name: p.name, score: p.score, fieldBg: p.fieldBg || '' })),
       oppCounts: room.players.map((p, i) => i === myIdx ? -1 : p.hand.length),
       code:      room.code,
       optRoles:  room.roles !== undefined ? room.roles : null,
@@ -221,9 +243,9 @@ function findRoom(sid) {
 io.on('connection', socket => {
 
   // クイックマッチ
-  socket.on('quickmatch', ({ name }) => {
+  socket.on('quickmatch', ({ name, fieldBg }) => {
     if (queue.find(q => q.id === socket.id)) return;
-    queue.push({ id: socket.id, name });
+    queue.push({ id: socket.id, name, fieldBg: sanitizeFieldBg(fieldBg) });
     socket.emit('queued', { pos: queue.length });
 
 if (queue.length >= 2) {
@@ -233,8 +255,8 @@ if (queue.length >= 2) {
     code, host: p1.id,
     roles: [], // クイックマッチ: 基本役のみ
     players: [
-      { id: p1.id, name: p1.name, hand: [], score: 0 },
-      { id: p2.id, name: p2.name, hand: [], score: 0 },
+      { id: p1.id, name: p1.name, hand: [], score: 0, fieldBg: p1.fieldBg || '' },
+      { id: p2.id, name: p2.name, hand: [], score: 0, fieldBg: p2.fieldBg || '' },
     ],
     field: [], turn: 0, tphase: 'pick', phase: 'playing',
   };
@@ -254,7 +276,7 @@ if (queue.length >= 2) {
   });
 
   // ルーム作成
-socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
+socket.on('create_room', ({ name, roles, goal, useRiichi, useRon, fieldBg }) => {
     const code = genCode();
     rooms.set(code, {
       code, host: socket.id,
@@ -262,7 +284,7 @@ socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
       goal: [5,10,15,20,30].includes(goal) ? goal : 10,
       useRiichi: useRiichi || false,
       useRon: useRon || false,
-      players: [{ id: socket.id, name, hand: [], score: 0, riichi: false }],
+      players: [{ id: socket.id, name, hand: [], score: 0, riichi: false, fieldBg: sanitizeFieldBg(fieldBg) }],
       field: [], turn: 0, tphase: 'pick', phase: 'waiting',
     });
     socket.join(code);
@@ -271,7 +293,7 @@ socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
   });
 
   // ルーム参加
-  socket.on('join_room', ({ name, code }) => {
+  socket.on('join_room', ({ name, code, fieldBg }) => {
     const c = (code || '').toUpperCase().trim();
     const room = rooms.get(c);
     if (!room)                    { socket.emit('err', '部屋が見つかりません'); return; }
@@ -279,9 +301,21 @@ socket.on('create_room', ({ name, roles, goal, useRiichi, useRon }) => {
     if (room.players.length >= 4) { socket.emit('err', '部屋が満員です'); return; }
     if (room.players.some(p => p.id === socket.id)) { socket.emit('err', 'すでに参加しています'); return; }
     if (room.players.some(p => p.name === name)) { socket.emit('err', 'この名前はすでに使われています'); return; }
-    room.players.push({ id: socket.id, name, hand: [], score: 0, riichi: false });
+    room.players.push({ id: socket.id, name, hand: [], score: 0, riichi: false, fieldBg: sanitizeFieldBg(fieldBg) });
     socket.join(c);
     io.to(c).emit('room_update', { players: room.players.map(p => p.name), code: c });
+  });
+
+  // 場の背景画像を変更（対局中でも変更可能）
+  socket.on('set_field_bg', ({ code, url }) => {
+    const room = rooms.get(code);
+    if (!room) return;
+    const pi = room.players.findIndex(p => p.id === socket.id);
+    if (pi === -1) return;
+    room.players[pi].fieldBg = sanitizeFieldBg(url);
+    // まだ待機中（ゲーム未開始）の場合はstateを送らない。送ると、まだ配られていない
+    // ゲーム画面にクライアントが強制的に切り替わってしまうため。開始時に自然に反映される。
+    if (room.phase !== 'waiting') sendState(room);
   });
 
   // ゲーム開始
@@ -303,6 +337,13 @@ socket.on('pick', ({ code, fieldIdx }) => {
   if (pi !== room.turn) { socket.emit('err', `[pick] ターン違い pi=${pi} turn=${room.turn}`); return; }
   if (room.tphase !== 'pick') { socket.emit('err', `[pick] tphase=${room.tphase}`); return; }
   if (fieldIdx < 0 || fieldIdx >= room.field.length) { socket.emit('err', `[pick] インデックス範囲外 fi=${fieldIdx} len=${room.field.length}`); return; }
+  // 次の人が牌を取った時点で、前の捨て牌に対するロン受付を締め切る
+  if (room.ronPending) {
+    room.ronPending = null;
+    clearTimeout(room.ronTimer);
+    room.ronTimer = null;
+    io.to(code).emit('ron_timeout');
+  }
   const picked = room.field.splice(fieldIdx, 1)[0];
   const player = room.players[pi];
   player.hand.push(picked);
@@ -382,7 +423,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
     io.to(code).emit('rematch_waiting', { waiting, total });
     if (waiting >= total) {
       room.rematchVotes = new Set();
-      room.players.forEach(p => { p.hand = []; p.score = 0; });
+      room.players.forEach(p => { p.hand = []; p.score = 0; p.riichi = false; });
       const deck = makeDeck();
       let idx = 0;
       room.players.forEach(p => { p.hand = deck.slice(idx, idx + 5); idx += 5; });
@@ -400,8 +441,17 @@ socket.on('pick', ({ code, fieldIdx }) => {
     if (!room || room.phase !== 'playing' || !room.useRiichi) return;
     const pi = room.players.findIndex(p => p.id === socket.id);
     if (pi === -1) return;
-    room.players[pi].riichi = true;
-    io.to(code).emit('player_riichi', { name: room.players[pi].name, idx: pi });
+    const player = room.players[pi];
+    // 自分の手番・捨てる前（6枚)・未リーチであることをサーバー側でも確認する
+    if (player.riichi || pi !== room.turn || room.tphase !== 'discard' || player.hand.length !== 6) return;
+    const optR = room.roles !== undefined ? room.roles : null;
+    let tenpai = false;
+    player.hand.forEach((_, i) => {
+      if (isTenpaiServer(player.hand.filter((_, j) => j !== i), optR)) tenpai = true;
+    });
+    if (!tenpai) { socket.emit('err', 'テンパイしていません'); return; }
+    player.riichi = true;
+    io.to(code).emit('player_riichi', { name: player.name, idx: pi });
     sendState(room);
   });
 
@@ -437,7 +487,7 @@ socket.on('pick', ({ code, fieldIdx }) => {
       winnerIdx: pi, winnerName: room.players[pi].name,
       hand: hand6, role: res.role, pts: cappedPts, bonus: cappedBonus,
       scores: room.players.map(p => ({ name: p.name, score: p.score })),
-      isGameOver, tsuideList, ron: true, ronFrom: discarder.name
+      isGameOver, tsuideList, ron: true, ronFrom: discarder.name, riichi: room.players[pi].riichi
     });
   });
   socket.on('chat', ({ code, msg }) => {
@@ -481,6 +531,7 @@ player.score += res.pts + bonus;
       scores:     room.players.map(p => ({ name: p.name, score: p.score })),
       isGameOver: room.players.some(p => p.score >= (room.goal || 10)),
       tsuideList,
+      riichi:     player.riichi,
     });
   });
 
